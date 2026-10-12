@@ -58,4 +58,21 @@ activities does not matter. A missing activity raises an error.
 kept bin, in the same order as `pred`. With `blind` the kept bins are not
 contiguous, so two vectors are returned instead of one edges vector.
 
+## Back to a histogram
+
+`counts_to_histogram` turns the prediction into a `Histogram`, for example to plot
+the model at the best-fit parameters next to the data. It is the inverse of
+`get_counts` (see [Likelihood](likelihood.md)). Bins outside the fit range and in a
+blinded region are 0.
+
+```julia
+# same binning as the model: here the model used binning = 2
+template = rebin_hist(data, 2)
+
+best_fit = counts_to_histogram(model(best_params), bin_edges, template)
+```
+
+The `template` gives the full binning. Every bin in `bin_edges` must be exactly one
+bin of `template`, otherwise an error is raised.
+
 See the [API](api.md) for the full docstring.
