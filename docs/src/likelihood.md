@@ -17,19 +17,29 @@ The likelihood compares two flat vectors of the same length: the measured counts
 the prediction of the [forward model](forward_model.md). Entry `i` of both is the
 number of counts in the same energy bin. The measured counts are **not** a histogram.
 
-`get_counts` extracts them from the data histogram, using the `bin_edges` returned
-by `build_forward_model`. This guarantees that the bins match, whatever energy range,
-blinding and binning the model uses.
+`get_counts` extracts them from the data histogram `data`. It takes the lower and
+upper edge of each bin, in keV:
+
+```julia
+# 100 keV bins between 500 and 3200 keV
+low = collect(500.0:100.0:3100.0)
+bin_edges = (low = low, high = low .+ 100.0)
+
+counts = get_counts(data, bin_edges)  # Vector{Float64}, one entry per bin
+```
+
+The bins can be any bins whose edges are also edges of `data`, otherwise an error is
+raised. A bin can span several bins of `data`, which are then summed.
+
+The bin edges can also come from the forward model. `build_forward_model` returns the
+edges of the bins it predicts, whatever energy range, blinding and binning it uses.
+Using them guarantees that the measured and predicted bins match:
 
 ```julia
 model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200, binning = 2)
 
-counts = get_counts(data, bin_edges)  # Vector{Float64}, one entry per bin of the model
+counts = get_counts(data, bin_edges)
 ```
-
-`data` is a `Histogram` of the measured spectrum. The edges in `bin_edges` must be
-edges of `data`, otherwise an error is raised. If the model merges bins with
-`binning`, the data bins are summed in the same way.
 
 ## Building the likelihood
 
