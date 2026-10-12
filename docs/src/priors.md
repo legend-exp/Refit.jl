@@ -23,8 +23,9 @@ data and of the simulated spectrum, `norm` is the factor of the
 inside the window and outside the blinded region are used.
 
 Two windows are used and the smaller `a_max` is kept:
-- the fit range `[e_low, e_high]`, with a safety factor of 1.1,
-- a reference range of the source, for example around a peak, with a safety factor of 1.5.
+- the fit range `[e_low, e_high]`, with the safety factor `range_factor` (default 1.1),
+- a reference range of the source, for example around a peak, with the safety factor
+  `peak_factor` (default 1.5).
 
 ## Usage
 

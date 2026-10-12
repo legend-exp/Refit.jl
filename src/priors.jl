@@ -22,25 +22,22 @@ function get_max_norm(
     return sum(data.weights[is_valid]) / n_pdf
 end
 
-# Safety factors on the largest activity allowed by the data
-const RANGE_FACTOR = 1.1  # in the fit range
-const PEAK_FACTOR = 1.5  # in a reference range
-
 """
-    get_priors(pdfs, data; ref_ranges, e_low, e_high, blind, norm)
+    get_priors(pdfs, data; ref_ranges, e_low, e_high, blind, norm,
+               range_factor, peak_factor)
 
-Guess a range `0 .. a_max` for the activity of each simulated spectrum in
+Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
 `pdfs` (a `Dict(name => Histogram)`), based on the measured spectrum `data`.
 Returns `Dict(name => Interval)`.
 
-These are not real priors. They come from the data and only limit the range of the
-fit to improve convergence. Use external knowledge for informative priors.
+These are not real informative priors. They come from the data and only limit the range of the
+fit to improve convergence. We can also use external knowledge for informative priors.
 
 `a_max` is the largest activity for which the prediction stays below the data, in
-a window: the safety factor times [`get_max_norm`](@ref) divided by `norm`. It is the
+a window: a safety factor times [`get_max_norm`](@ref) divided by `norm`. It is the
 smaller of two values:
-- the value in the fit range `[e_low, e_high]`, with a safety factor of 1.1,
-- the value in the reference range of the source, with a safety factor of 1.5.
+- the value in the fit range `[e_low, e_high]`, times `range_factor` (default 1.1),
+- the value in the reference range of the source, times `peak_factor` (default 1.5).
 
 `ref_ranges` is a `Dict(key => (low, high))` with energy ranges in keV, for example
 around a peak. A spectrum uses the range of the longest key that its name starts
@@ -56,17 +53,19 @@ function get_priors(
     e_high::Real = 4000,
     blind::Union{Tuple{Real,Real},Nothing} = nothing,
     norm::Real = 1,
+    range_factor::Real = 1.1,
+    peak_factor::Real = 1.5,
 )
     priors = Dict{Symbol,Interval{:closed,:closed,Float64}}()
     for (name, pdf) in pdfs
-        a_max = RANGE_FACTOR * get_max_norm(e_low, e_high, data, pdf; blind) / norm
+        a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; blind) / norm
         isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
 
         matching =
             filter(k -> startswith(string(name), string(k)), collect(keys(ref_ranges)))
         if !isempty(matching)
             low, high = ref_ranges[argmax(k -> length(string(k)), matching)]
-            a_ref = PEAK_FACTOR * get_max_norm(low, high, data, pdf; blind) / norm
+            a_ref = peak_factor * get_max_norm(low, high, data, pdf; blind) / norm
             a_max = min(a_max, a_ref)
         end
         priors[name] = 0.0 .. a_max
