@@ -27,7 +27,7 @@ include("example_data.jl")
 ```@example demo
 # 100 keV bins between 500 and 3200 keV
 low = collect(500.0:100.0:3100.0)
-bin_edges = (low = low, high = low .+ 100.0)
+bin_edges = (low = low, high = low .+ 100.0);
 
 counts = get_counts(data, bin_edges)  # Vector{Float64}, one entry per bin
 ```
@@ -46,7 +46,7 @@ model, bin_edges = build_forward_model(
     e_high = 3200,
     binning = 2,
     norm = 1e-3 * livetime,
-)
+);
 
 counts = get_counts(data, bin_edges)
 length(counts), counts[1:3]
@@ -57,7 +57,7 @@ length(counts), counts[1:3]
 ```@example demo
 using DensityInterface
 
-likelihood = build_likelihood(counts, model)
+likelihood = build_likelihood(counts, model);
 
 params = (activities = (
     K40_hpge_bulk = 40.0,

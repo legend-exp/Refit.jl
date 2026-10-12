@@ -24,7 +24,13 @@ keys(mc_dict)
 ```
 
 ```@example demo
-model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200)
+model, bin_edges = build_forward_model(
+    mc_dict;
+    e_low = 500,
+    e_high = 3200,
+    norm = 1e-3 * livetime,  # mBq to Bq, times the livetime in seconds
+)
+nothing # hide
 ```
 
 `model` is the function mapping parameters to predicted counts, `bin_edges` describes
@@ -43,27 +49,21 @@ All histograms must have the same binning.
 ## Calling the model
 
 The parameters are a named tuple with one activity per spectrum, named after the
-dictionary keys. The activities here are in mBq, so `norm` must convert them to
-counts:
+dictionary keys. Here the activities are in mBq, which `norm` converts to counts:
 
 ```@example demo
-model, bin_edges = build_forward_model(
-    mc_dict;
-    e_low = 500,
-    e_high = 3200,
-    norm = 1e-3 * livetime,  # mBq to Bq, times the livetime in seconds
-)
-
 params = (activities = (
     K40_hpge_bulk = 40.0,
     Pb212_to_Pb208_hpge_bulk = 10.0,
     two_vbb_hpge_bulk = 100.0,
 ),)
 
-pred = model(params)
+pred = model(params);
+pred[1:3]  # the first three bins
 ```
 
-`pred` is a flat vector with one entry per kept bin. Entry `i` is the sum over all
+`pred` is a flat vector with one entry per kept bin, here
+`length(pred)` = 270. Entry `i` is the sum over all
 spectra of `activity * norm * (counts in the simulated bin)`. The order of the
 activities does not matter. A missing activity raises an error.
 
