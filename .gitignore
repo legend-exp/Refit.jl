@@ -1,0 +1,63 @@
+# === Julia build and package artifacts ===
+/Manifest.toml
+/.DS_Store
+/.vscode/
+/.julia/
+*.jl.cov
+*.jl.mem
+*.ji
+
+# === Julia compiled packages ===
+/deps/build.log
+/deps/usr/
+/deps/src/
+
+# === Testing & benchmarking ===
+/test/Manifest.toml
+/test/tmp/
+/test/output/
+/benchmark/results/
+
+# === Pre-commit and cache files ===
+/.pre-commit-config.yaml~
+/.pre-commit-hooks.yaml~
+/.pre-commit/
+/.cache/
+/pytest_cache/
+*.pyc
+__pycache__/
+
+# === GitHub Actions ===
+/.github/*.log
+/.github/workflows/*.tmp
+
+# === Notebooks and temporary data ===
+*.ipynb_checkpoints
+*.swp
+*.swo
+*.tmp
+*.bak
+*~
+
+# === OS-specific ===
+.DS_Store
+Thumbs.db
+
+# === Editor / IDE ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === Coverage ===
+/coverage/
+*.lcov
+*.info
+
+# === Logs ===
+*.log
+
+# === Local environments ===
+.env
+.venv/
+venv/

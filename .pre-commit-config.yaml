@@ -1,0 +1,28 @@
+repos:
+  # --- JuliaFormatter via local hook ---
+  - repo: local
+    hooks:
+      - id: julia-format
+        name: JuliaFormatter
+        entry: julia --color=yes -e 'using JuliaFormatter; format(".")'
+        language: system
+        files: '\.jl$'
+        pass_filenames: false
+
+  # --- General-purpose checks ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # --- Optional: commit message style ---
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v2.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
