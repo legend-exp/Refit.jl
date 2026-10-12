@@ -50,6 +50,19 @@ using Test
         @test priors[:K40_hpge_bulk] == 0.0 .. peak_max
         @test priors[:other_source] == 0.0 .. peak_max
 
+        # safety factors
+        priors = get_priors(
+            pdfs,
+            data;
+            ref_ranges = Dict(:K40 => (400, 600)),
+            e_low = 100,
+            e_high = 900,
+            range_factor = 2,
+            peak_factor = 3,
+        )
+        @test priors[:K40_hpge_bulk] == 0.0 .. (3 * 40 / 20)
+        @test priors[:other_source] == 0.0 .. (2 * 340 / 80)
+
         # blinding and norm
         priors = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 2)
         @test priors[:other_source] == 0.0 .. (range_max / 2)
