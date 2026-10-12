@@ -59,23 +59,7 @@ samples =  bat_sample(....)
 # plots saving etc
 ```
 
-### Forward model
-
-The parameters are a named tuple with one activity per MC pdf, named after the
-dictionary keys. The model returns the predicted counts in each bin between `e_low`
-and `e_high`. Each pdf is scaled by `activity * norm`, where `norm` (default 1) can
-hold unit conversions and the livetime.
-
-```julia
-params = (activities = (Ar39_liquid_argon = 1000.0, two_vbb_hpge_bulk = 0.5),)
-pred = model(params)
-
-# lower and upper edges (keV) of the predicted bins
-bin_edges.low, bin_edges.high
-```
-
-The order of the activities does not matter. The model allocates only the output
-array, which keeps it fast in sampling loops. This works for up to about 30 pdfs.
+The forward model is described in the [user manual](docs/forward_model.md).
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
