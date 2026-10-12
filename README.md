@@ -1,6 +1,5 @@
 # Refit.jl
 
-[![Build Status](https://github.com/tdixon97/Refit.jl/workflows/CI/badge.svg)](https://github.com/tdixon97/Refit.jl/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/tdixon97/Refit.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tdixon97/Refit.jl)
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
