@@ -1,6 +1,5 @@
 """
-    build_forward_model(pdfs; e_low = 500, e_high = 4000, blind = nothing,
-                        norm = 1, binning = 1)
+    build_forward_model(pdfs; e_low, e_high, blind, norm, binning)
 
 Build a function that maps fit parameters to the predicted counts per energy bin.
 
