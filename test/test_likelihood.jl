@@ -38,3 +38,34 @@ end
     wrong_length = build_likelihood([1.0, 2.0], model)
     @test_throws DimensionMismatch logdensityof(wrong_length, params)
 end
+
+@testset "counts_to_histogram" begin
+    template = Histogram(0.0:1000.0:5000.0, [1.0, 2.0, 3.0, 4.0, 5.0])
+    bin_edges = (low = [1000.0, 3000.0], high = [2000.0, 4000.0])
+
+    h = counts_to_histogram([7.0, 9.0], bin_edges, template)
+    @test h isa Histogram
+    @test h.edges == template.edges
+    @test h.weights == [0.0, 7.0, 0.0, 9.0, 0.0]
+
+    # inverse of get_counts
+    @test get_counts(h, bin_edges) == [7.0, 9.0]
+
+    # a model bin must be exactly one bin of the template
+    @test_throws ArgumentError counts_to_histogram(
+        [1.0],
+        (low = [1000.0], high = [3000.0]),
+        template,
+    )
+    @test_throws ArgumentError counts_to_histogram(
+        [1.0],
+        (low = [500.0], high = [1500.0]),
+        template,
+    )
+    @test_throws ArgumentError counts_to_histogram(
+        [1.0],
+        (low = [4000.0], high = [6000.0]),
+        template,
+    )
+    @test_throws DimensionMismatch counts_to_histogram([1.0], bin_edges, template)
+end

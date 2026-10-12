@@ -81,3 +81,37 @@ function get_counts(data::Histogram{<:Real,1}, bin_edges::NamedTuple{(:low, :hig
         throw(DimensionMismatch("bin_edges.low and bin_edges.high differ in length"))
     return Float64[integrate_hist(data, lo, hi) for (lo, hi) in zip(bin_edges...)]
 end
+
+"""
+    counts_to_histogram(counts, bin_edges, template::Histogram)
+
+Turn a flat vector of `counts` back into a `Histogram`, for example to plot the
+model prediction. This is the inverse of [`get_counts`](@ref).
+
+`counts[i]` is the content of the bin between `bin_edges.low[i]` and
+`bin_edges.high[i]`. Each of these bins must be exactly one bin of `template`.
+The result has the edges of `template`. Bins of `template` that are not in
+`bin_edges`, such as bins outside the fit range or in a blinded region, are 0.
+
+If the model merges bins with `binning`, use `rebin_hist(data, binning)` as
+`template`.
+"""
+function counts_to_histogram(
+    counts::AbstractVector{<:Real},
+    bin_edges::NamedTuple{(:low, :high)},
+    template::Histogram{<:Real,1},
+)
+    length(counts) == length(bin_edges.low) == length(bin_edges.high) || throw(
+        DimensionMismatch("counts, bin_edges.low and bin_edges.high differ in length"),
+    )
+
+    edges = template.edges[1]
+    weights = zeros(Float64, length(edges) - 1)
+    for (c, lo, hi) in zip(counts, bin_edges.low, bin_edges.high)
+        i = searchsortedfirst(edges, lo)
+        (i < length(edges) && edges[i] ≈ lo && edges[i+1] ≈ hi) ||
+            throw(ArgumentError("[$lo, $hi] is not a bin of the template histogram"))
+        weights[i] = c
+    end
+    return Histogram(template.edges, weights)
+end
