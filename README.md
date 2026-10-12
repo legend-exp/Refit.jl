@@ -30,23 +30,24 @@ using Refit
 # read the data as a Histogram
 data = read_hist("hist/spectrum",data_file)
 
-# dictionary of MC pdfs to fit
-mc_dict = Dict()
-mc_dict["Ar39_liquid_argon"] =  read_hist("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5")
-mc_dict["2vbb_hpge_bulk"] =  read_hist("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5")
-# ...
+# dictionary of MC pdfs to fit, the keys are Symbols and name the parameters
+mc_dict = Dict(
+    :Ar39_liquid_argon => read_hist("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5"),
+    :two_vbb_hpge_bulk => read_hist("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5"),
+    # ...
+)
 
-# define priors (by hand, from input files or from the data)
+# define priors (by hand, from input files or from the data), with the same keys
 priors = Dict()
-priors["Ar39_liquid_argon"] = 0.. 2000
-priors["2vbb_hpge_bulk"] = 0.. 2
+priors[:Ar39_liquid_argon] = 0.. 2000
+priors[:two_vbb_hpge_bulk] = 0.. 2
 # ...
 
 # convert to a distribution
 prior_dist = get_prior_dist(priors)
 
-# get a model mapping parameters to data
-model = forward_model(mc_dict; kwargs ...)
+# get a model mapping parameters to data, and the edges of the bins it predicts
+model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200)
 
 # build a likelihood / posterior
 likelihood = build_likelihood(data, model,e_low = 500, e_high = 3200)
@@ -57,6 +58,24 @@ samples =  bat_sample(....)
 
 # plots saving etc
 ```
+
+### Forward model
+
+The parameters are a named tuple with one activity per MC pdf, named after the
+dictionary keys. The model returns the predicted counts in each bin between `e_low`
+and `e_high`. Each pdf is scaled by `activity * norm`, where `norm` (default 1) can
+hold unit conversions and the livetime.
+
+```julia
+params = (activities = (Ar39_liquid_argon = 1000.0, two_vbb_hpge_bulk = 0.5),)
+pred = model(params)
+
+# lower and upper edges (keV) of the predicted bins
+bin_edges.low, bin_edges.high
+```
+
+The order of the activities does not matter. The model allocates only the output
+array, which keeps it fast in sampling loops. This works for up to about 30 pdfs.
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
