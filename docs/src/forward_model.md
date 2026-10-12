@@ -1,9 +1,18 @@
 # Forward model
 
-`build_forward_model` turns a set of simulated energy spectra into a function that
-maps fit parameters to the predicted counts in each energy bin.
+The forward model is a function mapping the parameters of interest onto the predicted
+counts. Here the parameters are the activities of the simulated sources, for example
+the decay rate of one isotope in one detector component. The prediction is the
+expected number of counts in each energy bin of the measured spectrum.
+
+`build_forward_model` turns a set of simulated energy spectra into such a function.
+It maps the activities to the predicted counts in each energy bin.
 
 ## Building the model
+
+This is a simplified example with two simulated spectra. A real fit has many more,
+one for each source and each location in the setup. The spectrum names and the
+file names are only examples.
 
 ```julia
 using Refit, StatsBase
@@ -30,7 +39,8 @@ All histograms must have the same binning.
 ## Calling the model
 
 The parameters are a named tuple with one activity per spectrum, named after the
-dictionary keys:
+dictionary keys. The activities here are made-up numbers, as in the example above
+with two spectra:
 
 ```julia
 params = (activities = (Ar39_liquid_argon = 1000.0, two_vbb_hpge_bulk = 0.5),)
