@@ -48,13 +48,4 @@ activities does not matter. A missing activity raises an error.
 kept bin, in the same order as `pred`. With `blind` the kept bins are not
 contiguous, so two vectors are returned instead of one edges vector.
 
-## Performance
-
-The model is meant for sampling loops. Each call allocates only the output array.
-The spectra and activities are stored as named tuples and the loop over spectra is
-unrolled when the model is built, which works for up to about 30 spectra. With more,
-each call makes extra small allocations and is slower.
-
-The tests check this with `@inferred` and `@allocated`.
-
 See the [API](api.md) for the full docstring.

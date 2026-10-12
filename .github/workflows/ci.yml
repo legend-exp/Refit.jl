@@ -38,7 +38,27 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   # ----------------------------------------------------------------------
-  # 2️⃣ Julia tests via Aqua.jl
+  # 2️⃣ Build the documentation
+  # ----------------------------------------------------------------------
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Add LegendJuliaRegistry
+        run: julia -e 'using Pkg; pkg"registry add General https://github.com/legend-exp/LegendJuliaRegistry.git"'
+      - name: Install documentation environment
+        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+      - name: Build documentation
+        run: julia --project=docs docs/make.jl
+
+  # ----------------------------------------------------------------------
+  # 3️⃣ Julia tests via Aqua.jl
   # ----------------------------------------------------------------------
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
