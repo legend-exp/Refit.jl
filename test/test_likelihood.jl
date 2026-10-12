@@ -40,32 +40,28 @@ end
 end
 
 @testset "counts_to_histogram" begin
-    template = Histogram(0.0:1000.0:5000.0, [1.0, 2.0, 3.0, 4.0, 5.0])
+    # a gap between the bins becomes one bin with 0 counts
     bin_edges = (low = [1000.0, 3000.0], high = [2000.0, 4000.0])
-
-    h = counts_to_histogram([7.0, 9.0], bin_edges, template)
+    h = counts_to_histogram([7.0, 9.0], bin_edges)
     @test h isa Histogram
-    @test h.edges == template.edges
-    @test h.weights == [0.0, 7.0, 0.0, 9.0, 0.0]
+    @test h.edges[1] == [1000.0, 2000.0, 3000.0, 4000.0]
+    @test h.weights == [7.0, 0.0, 9.0]
 
     # inverse of get_counts
     @test get_counts(h, bin_edges) == [7.0, 9.0]
 
-    # a model bin must be exactly one bin of the template
+    # contiguous bins: no gap bin
+    h = counts_to_histogram([1.0, 2.0], (low = [0.0, 1000.0], high = [1000.0, 2000.0]))
+    @test h.edges[1] == [0.0, 1000.0, 2000.0]
+    @test h.weights == [1.0, 2.0]
+
     @test_throws ArgumentError counts_to_histogram(
-        [1.0],
-        (low = [1000.0], high = [3000.0]),
-        template,
+        [1.0, 2.0],
+        (low = [0.0, 500.0], high = [1000.0, 2000.0]),
     )
     @test_throws ArgumentError counts_to_histogram(
-        [1.0],
-        (low = [500.0], high = [1500.0]),
-        template,
+        Float64[],
+        (low = Float64[], high = Float64[]),
     )
-    @test_throws ArgumentError counts_to_histogram(
-        [1.0],
-        (low = [4000.0], high = [6000.0]),
-        template,
-    )
-    @test_throws DimensionMismatch counts_to_histogram([1.0], bin_edges, template)
+    @test_throws DimensionMismatch counts_to_histogram([1.0], bin_edges)
 end

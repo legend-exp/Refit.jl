@@ -61,18 +61,14 @@ contiguous, so two vectors are returned instead of one edges vector.
 ## Back to a histogram
 
 `counts_to_histogram` turns the prediction into a `Histogram`, for example to plot
-the model at the best-fit parameters next to the data. It is the inverse of
-`get_counts` (see [Likelihood](likelihood.md)). Bins outside the fit range and in a
-blinded region are 0.
+the model at the best-fit parameters. It is the inverse of `get_counts`
+(see [Likelihood](likelihood.md)).
 
 ```julia
-# same binning as the model: here the model used binning = 2
-template = rebin_hist(data, 2)
-
-best_fit = counts_to_histogram(model(best_params), bin_edges, template)
+best_fit = counts_to_histogram(model(best_params), bin_edges)
 ```
 
-The `template` gives the full binning. Every bin in `bin_edges` must be exactly one
-bin of `template`, otherwise an error is raised.
+The histogram covers the fit range, from `bin_edges.low[1]` to `bin_edges.high[end]`.
+A blinded region inside the range becomes one bin with 0 counts.
 
 See the [API](api.md) for the full docstring.
