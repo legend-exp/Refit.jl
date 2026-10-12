@@ -1,6 +1,6 @@
 # Refit.jl
 
-[![Codecov](https://codecov.io/gh/tdixon97/Refit.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tdixon97/Refit.jl)
+[![Codecov](https://codecov.io/gh/legend-exp/Refit.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/legend-exp/Refit.jl)
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
