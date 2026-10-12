@@ -1,5 +1,7 @@
 # === Julia build and package artifacts ===
 /Manifest.toml
+/docs/Manifest.toml
+/docs/build/
 /.DS_Store
 /.vscode/
 /.julia/
