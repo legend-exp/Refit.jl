@@ -10,21 +10,25 @@ It maps the activities to the predicted counts in each energy bin.
 
 ## Building the model
 
-This is a simplified example with two simulated spectra. A real fit has many more,
-one for each source and each location in the setup. The spectrum names and the
-file names are only examples.
+The examples in this manual use made-up spectra with three simulated sources, defined
+in `example_data.jl`. A real fit has many more, one for each source and each location
+in the setup. The simulated spectra are a dictionary of `Histogram`s with the energy
+in keV, and all have the same binning:
 
-```julia
-using Refit, StatsBase
+```@setup demo
+include("example_data.jl")
+```
 
-# simulated spectra (1D histograms, energy in keV) with identical binning
-mc_dict = Dict(
-    :Ar39_liquid_argon => read_hist("hist/spectrum", "Ar39_liquid_argon.lh5"),
-    :two_vbb_hpge_bulk => read_hist("hist/spectrum", "2vbb_hpge_bulk.lh5"),
-)
+```@example demo
+keys(mc_dict)
+```
 
+```@example demo
 model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200)
 ```
+
+`model` is the function mapping parameters to predicted counts, `bin_edges` describes
+its bins (see below).
 
 The keys of `mc_dict` must be `Symbol`s. They name the fit parameters.
 All histograms must have the same binning.
@@ -39,24 +43,45 @@ All histograms must have the same binning.
 ## Calling the model
 
 The parameters are a named tuple with one activity per spectrum, named after the
-dictionary keys. The activities here are made-up numbers, as in the example above
-with two spectra:
+dictionary keys. The activities here are in mBq, so `norm` must convert them to
+counts:
 
-```julia
-params = (activities = (Ar39_liquid_argon = 1000.0, two_vbb_hpge_bulk = 0.5),)
+```@example demo
+model, bin_edges = build_forward_model(
+    mc_dict;
+    e_low = 500,
+    e_high = 3200,
+    norm = 1e-3 * livetime,  # mBq to Bq, times the livetime in seconds
+)
+
+params = (activities = (
+    K40_hpge_bulk = 40.0,
+    Pb212_to_Pb208_hpge_bulk = 10.0,
+    two_vbb_hpge_bulk = 100.0,
+),)
+
 pred = model(params)
 ```
 
-`pred` has one entry per kept bin: the sum over all spectra of
-`activity * norm * (counts in the simulated bin)`. Use `norm` for unit conversions
-and the livetime, for example `norm = 1e-3 * livetime`. The order of the
+`pred` is a flat vector with one entry per kept bin. Entry `i` is the sum over all
+spectra of `activity * norm * (counts in the simulated bin)`. The order of the
 activities does not matter. A missing activity raises an error.
 
 ## Bin edges
 
-`bin_edges = (low = ..., high = ...)` holds the lower and upper edge in keV of each
-kept bin, in the same order as `pred`. With `blind` the kept bins are not
-contiguous, so two vectors are returned instead of one edges vector.
+`bin_edges` holds the lower and upper edge in keV of each kept bin, in the same order
+as `pred`:
+
+```@example demo
+bin_edges.low[1:3], bin_edges.high[1:3]
+```
+
+```@example demo
+length(pred) == length(bin_edges.low)
+```
+
+With `blind` the kept bins are not contiguous, so two vectors are returned instead of
+one edges vector.
 
 ## Back to a histogram
 
@@ -64,8 +89,9 @@ contiguous, so two vectors are returned instead of one edges vector.
 the model at the best-fit parameters. It is the inverse of `get_counts`
 (see [Likelihood](likelihood.md)).
 
-```julia
-best_fit = counts_to_histogram(model(best_params), bin_edges)
+```@example demo
+best_fit = counts_to_histogram(pred, bin_edges)
+best_fit.edges[1][[1, end]], length(best_fit.weights)
 ```
 
 The histogram covers the fit range, from `bin_edges.low[1]` to `bin_edges.high[end]`.
