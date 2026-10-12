@@ -13,3 +13,6 @@ This includes:
 - Automatic handeling of priors and initial parameter ranges,
 - Dedicated methods to incorportate systematic uncertainties,
 - Plotting and saving outputs.
+
+
+> Warning: `Refit.jl` is still under heavy development, use at your risk!
