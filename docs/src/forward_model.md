@@ -58,8 +58,7 @@ params = (activities = (
     two_vbb_hpge_bulk = 100.0,
 ),)
 
-pred = model(params);
-pred[1:3]  # the first three bins
+pred = model(params)
 ```
 
 `pred` is a flat vector with one entry per kept bin, here
@@ -73,7 +72,11 @@ activities does not matter. A missing activity raises an error.
 as `pred`:
 
 ```@example demo
-bin_edges.low[1:3], bin_edges.high[1:3]
+bin_edges.low
+```
+
+```@example demo
+bin_edges.high
 ```
 
 ```@example demo
@@ -91,7 +94,6 @@ the model at the best-fit parameters. It is the inverse of `get_counts`
 
 ```@example demo
 best_fit = counts_to_histogram(pred, bin_edges)
-best_fit.edges[1][[1, end]], length(best_fit.weights)
 ```
 
 The histogram covers the fit range, from `bin_edges.low[1]` to `bin_edges.high[end]`.
