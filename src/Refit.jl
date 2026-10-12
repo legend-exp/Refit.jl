@@ -1,5 +1,7 @@
 module Refit
 
+using StatsBase
+
 include("hist_utils.jl")
 include("likelihood.jl")
 

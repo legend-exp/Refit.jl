@@ -1,107 +1,66 @@
-using StatsBase
-
-
 """
-    rebin_hist(h::Histogram, factor::Int) -> Histogram
+    rebin_hist(h::Histogram, factor::Int)
 
-Rebins a 1D `StatsBase.Histogram` by combining `factor` consecutive bins.
-
-- Returns a new `Histogram` with rebinned weights and edges.
-- Works even if the number of original bins isn’t divisible by `factor`.
-- Ensures the constructor uses the correct tuple-of-edges format.
+Combine every `factor` consecutive bins of a 1D histogram.
+If the number of bins is not divisible by `factor`, the last new bin is narrower.
 """
 function rebin_hist(h::Histogram{<:Real,1}, factor::Int)
-    @assert factor ≥ 1 "Factor must be ≥ 1"
+    factor ≥ 1 || throw(ArgumentError("factor must be ≥ 1"))
 
-    old_weights = h.weights
-    old_edges = h.edges[1]  # extract 1D edges
+    weights = h.weights
+    edges = h.edges[1]
 
-    # Combine weights
-    new_weights =
-        [sum(old_weights[i:min(i+factor-1, end)]) for i = 1:factor:length(old_weights)]
+    new_weights = [sum(weights[i:min(i + factor - 1, end)]) for i = 1:factor:length(weights)]
 
-    # Create new edges
-    new_edges = old_edges[1:factor:end]
-    if new_edges[end] != old_edges[end]
-        push!(new_edges, old_edges[end])  # ensure last edge matches original
-    end
+    new_edges = collect(edges[1:factor:end])
+    new_edges[end] == edges[end] || push!(new_edges, edges[end])
 
-    # Construct a new StatsBase.Histogram properly
     return Histogram((new_edges,), new_weights)
 end
 
 """
-    add_histograms(hs::Vector{Histogram}) -> Histogram
+    add_histograms(hs::Vector{<:Histogram})
 
-Adds a vector of histograms with the same binning.
-- Returns a new `Histogram` with combined weights.
-- Throws an error if the bin edges do not match.
-
+Sum the weights of histograms that share the same binning.
 """
 function add_histograms(hs::Vector{<:Histogram})
-    # construct and return the result
-
-    weights = zeros(size(hs[1].weights))
-    for h in hs
-
-        h.edges == hs[1].edges || error("Histogram binning mismatch")
-        weights .+= h.weights
-    end
-    return Histogram(hs[1].edges, weights)
+    all(h -> h.edges == hs[1].edges, hs) || error("Histogram binning mismatch")
+    return Histogram(hs[1].edges, sum(h.weights for h in hs))
 end
-
-
 
 """
     integrate_hist(h::Histogram{<:Any,1}, a, b)
 
-Integrate a 1D histogram over [a, b], assuming `a` and `b`
-are exactly bin edges.
+Total counts (sum of weights) of a 1D histogram between `a` and `b`,
+which must both lie on bin edges.
 """
 function integrate_hist(h::Histogram{<:Any,1}, a, b)
     edges = h.edges[1]
-    weights = h.weights
 
-    # Find bin indices
     i_start = searchsortedfirst(edges, a)
-    i_end = searchsortedfirst(edges, b) - 1
+    i_end = searchsortedfirst(edges, b)
 
-    # Sanity check (optional but useful)
-    @assert edges[i_start] == a "a must align with a bin edge"
-    @assert edges[i_end+1] == b "b must align with a bin edge"
+    (i_start ≤ length(edges) && edges[i_start] ≈ a) ||
+        throw(ArgumentError("a = $a must be a bin edge"))
+    (i_end ≤ length(edges) && edges[i_end] ≈ b) ||
+        throw(ArgumentError("b = $b must be a bin edge"))
 
-    widths = diff(edges)
-
-    total = 0.0
-    for i = i_start:i_end
-        total += weights[i] * widths[i]
-    end
-
-    return total
+    return sum(@view h.weights[i_start:(i_end-1)])
 end
 
 """
-    get_valid_bins(edges::AbstractVector{Real}, range::Tuple, blind::Bool = nothing)
+    get_valid_bins(edges, range, blind = nothing)
 
-Get bins that are fully inside a specified range and optionally outside a blind region.
-- `edges`: Vector of bin edges.
-- `range`: Tuple specifying the main range (min, max).
-- `blind`: Optional tuple specifying a blind region (min, max) to exclude.
-- Returns a boolean array indicating valid bins.
+Boolean mask of bins fully inside `range = (min, max)` and, if `blind = (min, max)`
+is given, fully outside the blinded region.
 """
-function get_valid_bins(edges::AbstractVector{Real}, range::Tuple, blind::Bool = nothing)
-    # Bin edges
+function get_valid_bins(edges::AbstractVector{<:Real}, range::Tuple, blind = nothing)
     bin_starts = edges[1:(end-1)]
     bin_ends = edges[2:end]
 
-    # Fully inside the main range
     inside_main = (bin_starts .>= range[1]) .& (bin_ends .<= range[2])
+    isnothing(blind) && return inside_main
 
-    if blind == nothing
-        return inside_main
-    end
-    # Fully outside the central exclusion (optional)
-    outside_central = (bin_ends .<= blind[1]) .| (bin_starts .>= blind[2])
-    return inside_main .& outside_central
-
+    outside_blind = (bin_ends .<= blind[1]) .| (bin_starts .>= blind[2])
+    return inside_main .& outside_blind
 end
