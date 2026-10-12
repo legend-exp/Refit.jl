@@ -10,7 +10,7 @@ function rebin_hist(h::Histogram{<:Real,1}, factor::Int)
     weights = h.weights
     edges = h.edges[1]
 
-    new_weights = [sum(weights[i:min(i + factor - 1, end)]) for i = 1:factor:length(weights)]
+    new_weights = [sum(weights[i:min(i+factor-1, end)]) for i = 1:factor:length(weights)]
 
     new_edges = collect(edges[1:factor:end])
     new_edges[end] == edges[end] || push!(new_edges, edges[end])
