@@ -28,7 +28,7 @@ A minimal fit can be performed with:
 using Refit
 
 # read the data as a Histogram
-data = read_hist("hist/spectrum",data_file) 
+data = read_hist("hist/spectrum",data_file)
 
 # dictionary of MC pdfs to fit
 mc_dict = Dict()
@@ -40,7 +40,7 @@ mc_dict["2vbb_hpge_bulk"] =  read_hist("hist/spectrum","$mc_files/2vbb_hpge_bulk
 priors = Dict()
 priors["Ar39_liquid_argon"] = 0.. 2000
 priors["2vbb_hpge_bulk"] = 0.. 2
-# ... 
+# ...
 
 # convert to a distribution
 prior_dist = get_prior_dist(priors)
@@ -57,3 +57,8 @@ samples =  bat_sample(....)
 
 # plots saving etc
 ```
+
+More advanced functionality includes:
+- Extraction of reasonable uniform priors from the data
+- Variation of simulated Histograms based on systematic uncertainties
+- Simulataneous fits of multiple data spectra
