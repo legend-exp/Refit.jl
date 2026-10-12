@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Refit = "25c10485-62ee-4db8-aac8-96ff0b0b3b5a"
+
+[sources]
+Refit = {path = ".."}

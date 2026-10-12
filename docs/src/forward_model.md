@@ -56,3 +56,5 @@ unrolled when the model is built, which works for up to about 30 spectra. With m
 each call makes extra small allocations and is slower.
 
 The tests check this with `@inferred` and `@allocated`.
+
+See the [API](api.md) for the full docstring.

@@ -47,10 +47,10 @@ priors[:two_vbb_hpge_bulk] = 0.. 2
 prior_dist = get_prior_dist(priors)
 
 # get a model mapping parameters to data, and the edges of the bins it predicts
-model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200)
+model, bin_edges = build_forward_model(mc_dict; bin = 20, e_low = 500, e_high = 3200)
 
 # build a likelihood / posterior
-likelihood = build_likelihood(data, model,e_low = 500, e_high = 3200)
+likelihood = build_likelihood(data, model)
 posterior = PosteriorMeasure(likelihood, prior_dist)
 
 # sample
@@ -59,7 +59,7 @@ samples =  bat_sample(....)
 # plots saving etc
 ```
 
-The forward model is described in the [user manual](docs/forward_model.md).
+The forward model is described in the [user manual](docs/src/forward_model.md).
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
