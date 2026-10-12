@@ -20,7 +20,11 @@ number of counts in the same energy bin. The measured counts are **not** a histo
 `get_counts` extracts them from the data histogram `data`. It takes the lower and
 upper edge of each bin, in keV:
 
-```julia
+```@setup demo
+include("example_data.jl")
+```
+
+```@example demo
 # 100 keV bins between 500 and 3200 keV
 low = collect(500.0:100.0:3100.0)
 bin_edges = (low = low, high = low .+ 100.0)
@@ -35,19 +39,41 @@ The bin edges can also come from the forward model. `build_forward_model` return
 edges of the bins it predicts, whatever energy range, blinding and binning it uses.
 Using them guarantees that the measured and predicted bins match:
 
-```julia
-model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200, binning = 2)
+```@example demo
+model, bin_edges = build_forward_model(
+    mc_dict;
+    e_low = 500,
+    e_high = 3200,
+    binning = 2,
+    norm = 1e-3 * livetime,
+)
 
 counts = get_counts(data, bin_edges)
+length(counts), counts[1:3]
 ```
 
 ## Building the likelihood
 
-```julia
+```@example demo
+using DensityInterface
+
 likelihood = build_likelihood(counts, model)
 
-using DensityInterface
-logdensityof(likelihood, params)  # params as for the model
+params = (activities = (
+    K40_hpge_bulk = 40.0,
+    Pb212_to_Pb208_hpge_bulk = 10.0,
+    two_vbb_hpge_bulk = 100.0,
+),)
+
+logdensityof(likelihood, params)
+```
+
+The value is largest when the prediction matches the data. Here the data were made
+with these activities, so changing one of them lowers the value:
+
+```@example demo
+other = (activities = merge(params.activities, (K40_hpge_bulk = 50.0,)),)
+logdensityof(likelihood, other)
 ```
 
 `build_likelihood` handles one measured spectrum and one model. To fit several

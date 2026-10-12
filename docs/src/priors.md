@@ -29,11 +29,14 @@ Two windows are used and the smaller `a_max` is kept:
 
 ## Usage
 
-```julia
+```@setup demo
+include("example_data.jl")
+```
+
+```@example demo
 ref_ranges = Dict(
     :K40 => (1456, 1466),            # energy ranges in keV, here around a peak
     :Pb212_to_Pb208 => (2610, 2620),
-    :Ra228_to_Ac228 => (1580, 1596),
 )
 
 priors = get_priors(
@@ -55,13 +58,20 @@ range. `e_low`, `e_high`, `blind` and `norm` are as in the forward model.
 
 ## Changing a range by hand
 
-The result is a normal dictionary, so single entries can be replaced. Informative
-priors can use the guessed maximum:
+The result is a normal dictionary, so single entries can be replaced:
+
+```@example demo
+using IntervalSets
+
+priors[:K40_hpge_bulk] = 0.0 .. 100.0
+priors
+```
+
+Informative priors can use the guessed maximum:
 
 ```julia
-priors[:K40_hpge_bulk] = 0.0 .. 3.0
-
 using Distributions
+
 a_max = priors[:Pb212_to_Pb208_hpge_bulk].right
 priors[:Pb212_to_Pb208_hpge_bulk] = truncated(Normal(2.0, 0.5), 0, a_max)
 ```
