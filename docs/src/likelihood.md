@@ -57,3 +57,20 @@ spectra together, add the log-likelihoods of each one.
 `DimensionMismatch` if the two vectors differ in length. A bin with a predicted
 count of zero is allowed: a tiny number (`eps()`) is added to the prediction inside
 the logarithm, so the result stays finite.
+
+## Back to a histogram
+
+`counts_to_histogram` is the inverse of `get_counts`. It turns a flat vector, for
+example the model prediction at the best-fit parameters, back into a `Histogram`
+that can be plotted next to the data. Bins outside the fit range and in a blinded
+region are 0.
+
+```julia
+# same binning as the model: here the model used binning = 2
+template = rebin_hist(data, 2)
+
+best_fit = counts_to_histogram(model(best_params), bin_edges, template)
+```
+
+The `template` gives the full binning. Every bin in `bin_edges` must be exactly one
+bin of `template`, otherwise an error is raised.
