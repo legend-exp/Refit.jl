@@ -1,7 +1,7 @@
 """
     rebin_hist(h::Histogram, factor::Int)
 
-Combine every `factor` consecutive bins of a 1D histogram.
+Rebins a `Histogram` by combining every `factor` consecutive bins of a 1D histogram.
 If the number of bins is not divisible by `factor`, the last new bin is narrower.
 """
 function rebin_hist(h::Histogram{<:Real,1}, factor::Int)
