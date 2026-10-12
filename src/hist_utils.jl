@@ -64,3 +64,19 @@ function get_valid_bins(edges::AbstractVector{<:Real}, range::Tuple, blind = not
     outside_blind = (bin_ends .<= blind[1]) .| (bin_starts .>= blind[2])
     return inside_main .& outside_blind
 end
+
+"""
+    get_counts(data::Histogram, bin_edges)
+
+Measured counts in the bins of the forward model, as a flat `Vector{Float64}`.
+
+`bin_edges = (low = ..., high = ...)` are the bin edges returned by
+[`build_forward_model`](@ref). The result is not a histogram: it has one entry per
+bin of the model, in the same order as the model output. Each entry is the sum of
+the `data` bins between `low[i]` and `high[i]`, which must be edges of `data`.
+"""
+function get_counts(data::Histogram{<:Real,1}, bin_edges::NamedTuple{(:low, :high)})
+    length(bin_edges.low) == length(bin_edges.high) ||
+        throw(DimensionMismatch("bin_edges.low and bin_edges.high differ in length"))
+    return Float64[integrate_hist(data, lo, hi) for (lo, hi) in zip(bin_edges...)]
+end
