@@ -83,35 +83,36 @@ function get_counts(data::Histogram{<:Real,1}, bin_edges::NamedTuple{(:low, :hig
 end
 
 """
-    counts_to_histogram(counts, bin_edges, template::Histogram)
+    counts_to_histogram(counts, bin_edges)
 
 Turn a flat vector of `counts` back into a `Histogram`, for example to plot the
 model prediction. This is the inverse of [`get_counts`](@ref).
 
 `counts[i]` is the content of the bin between `bin_edges.low[i]` and
-`bin_edges.high[i]`. Each of these bins must be exactly one bin of `template`.
-The result has the edges of `template`. Bins of `template` that are not in
-`bin_edges`, such as bins outside the fit range or in a blinded region, are 0.
-
-If the model merges bins with `binning`, use `rebin_hist(data, binning)` as
-`template`.
+`bin_edges.high[i]`. The bins must be sorted and must not overlap. The histogram
+covers the range from `low[1]` to `high[end]`. A gap between two bins, such as a
+blinded region, becomes one bin with 0 counts.
 """
 function counts_to_histogram(
     counts::AbstractVector{<:Real},
     bin_edges::NamedTuple{(:low, :high)},
-    template::Histogram{<:Real,1},
 )
-    length(counts) == length(bin_edges.low) == length(bin_edges.high) || throw(
+    low, high = bin_edges.low, bin_edges.high
+    length(counts) == length(low) == length(high) || throw(
         DimensionMismatch("counts, bin_edges.low and bin_edges.high differ in length"),
     )
+    isempty(counts) && throw(ArgumentError("bin_edges is empty"))
 
-    edges = template.edges[1]
-    weights = zeros(Float64, length(edges) - 1)
-    for (c, lo, hi) in zip(counts, bin_edges.low, bin_edges.high)
-        i = searchsortedfirst(edges, lo)
-        (i < length(edges) && edges[i] ≈ lo && edges[i+1] ≈ hi) ||
-            throw(ArgumentError("[$lo, $hi] is not a bin of the template histogram"))
-        weights[i] = c
+    edges = Float64[low[1]]
+    weights = Float64[]
+    for i in eachindex(counts)
+        if i > 1 && !(low[i] ≈ high[i-1])
+            low[i] > high[i-1] || throw(ArgumentError("bins are not sorted or overlap"))
+            push!(edges, low[i])  # the gap starts at the last edge
+            push!(weights, 0.0)
+        end
+        push!(edges, high[i])
+        push!(weights, counts[i])
     end
-    return Histogram(template.edges, weights)
+    return Histogram((edges,), weights)
 end

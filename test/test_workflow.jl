@@ -28,11 +28,13 @@ using Test
     @test length(counts) == length(model(true_params))
     @test counts ≈ model(true_params)
 
-    # back to a histogram: equal to the data in the fit range, 0 outside of it
-    fit = counts_to_histogram(model(true_params), bin_edges, rebin_hist(data, 2))
-    in_fit = Refit.get_valid_bins(fit.edges[1], (100, 900), (400, 500))
-    @test fit.weights[in_fit] ≈ rebin_hist(data, 2).weights[in_fit]
-    @test all(fit.weights[.!in_fit] .== 0)
+    # back to a histogram: the fit range, with 0 counts in the blinded region
+    fit = counts_to_histogram(model(true_params), bin_edges)
+    @test first(fit.edges[1]) == 100 && last(fit.edges[1]) == 900
+    @test sum(fit.weights) ≈ sum(counts)
+    gap = findfirst(==(400), fit.edges[1])
+    @test fit.edges[1][gap+1] == 500 && fit.weights[gap] == 0
+    @test get_counts(fit, bin_edges) ≈ counts
 
     likelihood = build_likelihood(counts, model)
     logL(activities) = logdensityof(likelihood, (activities = activities,))
