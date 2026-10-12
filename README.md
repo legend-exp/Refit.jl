@@ -50,7 +50,8 @@ prior_dist = get_prior_dist(priors)
 model, bin_edges = build_forward_model(mc_dict; bin = 20, e_low = 500, e_high = 3200)
 
 # build a likelihood / posterior
-likelihood = build_likelihood(data, model)
+counts = get_counts(data, bin_edges)
+likelihood = build_likelihood(counts, model)
 posterior = PosteriorMeasure(likelihood, prior_dist)
 
 # sample

@@ -11,17 +11,39 @@ mean, so for measured counts ``k_i`` the log-likelihood is
 The constant term ``-\ln k_i!`` is left out. It does not depend on the parameters,
 so it does not change the position of the maximum or the shape of the posterior.
 
-## Usage
+## Measured counts
 
-The measured counts must be in the same bins as the prediction of the
-[forward model](forward_model.md): same energy range, blinding and binning.
-`bin_edges` lists those bins.
+The likelihood compares two flat vectors of the same length: the measured counts and
+the prediction of the [forward model](forward_model.md). Entry `i` of both is the
+number of counts in the same energy bin. The measured counts are **not** a histogram.
+
+`get_counts` extracts them from the data histogram, using the `bin_edges` returned
+by `build_forward_model`. This guarantees that the bins match, whatever energy range,
+blinding and binning the model uses.
 
 ```julia
-pred = model(params)                 # predicted counts per bin
-logL = poisson_likelihood(obs, pred) # obs: measured counts in the same bins
+model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200, binning = 2)
+
+counts = get_counts(data, bin_edges)  # Vector{Float64}, one entry per bin of the model
 ```
 
-- `obs` and `pred` must have the same length, otherwise a `DimensionMismatch` is raised.
-- A bin with a predicted count of zero is allowed. A tiny number (`eps()`) is added
-  to the prediction inside the logarithm, so the result stays finite.
+`data` is a `Histogram` of the measured spectrum. The edges in `bin_edges` must be
+edges of `data`, otherwise an error is raised. If the model merges bins with
+`binning`, the data bins are summed in the same way.
+
+## Building the likelihood
+
+```julia
+likelihood = build_likelihood(counts, model)
+
+using DensityInterface
+logdensityof(likelihood, params)  # params as for the model
+```
+
+`build_likelihood` handles one measured spectrum and one model. To fit several
+spectra together, add the log-likelihoods of each one.
+
+`poisson_likelihood(counts, pred)` is the underlying function. It raises a
+`DimensionMismatch` if the two vectors differ in length. A bin with a predicted
+count of zero is allowed: a tiny number (`eps()`) is added to the prediction inside
+the logarithm, so the result stays finite.
