@@ -1,5 +1,4 @@
 using StatsBase
-import Base: +
 
 
 """
@@ -32,19 +31,23 @@ function rebin_hist(h::Histogram{<:Real,1}, factor::Int)
 end
 
 """
-    +(h1::Histogram, h2::Histogram) -> Histogram
+    add_histograms(hs::Vector{Histogram}) -> Histogram
 
-Adds two histograms with the same binning.
+Adds a vector of histograms with the same binning.
 - Returns a new `Histogram` with combined weights.
 - Throws an error if the bin edges do not match.
 
 """
-function +(h1::Histogram, h2::Histogram)
+function add_histograms(hs::Vector{<:Histogram})
     # construct and return the result
-    h1.edges == h2.edges || error("Histogram binning mismatch")
 
-    return Histogram(h1.edges, h1.weights .+ h2.weights)
+    weights = zeros(size(hs[1].weights))
+    for h in hs
 
+        h.edges == hs[1].edges || error("Histogram binning mismatch")
+        weights .+= h.weights
+    end
+    return Histogram(hs[1].edges, weights)
 end
 
 
