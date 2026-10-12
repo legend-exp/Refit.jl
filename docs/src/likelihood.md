@@ -49,7 +49,7 @@ model, bin_edges = build_forward_model(
 );
 
 counts = get_counts(data, bin_edges)
-length(counts), counts[1:3]
+counts
 ```
 
 ## Building the likelihood
