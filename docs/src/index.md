@@ -12,6 +12,7 @@ sampling the posterior, which combines the likelihood of the data with priors.
 
 - [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
 - [Likelihood](likelihood.md): compare the predicted counts with the measured ones
+- [Priors](priors.md): guess ranges for the activities from the data
 
 ## Reference
 

@@ -6,8 +6,11 @@ makedocs(;
     modules = [Refit],
     pages = [
         "Home" => "index.md",
-        "User manual" =>
-            ["Forward model" => "forward_model.md", "Likelihood" => "likelihood.md"],
+        "User manual" => [
+            "Forward model" => "forward_model.md",
+            "Likelihood" => "likelihood.md",
+            "Priors" => "priors.md",
+        ],
         "API" => "api.md",
     ],
 )

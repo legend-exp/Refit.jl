@@ -43,6 +43,9 @@ priors[:Ar39_liquid_argon] = 0.. 2000
 priors[:two_vbb_hpge_bulk] = 0.. 2
 # ...
 
+# or guess ranges for the fit from the data
+# priors = get_priors(mc_dict, data; e_low = 500, e_high = 3200)
+
 # convert to a distribution
 prior_dist = get_prior_dist(priors)
 
