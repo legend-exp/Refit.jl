@@ -1,9 +1,8 @@
 using Aqua
 using Refit
-include("test_hist_utils.jl")
+using Test
 
-Aqua.test_all(
-    Refit,
-    stale_deps = (ignore = [:CairoMakie, :LegendMakie],),
-    persistent_tasks = false,
-)
+include("test_hist_utils.jl")
+include("test_likelihood.jl")
+
+Aqua.test_all(Refit, persistent_tasks = false)
