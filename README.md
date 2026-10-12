@@ -16,3 +16,44 @@ This includes:
 
 
 > Warning: `Refit.jl` is still under heavy development, use at your risk!
+
+
+## Basic usage
+`Refit.jl` is a toolkit, it does not provide an end-to-end fitting tool, but instead a set of functionality.
+
+A minimal fit can be performed with:
+
+```julia
+
+using Refit
+
+# read the data as a Histogram
+data = read_hist("hist/spectrum",data_file) 
+
+# dictionary of MC pdfs to fit
+mc_dict = Dict()
+mc_dict["Ar39_liquid_argon"] =  read_hist("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5")
+mc_dict["2vbb_hpge_bulk"] =  read_hist("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5")
+# ...
+
+# define priors (by hand, from input files or from the data)
+priors = Dict()
+priors["Ar39_liquid_argon"] = 0.. 2000
+priors["2vbb_hpge_bulk"] = 0.. 2
+# ... 
+
+# convert to a distribution
+prior_dist = get_prior_dist(priors)
+
+# get a model mapping parameters to data
+model = forward_model(mc_dict; kwargs ...)
+
+# build a likelihood / posterior
+likelihood = build_likelihood(data, model,e_low = 500, e_high = 3200)
+posterior = PosteriorMeasure(likelihood, prior_dist)
+
+# sample
+samples =  bat_sample(....)
+
+# plots saving etc
+```
