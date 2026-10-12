@@ -24,3 +24,15 @@ function read_hist(group::String, file::String)
     return h
 
 end
+
+
+"""
+    read_scalar(field, file)
+
+Read a Scalar from `file` called `field`
+"""
+function read_scalar(field::String, file::String)
+    lh5open("$file", "r") do f
+        f[field]
+    end
+end
