@@ -14,7 +14,6 @@ using Test
     @testset "get_max_norm" begin
         # 8 bins between 100 and 900 keV: 340 data counts, 80 simulated counts
         @test get_max_norm(100, 900, data, pdf) ≈ 340 / 80
-        @test get_max_norm(100, 900, data, pdf; factor = 1.1, norm = 2) ≈ 1.1 * 340 / 80 / 2
         # a window edge that is not a bin edge: only the bins fully inside are used
         @test get_max_norm(420, 580, data, pdf) == Inf
         # blinded bins are not used
@@ -39,36 +38,30 @@ using Test
         @test priors[:other_source] == 0.0 .. range_max
         @test priors[:K40_hpge_bulk] == 0.0 .. range_max
 
-        # a peak: the window is 400 to 600 keV and gives the smaller limit
-        ref = Dict(:K40 => 500)
-        priors = get_priors(
-            pdfs,
-            data;
-            ref_regions = ref,
-            e_low = 100,
-            e_high = 900,
-            peak_width = 100,
-        )
+        # a reference range of 400 to 600 keV gives the smaller limit
+        ref = Dict(:K40 => (400, 600))
+        priors = get_priors(pdfs, data; ref_ranges = ref, e_low = 100, e_high = 900)
         @test priors[:K40_hpge_bulk] == 0.0 .. peak_max
         @test priors[:other_source] == 0.0 .. range_max
 
-        # a tuple is used as the window, the longest matching key is used
-        ref = Dict(:K4 => (0, 200), :K40 => (400, 600), :other => 500)
-        priors = get_priors(
-            pdfs,
-            data;
-            ref_regions = ref,
-            e_low = 100,
-            e_high = 900,
-            peak_width = 100,
-        )
+        # the longest matching key is used
+        ref = Dict(:K4 => (0, 200), :K40 => (400, 600), :other => (400.0, 600.0))
+        priors = get_priors(pdfs, data; ref_ranges = ref, e_low = 100, e_high = 900)
         @test priors[:K40_hpge_bulk] == 0.0 .. peak_max
         @test priors[:other_source] == 0.0 .. peak_max
 
-        # settings
-        priors =
-            get_priors(pdfs, data; e_low = 100, e_high = 900, range_factor = 1, norm = 2)
-        @test priors[:other_source] == 0.0 .. (340 / 80 / 2)
+        # blinding and norm
+        priors = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 2)
+        @test priors[:other_source] == 0.0 .. (range_max / 2)
+        priors = get_priors(
+            pdfs,
+            data;
+            ref_ranges = Dict(:K40 => (400, 600)),
+            e_low = 100,
+            e_high = 900,
+            blind = (400, 600),
+        )
+        @test priors[:K40_hpge_bulk] == 0.0 .. (1.1 * 300 / 60)
 
         # the result can be changed by hand
         priors[:other_source] = 0.0 .. 3.0
@@ -78,10 +71,6 @@ using Test
             Dict(:empty => Histogram(edges, zeros(10))),
             data,
         )
-        @test_throws ArgumentError get_priors(
-            pdfs,
-            data;
-            ref_regions = Dict(:K40 => "peak"),
-        )
+        @test_throws TypeError get_priors(pdfs, data; ref_ranges = Dict(:K40 => 1461))
     end
 end

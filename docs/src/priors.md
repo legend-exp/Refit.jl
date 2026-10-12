@@ -23,22 +23,22 @@ data and of the simulated spectrum, `norm` is the factor of the
 inside the window and outside the blinded region are used.
 
 Two windows are used and the smaller `a_max` is kept:
-- the fit range `[e_low, e_high]`, with `range_factor` (default 1.1),
-- a window around a reference peak of the source, with `peak_factor` (default 1.5).
+- the fit range `[e_low, e_high]`, with a safety factor of 1.1,
+- a reference range of the source, for example around a peak, with a safety factor of 1.5.
 
 ## Usage
 
 ```julia
-ref_regions = Dict(
-    :K40 => 1461,                    # a peak at 1461 keV, the window is 1461 ± 5 keV
-    :Pb212_to_Pb208 => 2615,
-    :Ra228_to_Ac228 => (1580, 1596), # a window in keV
+ref_ranges = Dict(
+    :K40 => (1456, 1466),            # energy ranges in keV, here around a peak
+    :Pb212_to_Pb208 => (2610, 2620),
+    :Ra228_to_Ac228 => (1580, 1596),
 )
 
 priors = get_priors(
     mc_dict,
     data;
-    ref_regions,
+    ref_ranges,
     e_low = 500,
     e_high = 3200,
     norm = 1e-3 * livetime,  # as in build_forward_model
@@ -48,10 +48,9 @@ priors = get_priors(
 The result is a `Dict` with the same keys as `mc_dict`. Each value is an interval
 `0 .. a_max`.
 
-A spectrum uses the reference region of the longest key that its name starts with.
-For example `:K40_hpge_bulk` uses `:K40`. Spectra without a region only use the fit
-range. `peak_width` (default 5 keV), `peak_factor`, `range_factor`, `e_low`,
-`e_high`, `blind` and `norm` can all be changed.
+A spectrum uses the reference range of the longest key that its name starts with.
+For example `:K40_hpge_bulk` uses `:K40`. Spectra without a range only use the fit
+range. `e_low`, `e_high`, `blind` and `norm` are as in the forward model.
 
 ## Changing a range by hand
 
