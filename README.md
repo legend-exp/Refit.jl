@@ -64,7 +64,7 @@ samples =  bat_sample(....)
 # plots saving etc
 ```
 
-The forward model is described in the [user manual](docs/src/forward_model.md).
+The forward model is described in the [user manual](https://legend-exp.github.io/Refit.jl/dev/).
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
