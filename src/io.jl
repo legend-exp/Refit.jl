@@ -38,21 +38,31 @@ function read_scalar(field::String, file::String)
 end
 
 """
-    read_pdf(file; groups = "pdf/mul_surv", n_prim_field = "nr_sim_events")
+    read_pdf(file; groups = "pdf/mul_surv", weights = nothing, n_prim_field = "nr_sim_events")
 
 Read a simulated spectrum from `file` as counts per simulated primary.
 
 `groups` is the name of one group, or a vector of names. The histograms in these groups
-are summed, then divided by the number of simulated primaries stored in the field
-`n_prim_field`. To scale by anything else, change the weights of the result:
-`h.weights ./= factor`.
+are multiplied by `weights` (a vector with one factor per group, by default 1) and summed,
+then divided by the number of simulated primaries stored in the field `n_prim_field`.
+To scale by anything else, change the weights of the result: `h.weights ./= factor`.
 """
 function read_pdf(
     file::String;
     groups::Union{String,AbstractVector{String}} = "pdf/mul_surv",
+    weights::Union{Nothing,AbstractVector{<:Real}} = nothing,
     n_prim_field::String = "nr_sim_events",
 )
-    h = add_histograms([read_hist(g, file) for g in vcat(groups)])
-    h.weights ./= read_scalar(n_prim_field, file)
-    return h
+    groups = vcat(groups)
+    weights = isnothing(weights) ? ones(length(groups)) : weights
+    length(weights) == length(groups) ||
+        throw(DimensionMismatch("groups and weights differ in length"))
+
+    hists = [read_hist(g, file) for g in groups]
+    for (h, w) in zip(hists, weights)
+        h.weights .*= w
+    end
+    total = add_histograms(hists)
+    total.weights ./= read_scalar(n_prim_field, file)
+    return total
 end

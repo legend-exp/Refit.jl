@@ -41,53 +41,27 @@ the number of primaries in the field `nr_sim_events`:
 pdf = read_pdf(file)
 ```
 
-The histogram is counts per primary, here `h.weights ./ 1000`:
-
-```@example demo
-# compare with dividing the raw histogram by hand
-pdf.weights ≈ h.weights ./ 1000
-```
-
 `groups` is the name of the group to read, `"pdf/mul_surv"` by default. A vector of
 names reads several groups, which are summed before the division. `n_prim_field` is the
-name of the field with the number of primaries:
-
-```@example demo
-# read a single group (the weights of this group are twice those of "pdf/mul_surv")
-pdf = read_pdf(file; groups = "pdf/mul_other")
-pdf.weights ≈ 2 .* h.weights ./ 1000
-```
+name of the field with the number of primaries.
 
 ```@example demo
 # sum two groups, then divide by the number of primaries
 pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])
-pdf.weights ≈ 3 .* h.weights ./ 1000
 ```
 
-## Scaling and summing by hand
+## Weighting the groups
 
-The weights of a histogram can be changed directly. This is useful for any other factor,
-for example a branching ratio or the fraction of decays in a component:
+`weights` gives one factor for each group, for example the fraction of the decays in
+each component. The groups are multiplied by their weight before they are summed:
 
 ```@example demo
-pdf = read_pdf(file)
-pdf.weights ./= 2  # divide the histogram by 2, in place
-pdf.weights ≈ h.weights ./ 2000
+pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"], weights = [0.7, 0.3])
 ```
 
-`add_histograms` sums histograms with the same binning. Scaling each one before
-gives a weighted sum, for example to merge two components of a detector:
+Any other factor can be applied to the result, which is a normal `Histogram`. For
+example, to divide by 2 in place:
 
-```@example demo
-# two components, each as counts per primary
-pdf_a = read_pdf(file; groups = "pdf/mul_surv")
-pdf_b = read_pdf(file; groups = "pdf/mul_other")
-
-# weight each by its fraction of the decays
-pdf_a.weights .*= 0.7
-pdf_b.weights .*= 0.3
-
-# sum the two (they must have the same binning)
-merged = add_histograms([pdf_a, pdf_b])
-merged.weights ≈ (0.7 .* h.weights .+ 0.3 .* 2 .* h.weights) ./ 1000
+```julia
+pdf.weights ./= 2
 ```

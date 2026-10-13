@@ -42,6 +42,17 @@ end
     pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])
     @test pdf.weights ≈ 3 .* weights ./ 1000
 
+    # weights multiply each group before the sum
+    pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"], weights = [0.7, 0.3])
+    @test pdf.weights ≈ (0.7 .+ 0.3 .* 2) .* weights ./ 1000
+    @test read_pdf(file; groups = "pdf/mul_other", weights = [0.5]).weights ≈
+          0.5 .* 2 .* weights ./ 1000
+    @test_throws DimensionMismatch read_pdf(
+        file;
+        groups = ["pdf/mul_surv", "pdf/mul_other"],
+        weights = [1.0],
+    )
+
     pdf = read_pdf(file; groups = "pdf/mul_other", n_prim_field = "n_events")
     @test pdf.weights ≈ 2 .* weights ./ 500
 

@@ -85,11 +85,6 @@ bin_edges.low
 bin_edges.high
 ```
 
-```@example demo
-# one prediction for each bin
-length(pred) == length(bin_edges.low)
-```
-
 With `blind` the kept bins are not contiguous, so two vectors are returned instead of
 one edges vector.
 
