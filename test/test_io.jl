@@ -128,20 +128,20 @@ end
     @test !lh5open(f -> haskey(f, "data"), file, "r")
 end
 
-@testset "activities" begin
+@testset "parameter values" begin
     parameters = (a = 60.0, b = 160.0)
     intervals = (a = 40.0 .. 70.0, b = 150.0 .. 190.0)
 
     file = tempname() * ".yaml"
-    write_activities(file, parameters, intervals)
+    write_parameter_values(file, parameters, intervals)
     result = YAML.load_file(file)
     @test result["credible_level"] == 0.68
-    @test Set(keys(result["activities"])) == Set(["a", "b"])
-    @test result["activities"]["a"] ==
+    @test Set(keys(result["parameters"])) == Set(["a", "b"])
+    @test result["parameters"]["a"] ==
           Dict("best_fit" => 60.0, "low" => 40.0, "high" => 70.0)
-    @test result["activities"]["b"] ==
+    @test result["parameters"]["b"] ==
           Dict("best_fit" => 160.0, "low" => 150.0, "high" => 190.0)
 
-    write_activities(file, parameters, intervals; level = 0.95)
+    write_parameter_values(file, parameters, intervals; level = 0.95)
     @test YAML.load_file(file)["credible_level"] == 0.95
 end

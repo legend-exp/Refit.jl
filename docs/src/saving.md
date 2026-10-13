@@ -1,8 +1,8 @@
 # Saving the results
 
 The results of a fit are saved for long term preservation and further analysis. The
-posterior samples, the best fit spectra as histograms in LH5 files, and the activities
-with their uncertainty in a YAML file. The [tutorial](tutorial.md) shows all of them
+posterior samples, the best fit spectra as histograms in LH5 files, and the values of the
+parameters with their uncertainty in a YAML file. The [tutorial](tutorial.md) shows all of them
 for a complete fit.
 
 ```@setup demo
@@ -65,13 +65,13 @@ write_best_fit(file, hists; data = counts_to_histogram(counts, bin_edges))
 read_hist("best_fit/K40_hpge_bulk", file)
 ```
 
-## Activities
+## Parameter values
 
-`write_activities` writes the activities to a YAML file. For each activity it saves the
-best fit and an interval, and the file records the credible level of the intervals.
-The intervals are the smallest credible intervals: the smallest intervals that contain
-68% of the posterior. BAT.jl computes them, and `mode = :connected` gives one
-interval for each activity:
+`write_parameter_values` writes the values of the parameters, here the activities, to a
+YAML file. For each parameter it saves the best fit and an interval, and the file
+records the credible level of the intervals. The intervals are the smallest credible
+intervals: the shortest intervals that contain 68% of the posterior. BAT.jl computes them, and `mode = :connected` gives one
+interval for each parameter:
 
 ```julia
 using Statistics
@@ -89,10 +89,10 @@ Here the intervals are made up:
 ```@example demo
 using IntervalSets
 
-file = joinpath(outdir, "activities.yaml")
+file = joinpath(outdir, "parameters.yaml")
 
 intervals = map(a -> 0.9a .. 1.1a, best)
-write_activities(file, best, intervals; level = 0.68)
+write_parameter_values(file, best, intervals; level = 0.68)
 
 print(read(file, String))
 ```

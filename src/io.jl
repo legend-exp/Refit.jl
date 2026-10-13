@@ -130,10 +130,10 @@ function write_best_fit(
 end
 
 """
-    write_activities(file, parameters, intervals; level = 0.68)
+    write_parameter_values(file, parameters, intervals; level = 0.68)
 
-Write the activities to the YAML file `file`. For each activity it saves the best fit
-value from `parameters` and the interval `low` to `high` from `intervals`. Both are
+Write the values of the parameters, for example the activities, to the YAML file `file`.
+For each parameter it saves the best fit value from `parameters` and the interval `low` to `high` from `intervals`. Both are
 named tuples with the same names, and each interval is an `Interval`.
 
 The intervals should be the smallest credible intervals, the shortest intervals that
@@ -141,14 +141,14 @@ contain the probability `level` of the posterior. BAT.jl computes them:
 `map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))`.
 The `level` is saved in the file as `credible_level`.
 """
-function write_activities(
+function write_parameter_values(
     file::AbstractString,
     parameters::NamedTuple,
     intervals::NamedTuple;
     level::Real = 0.68,
 )
     # ordered dictionaries keep the order of the parameters in the file
-    activities = OrderedDict(
+    values = OrderedDict(
         string(name) => OrderedDict(
             "best_fit" => Float64(parameters[name]),
             "low" => Float64(intervals[name].left),
@@ -157,7 +157,7 @@ function write_activities(
     )
     YAML.write_file(
         file,
-        OrderedDict("credible_level" => Float64(level), "activities" => activities),
+        OrderedDict("credible_level" => Float64(level), "parameters" => values),
     )
     return file
 end
