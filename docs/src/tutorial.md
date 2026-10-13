@@ -267,16 +267,16 @@ data_hist = counts_to_histogram(counts, bin_edges)
 fit_hist = counts_to_histogram(model(best), bin_edges)
 
 plot(
-    fit_hist;
+    data_hist;
     seriestype = :stepbins,
-    label = "best fit",
-    color = :red,
-    linewidth = 3,
+    fillrange = 0,
+    color = :lightblue,
+    label = "data",
     xlims = (e_low, e_high),
     xlabel = "energy (keV)",
     ylabel = "counts per $binning keV",
 )
-plot!(data_hist; seriestype = :stepbins, label = "data", color = :black, linewidth = 1)
+plot!(fit_hist; seriestype = :stepbins, label = "best fit", color = :black, linewidth = 1.5)
 
 # grey band over the empty bin, which is wider than the blinded region because bins
 # are only fitted if they are fully outside of it
