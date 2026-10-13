@@ -304,7 +304,7 @@ grouped = group_histograms(
 fig, ax, ax_res = fit_axes(; ylabel = "Counts per $binning keV")
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
-plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
+plot_hist!(ax, data_hist; filled = true, alpha = 0.4, color = :lightblue, label = "Data")
 for (label, h) in grouped
     label == :total || plot_hist!(ax, h; label = string(label))
 end
