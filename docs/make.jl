@@ -1,3 +1,6 @@
+# no display is needed to draw the plots of the tutorial
+ENV["GKSwstype"] = "100"
+
 using Documenter
 using Refit
 

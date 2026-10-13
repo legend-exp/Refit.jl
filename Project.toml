@@ -5,9 +5,11 @@ authors = ["Toby Dixon <toby.dixon.23@ucl.ac.uk>"]
 
 [deps]
 DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LegendHDF5IO = "c9265ca6-b027-5446-b1a4-febfa8dd10b0"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+ValueShapes = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
 
 [compat]
 Aqua = "0.8.18"
@@ -24,11 +26,9 @@ julia = "1.12"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-ValueShapes = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
 
 [targets]
-test = ["Aqua", "Distributions", "JuliaFormatter", "Random", "Test", "ValueShapes"]
+test = ["Aqua", "JuliaFormatter", "Random", "Test"]

@@ -72,3 +72,15 @@ function get_priors(
     end
     return priors
 end
+
+"""
+    build_prior(ranges)
+
+Build a prior distribution from the ranges of [`get_priors`](@ref), a
+`Dict(name => Interval)`. The prior is a uniform distribution on the range of each
+activity. It is a `NamedTupleDist` (from ValueShapes.jl) and `rand(prior)` draws a
+named tuple of activities, which can be passed to the forward model.
+"""
+function build_prior(ranges::AbstractDict{Symbol,<:Interval})
+    return NamedTupleDist(; (k => Uniform(r.left, r.right) for (k, r) in ranges)...)
+end
