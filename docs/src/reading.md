@@ -43,7 +43,8 @@ pdf = read_pdf(file)
 
 `groups` is the name of the group to read, `"pdf/mul_surv"` by default. A vector of
 names reads several groups, which are summed before the division. `n_prim_field` is the
-name of the field with the number of primaries.
+name of the field with the number of primaries. With `n_prim_field = nothing` the
+histogram is not divided, and the result is the same as from `read_hist`.
 
 ```@example demo
 # sum two groups, then divide by the number of primaries
