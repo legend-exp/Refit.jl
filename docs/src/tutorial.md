@@ -239,8 +239,8 @@ plot(
 ```
 
 The best fit is the global mode. The uncertainty of each activity is the smallest 68%
-credible interval: the shortest interval that contains 68% of its posterior
-distribution. BAT.jl computes it for all the activities at once, and `mode = :connected`
+credible interval: the smallest interval that contains 68% of its posterior
+density. BAT.jl computes it for all the activities at once, and `mode = :connected`
 gives a single interval for each one. Activities differ by orders of magnitude, so the
 plot shows the best fit divided by the true value. A good fit is consistent with 1.
 
