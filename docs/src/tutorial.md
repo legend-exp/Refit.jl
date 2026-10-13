@@ -1,8 +1,8 @@
 # Tutorial: fitting a background spectrum
 
 This tutorial fits a measured energy spectrum with a sum of simulated spectra, from
-reading the files to sampling the posterior. It runs every time the documentation
-is built.
+reading the file, sampling the posterior and plotting the results.
+This runs every time the documentation is built.
 
 The fit uses automatically generated fake data (pseudo-experiments). The measured
 spectrum is generated from known activities, so the result of the fit can be compared
@@ -20,7 +20,7 @@ directory makes them again.
   number of simulated primaries. The 2νββ decay has one file for each detector type.
 - `data.lh5` has the measured histograms `hist/mul1/icpc` and `hist/mul1/bege`.
 
-The sources with a gamma line have a peak with a 1 keV width on a flat or linear
+The sources with a γ line have a peak with a 1 keV sigma on a flat or linear
 continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
 centered at 1 MeV), and it makes about 70% of the counts. The ``^{39}``Ar spectrum is an
 exponential that falls with the energy and makes about 20% of the counts. The measured spectrum is
@@ -150,9 +150,7 @@ rand(prior)
 ## Sampling the posterior
 
 [BAT.jl](https://bat.github.io/) samples the posterior with a Markov chain Monte
-Carlo (a random walk through the space of the parameters that visits each value
-with a probability given by the posterior). The first steps of each chain are
-discarded as burn-in. This run is short, a real fit uses more steps.
+Carlo.
 
 ```@example tutorial
 using BAT
@@ -225,7 +223,7 @@ plot(
 )
 ```
 
-A pair of activities shows their correlation. The K40 activities of the cables and of
+A pair of activities shows their correlation. The ``^{40}``K activities of the cables and of
 the fibers are anticorrelated, because the data constrain mostly their sum:
 
 ```@example tutorial
