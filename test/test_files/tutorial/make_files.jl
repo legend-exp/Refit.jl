@@ -5,7 +5,8 @@
 #
 # Sources with a gamma line have a peak with a 1 keV width on a flat or linear
 # continuum below the peak. The 2vbb spectrum is a broad Gaussian (600 keV width,
-# centered at 1 MeV) and makes about 90% of the counts.
+# centered at 1 MeV) and makes about 70% of the counts. The Ar39 spectrum is an
+# exponential that falls with the energy and makes about 20% of the counts.
 #
 # Run with: julia --project=docs test/test_files/tutorial/make_files.jl
 using LegendHDF5IO
@@ -26,6 +27,9 @@ function peak_shape(peak; slope = 0.0)
     return 0.9 .* continuum ./ sum(continuum) .+ 0.1 .* line ./ sum(line)
 end
 
+# An exponential spectrum that falls with the energy (decay constant in keV), normalised to 1
+exp_shape(tau) = (w = exp.(-energy ./ tau); w ./ sum(w))
+
 # A broad Gaussian spectrum, normalised to 1
 broad_shape(center, sigma) =
     (w = exp.(-(energy .- center) .^ 2 ./ (2 * sigma^2)); w ./ sum(w))
@@ -42,6 +46,7 @@ sources = Dict(
     "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
     "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
     "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
+    "liquid_argon_Ar39" => exp_shape(400),
 )
 
 for (name, spectrum) in sources
@@ -61,6 +66,7 @@ true_activities = (  # mBq
     cables_Pb212_to_Pb208 = 50.0,
     fibers_Pb212_to_Pb208 = 30.0,
     two_vbb_hpge_bulk = 3500.0,
+    Ar39_liquid_argon = 1000.0,
 )
 true_alpha = 2.0  # counts per 1 keV bin
 
@@ -74,7 +80,8 @@ expected =
         true_activities.fibers_K40 .* sources["fibers_K40"] .+
         true_activities.cables_Pb212_to_Pb208 .* sources["cables_Pb212_to_Pb208"] .+
         true_activities.fibers_Pb212_to_Pb208 .* sources["fibers_Pb212_to_Pb208"] .+
-        true_activities.two_vbb_hpge_bulk .* two_vbb
+        true_activities.two_vbb_hpge_bulk .* two_vbb .+
+        true_activities.Ar39_liquid_argon .* sources["liquid_argon_Ar39"]
     ) .+ true_alpha
 
 lh5open(joinpath(dir, "data.lh5"), "w") do f

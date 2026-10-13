@@ -22,7 +22,8 @@ directory makes them again.
 
 The sources with a gamma line have a peak with a 1 keV width on a flat or linear
 continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
-centered at 1 MeV), and it makes about 90% of the counts. The measured spectrum is
+centered at 1 MeV), and it makes about 70% of the counts. The ``^{39}``Ar spectrum is an
+exponential that falls with the energy and makes about 20% of the counts. The measured spectrum is
 generated from known activities with Poisson fluctuations, so the result of the fit
 can be compared with the truth at the end.
 
@@ -88,6 +89,13 @@ mass = Dict("icpc" => 80.0, "bege" => 20.0)
 bulk = Dict(joinpath(dir, "hpge_$(t)_bulk_2vbb.lh5") => w for (t, w) in mass)
 
 mc_dict[:two_vbb_hpge_bulk] = read_pdf(bulk; groups)
+nothing # hide
+```
+
+The ``^{39}``Ar decay has one file.
+
+```@example tutorial
+mc_dict[:Ar39_liquid_argon] = read_pdf(joinpath(dir, "liquid_argon_Ar39.lh5"); groups)
 nothing # hide
 ```
 
@@ -175,6 +183,7 @@ true_activities = (  # mBq
     cables_Pb212_to_Pb208 = 50.0,
     fibers_Pb212_to_Pb208 = 30.0,
     two_vbb_hpge_bulk = 3500.0,
+    Ar39_liquid_argon = 1000.0,
 )
 true_alpha = 2.0  # counts per 1 keV bin
 nothing # hide
@@ -205,7 +214,7 @@ panels = map(collect(keys(truth))) do name
     )
     vline!([truth[name]]; color = :red, linewidth = 2, label = "")
 end
-plot(panels...; layout = (2, 3), size = (900, 650), legend = false)
+plot(panels...; layout = (2, 4), size = (1200, 650), legend = false)
 ```
 
 A pair of activities shows their correlation. The K40 activities of the cables and of
