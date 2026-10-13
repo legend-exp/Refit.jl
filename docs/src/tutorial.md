@@ -23,7 +23,7 @@ directory makes them again.
 The sources with a γ line have a peak with a 1 keV sigma on a flat or linear
 continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
 centered at 1 MeV), and it makes about 70% of the counts. The ``^{39}``Ar spectrum is an
-exponential that falls with the energy and makes about 20% of the counts. The measured spectrum is
+exponential with a decay constant of 300 keV and makes about 20% of the counts. The measured spectrum is
 generated from known activities with Poisson fluctuations, so the result of the fit
 can be compared with the truth at the end.
 
@@ -43,14 +43,21 @@ e_low, e_high = 100, 4000  # keV, the range of the fit
 binning = 20  # merge 20 bins of 1 keV into one
 blind = (2015.0, 2065.0)  # keV, a region around the 2039 keV Q-value that is not fitted
 
-# The activities are in mBq and the simulated spectra are counts per simulated
-# primary, so the expected counts are 1e-3 * livetime * activity * spectrum
+# expected counts = norm * activity * spectrum, see the note on units below
 norm = 1e-3 * livetime
 
 # the histograms of the measured spectrum and of each simulation are summed over these groups
 spec = ["mul1/icpc", "mul1/bege"]
 nothing # hide
 ```
+
+!!! note "Units"
+    The fit has no built-in units. The factor `1e-3` in `norm` sets them. The simulated
+    spectra are normalized to counts per simulated primary, so the expected counts are
+    `norm * activity * spectrum`. With the livetime in seconds, `1e-3 * livetime` makes
+    the activities come out in mBq (the factor converts mBq to Bq). For activities in Bq,
+    use `norm = livetime`. If the spectra are not normalized per primary, the activities
+    are in different units.
 
 ## Reading the data
 
@@ -302,7 +309,7 @@ plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
 for (label, h) in grouped
     label == :total || plot_hist!(ax, h; label = string(label))
 end
-plot_hist!(ax, grouped[:total]; color = :black, linewidth = 2, label = "Best fit")
+plot_hist!(ax, grouped[:total]; color = :black, linewidth = 4, label = "Best fit")
 
 # the blinded region (the empty bins) and the residuals
 mark_blinded!(ax, grouped[:total])

@@ -14,17 +14,18 @@ _floor_value(ax) = ax.yscale[] === log10 ? 1e-9 : 0.0
 """
     plot_hist!(ax, h; filled = false, kwargs...)
 
-Draw the `Histogram` `h` as a step histogram on the CairoMakie axis `ax`: a line, or a
-filled area with `filled = true`. The other keyword arguments, for example `color`,
-`linewidth` or `label`, go to the CairoMakie function that draws it (`lines!` or
-`band!`). Empty bins are drawn at 0, or at a very small value on a logarithmic axis.
-Returns the plot object.
+Draw the `Histogram` `h` as a step histogram on the CairoMakie axis `ax`: a line (with
+`linewidth = 2` unless set), or a filled area with `filled = true`. The other keyword
+arguments, for example `color`, `linewidth` or `label`, go to the CairoMakie function
+that draws it (`lines!` or `band!`). Empty bins are drawn at 0, or at a very small value
+on a logarithmic axis. Returns the plot object.
 """
 function plot_hist!(ax, h::Histogram{<:Real,1}; filled::Bool = false, kwargs...)
     floor_value = _floor_value(ax)
     x, y = _steps(h, floor_value)
     filled && return CairoMakie.band!(ax, x, fill(floor_value, length(y)), y; kwargs...)
-    return CairoMakie.lines!(ax, x, y; kwargs...)
+    attributes = merge((linewidth = 2,), NamedTuple(kwargs))
+    return CairoMakie.lines!(ax, x, y; attributes...)
 end
 
 """
@@ -84,26 +85,38 @@ function plot_residuals!(
 end
 
 """
-    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600))
+    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600), colors)
 
 Make a CairoMakie figure for the plot of a fit: an axis for the spectra with an axis for
 the residuals below it. The energy axes are linked and only the lower one has labels.
-`size` is the size of the figure in pixels. Returns `(fig, ax, ax_residuals)`. With
-`scale = :log` the y axis of `ax` is logarithmic, with `:linear` it is linear. Draw on the axes with [`plot_hist!`](@ref),
-[`mark_blinded!`](@ref) and [`plot_residuals!`](@ref), and set the limits, for example
-with `CairoMakie.xlims!(ax, 100, 4000)`.
+Returns `(fig, ax, ax_residuals)`.
+
+`size` is the size of the figure in pixels. With `scale = :log` the y axis of `ax` is
+logarithmic, with `:linear` it is linear. The lines drawn by [`plot_hist!`](@ref)
+without a `color` take the next of `colors`, a vector of colors that repeats after the
+last one. The default is a color-blind friendly palette of 7 colors.
+
+Draw on the axes with [`plot_hist!`](@ref), [`mark_blinded!`](@ref) and
+[`plot_residuals!`](@ref), and set the limits, for example with
+`CairoMakie.xlims!(ax, 100, 4000)`.
 """
 function fit_axes(;
     scale::Symbol = :log,
     title::AbstractString = "",
     ylabel::AbstractString = "Counts",
     size::Tuple{Integer,Integer} = (1300, 600),
+    colors::AbstractVector = CairoMakie.Makie.wong_colors(),
 )
     scale in (:log, :linear) || throw(ArgumentError("scale must be :log or :linear"))
 
     fig = CairoMakie.Figure(; size)
-    ax =
-        CairoMakie.Axis(fig[1, 1]; ylabel, yscale = scale == :log ? log10 : identity, title)
+    ax = CairoMakie.Axis(
+        fig[1, 1];
+        ylabel,
+        yscale = scale == :log ? log10 : identity,
+        title,
+        palette = (color = colors,),
+    )
     ax_res = CairoMakie.Axis(fig[2, 1]; ylabel = "Residual [σ]", xlabel = "Energy [keV]")
 
     CairoMakie.rowsize!(fig.layout, 1, CairoMakie.Relative(0.7))

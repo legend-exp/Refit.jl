@@ -129,6 +129,12 @@ end
     fig_big, _, _ = fit_axes(; size = (800, 700))
     @test Tuple(fig_big.scene.viewport[].widths) == (800, 700)
 
+    # lines without a color cycle through the colors
+    _, ax_colors, _ = fit_axes(; colors = [:red, :blue])
+    h = Histogram(0.0:1.0:3.0, [1.0, 2.0, 3.0])
+    @test plot_hist!(ax_colors, h).color[] == CairoMakie.to_color(:red)
+    @test plot_hist!(ax_colors, h).color[] == CairoMakie.to_color(:blue)
+
     _, ax_linear, _ = fit_axes(; scale = :linear)
     @test ax_linear.yscale[] === identity
     @test_throws ArgumentError fit_axes(; scale = :sqrt)
@@ -158,6 +164,10 @@ end
     @test plot_hist!(ax, data; filled = true, color = :lightblue) isa
           CairoMakie.Makie.AbstractPlot
     @test plot_hist!(ax_log, total) isa CairoMakie.Makie.AbstractPlot
+
+    # the lines have a default width that can be changed
+    @test plot_hist!(ax, total).linewidth[] == 2
+    @test plot_hist!(ax, total; linewidth = 5).linewidth[] == 5
     @test plot_hist!(ax_log, data; filled = true) isa CairoMakie.Makie.AbstractPlot
 
     # the empty bins of the prediction are not drawn as residuals

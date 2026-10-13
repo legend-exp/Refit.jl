@@ -1,8 +1,10 @@
 module Refit
 
 using DensityInterface
+import Distributions
 using Distributions: Uniform, UnivariateDistribution
 using IntervalSets
+using OrderedCollections: OrderedDict
 using StatsBase
 using ValueShapes: NamedTupleDist
 
