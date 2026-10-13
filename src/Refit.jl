@@ -23,5 +23,6 @@ export get_max_norm, get_priors, build_prior_dist
 export read_hist, read_pdf
 export get_best_fit_histograms, write_best_fit, write_parameter_values
 export normalised_poisson_residual
-export plot_hist!, mark_blinded!, plot_residuals!, fit_axes, group_histograms
+export plot_hist!,
+    mark_blinded!, plot_residuals!, fit_axes, group_histograms, plot_posterior!
 end # module Refit

@@ -84,6 +84,100 @@ function plot_residuals!(
     )
 end
 
+# The shortest interval that contains the fraction `level` of the weights of the samples `x`.
+function _smallest_interval(
+    x::AbstractVector{<:Real},
+    weights::AbstractVector{<:Real},
+    level::Real,
+)
+    length(x) == length(weights) ||
+        throw(DimensionMismatch("samples and weights differ in length"))
+    order = sortperm(x)
+    sorted = x[order]
+    cumulative = cumsum(Float64.(weights[order]))
+    target = level * last(cumulative)
+
+    best_width = Inf
+    best = (first(sorted), last(sorted))
+    stop = 1
+    for start in eachindex(sorted)
+        # the weight in start:stop is cumulative[stop] - cumulative[start - 1]
+        before = start == 1 ? 0.0 : cumulative[start-1]
+        while cumulative[stop] - before < target
+            stop == length(sorted) && return best
+            stop += 1
+        end
+        width = sorted[stop] - sorted[start]
+        if width < best_width
+            best_width = width
+            best = (sorted[start], sorted[stop])
+        end
+    end
+    return best
+end
+
+"""
+    plot_posterior!(ax, samples, name; level = 0.68, nbins = 50, best = nothing,
+                    truth = nothing, kwargs...)
+
+Draw the marginal posterior distribution of the parameter `name` on the CairoMakie axis
+`ax`, as a step histogram normalised to an integral of 1. `samples` are the samples of the
+posterior, for example from `bat_sample`: the parameters of each sample are in
+`samples.v` and its weight in `samples.weight`. The histogram has `nbins` bins between the
+smallest and the largest value.
+
+The bins inside the smallest interval that contains the fraction `level` of the
+distribution are filled. This is the same interval as the one saved by
+[`write_parameter_values`](@ref) when it comes from `BAT.smallest_credible_intervals`.
+With `best` (for example `mode(samples)[name]`) a dashed vertical line marks the best fit,
+and with `truth` a red line marks the true value. The other keywords, for example `color`,
+go to [`plot_hist!`](@ref).
+
+Returns the interval as `low .. high`.
+"""
+function plot_posterior!(
+    ax,
+    samples,
+    name::Symbol;
+    level::Real = 0.68,
+    nbins::Integer = 50,
+    best::Union{Nothing,Real} = nothing,
+    truth::Union{Nothing,Real} = nothing,
+    kwargs...,
+)
+    0 < level < 1 || throw(ArgumentError("level must be between 0 and 1"))
+    haskey(first(samples.v), name) || throw(ArgumentError("unknown parameter $name"))
+
+    values = [v[name] for v in samples.v]
+    weights = Float64.(samples.weight)
+    # the last bin includes the largest value
+    lowest, highest = extrema(values)
+    lowest < highest || throw(ArgumentError("all the samples of $name have the same value"))
+    edges = range(lowest, highest + 1e-9 * (highest - lowest); length = nbins + 1)
+
+    histogram = fit(Histogram, values, Weights(weights), edges)
+    density = histogram.weights ./ (sum(histogram.weights) * step(edges))
+    posterior = Histogram(edges, density)
+
+    low, high = _smallest_interval(values, weights, level)
+    centers = (edges[1:(end-1)] .+ edges[2:end]) ./ 2
+    inside = (low .<= centers) .& (centers .<= high)
+
+    attributes = merge((color = :black,), NamedTuple(kwargs))
+    plot_hist!(
+        ax,
+        Histogram(edges, density .* inside);
+        filled = true,
+        color = (attributes.color, 0.4),
+    )
+    plot_hist!(ax, posterior; attributes...)
+    isnothing(best) ||
+        CairoMakie.vlines!(ax, best; color = attributes.color, linestyle = :dash)
+    isnothing(truth) || CairoMakie.vlines!(ax, truth; color = :red)
+
+    return low .. high
+end
+
 """
     fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600), colors)
 

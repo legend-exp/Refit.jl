@@ -193,99 +193,70 @@ true_alpha = 2.0  # counts per 1 keV bin
 nothing # hide
 ```
 
-The marginal posterior of each activity is plotted with the plot recipes of
-BAT.jl. The colored regions are the smallest intervals that contain 68%, 95% and
-99.7% of the distribution, the dashed line is the mode and the red line is the true
-activity used to make the measured spectrum.
-
-```@example tutorial
-using Plots
-
-truth = merge(true_activities, (alpha = true_alpha,))
-panels = map(collect(keys(truth))) do name
-    unit = name == :alpha ? "counts per keV" : "mBq"
-    plot(
-        samples,
-        name;
-        mean = false,
-        std = false,
-        globalmode = true,
-        nbins = 50,
-        title = string(name),
-        titlefontsize = 8,
-        xlabel = "activity ($unit)",
-        ylabel = "probability density (1/$unit)",
-    )
-    vline!([truth[name]]; color = :red, linewidth = 2, label = "")
-end
-plot(
-    panels...;
-    layout = (2, 4),
-    size = (1300, 700),
-    legend = false,
-    left_margin = 8Plots.mm,
-    bottom_margin = 6Plots.mm,
-    top_margin = 3Plots.mm,
-)
-```
-
-A pair of activities shows their correlation. The ``^{40}``K activities of the cables and of
-the fibers are anticorrelated, because the data constrain mostly their sum:
-
-```@example tutorial
-plot(
-    samples,
-    (:cables_K40, :fibers_K40);
-    nbins = 50,
-    globalmode = true,
-    legend = :bottomleft,
-    xlabel = "cables_K40 activity (mBq)",
-    ylabel = "fibers_K40 activity (mBq)",
-)
-```
-
-The best fit is the global mode. The uncertainty of each activity is the smallest 68%
-credible interval: the smallest interval that contains 68% of its posterior
-density. BAT.jl computes it for all the activities at once, and `mode = :connected`
-gives a single interval for each one. Activities differ by orders of magnitude, so the
-plot shows the best fit divided by the true value. A good fit is consistent with 1.
-
-```@example tutorial
-best = mode(samples)
-intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
-
-names = collect(keys(truth))
-fit = [best[n] / truth[n] for n in names]
-lower = [intervals[n].left / truth[n] for n in names]
-upper = [intervals[n].right / truth[n] for n in names]
-
-scatter(
-    string.(names),
-    fit;
-    yerror = (max.(fit .- lower, 0), max.(upper .- fit, 0)),
-    color = :black,
-    label = "best fit and 68% interval",
-    ylabel = "best fit / true activity",
-    xrotation = 30,
-    bottom_margin = 12Plots.mm,
-    legend = :bottomright,
-)
-hline!([1]; color = :red, label = "true activity")
-```
-
-Finally, the prediction of the best fit is compared with the measured counts. The
-sources are summed into a few groups and plotted with CairoMakie, here in the LEGEND
-style of [LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/). See
-[Plotting](plotting.md) for the functions that are used and how the plot can be customised.
+The plots are made with CairoMakie, here in the LEGEND style of
+[LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/), which changes the
+style of all CairoMakie plots once it is loaded (it also needs `Format`). The best fit is
+the global mode of the posterior. `plot_posterior!` draws the marginal posterior of one
+parameter. The bins inside the smallest 68% interval are filled, the dashed line is the
+best fit and the red line is the true activity that was used to make the fake data.
 
 ```@example tutorial
 using LegendMakie
 import Format
-```
-
-```@example tutorial
 import CairoMakie
 
+best = mode(samples)
+truth = merge(true_activities, (alpha = true_alpha,))
+
+fig = CairoMakie.Figure(size = (1300, 700))
+for (i, name) in enumerate(keys(best))
+    unit = name == :alpha ? "counts per keV" : "mBq"
+    ax = CairoMakie.Axis(
+        fig[fld1(i, 4), mod1(i, 4)];
+        title = string(name),
+        xlabel = "Activity [$unit]",
+        ylabel = "Probability density",
+        xticks = CairoMakie.LinearTicks(3),
+    )
+    plot_posterior!(ax, samples, name; best = best[name], truth = truth[name])
+end
+fig
+```
+
+The uncertainty of each activity is the smallest 68% credible interval, the smallest
+interval that contains 68% of its posterior density, which is the filled region above.
+BAT.jl computes it for all the activities at once, and `mode = :connected` gives a single
+interval for each one. Activities differ by orders of magnitude, so the plot shows the
+best fit divided by the true value. A good fit is consistent with 1.
+
+```@example tutorial
+intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
+
+names = collect(keys(truth))
+x = 1:length(names)
+fit = [best[n] / truth[n] for n in names]
+lower = [intervals[n].left / truth[n] for n in names]
+upper = [intervals[n].right / truth[n] for n in names]
+
+fig = CairoMakie.Figure(size = (900, 450))
+ax = CairoMakie.Axis(
+    fig[1, 1];
+    xticks = (x, string.(names)),
+    xticklabelrotation = pi / 6,
+    ylabel = "Best fit / true activity",
+)
+CairoMakie.hlines!(ax, 1; color = :red, label = "True activity")
+CairoMakie.errorbars!(ax, x, fit, max.(fit .- lower, 0), max.(upper .- fit, 0); color = :black)
+CairoMakie.scatter!(ax, x, fit; color = :black, label = "Best fit and 68% interval")
+CairoMakie.axislegend(ax; position = :rb)
+fig
+```
+
+Finally, the prediction of the best fit is compared with the measured counts. The
+sources are summed into a few groups and plotted in the same way. See
+[Plotting](plotting.md) for the functions that are used and how the plot can be customised.
+
+```@example tutorial
 data_hist = counts_to_histogram(counts, bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
