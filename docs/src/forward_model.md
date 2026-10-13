@@ -1,7 +1,7 @@
 # Forward model
 
 The forward model is a function mapping the parameters of interest onto the predicted
-counts. 
+counts.
 
 ## Definition
 Here the parameters are the activities of the simulated sources, for example
