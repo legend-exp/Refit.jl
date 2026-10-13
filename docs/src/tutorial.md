@@ -241,38 +241,32 @@ plot(
 ```
 
 The best fit is the global mode. The uncertainty of each activity is the central 68%
-interval of its distribution. Both are compared with the activities used to make the
-measured spectrum:
+interval of its distribution, from the 16% and 84% quantiles of the samples. Activities
+differ by orders of magnitude, so the plot shows the best fit divided by the true
+value. A good fit is consistent with 1.
 
 ```@example tutorial
 best = mode(samples)
 weights = Weights(samples.weight)
+names = collect(keys(truth))
 
-println(rpad("source", 25), "best fit [68% interval]    true (mBq)")
-for name in keys(true_activities)
-    low, high = quantile([v[name] for v in samples.v], weights, [0.16, 0.84])
-    println(
-        rpad(name, 25),
-        round(best[name], digits = 1),
-        " [",
-        round(low, digits = 1),
-        ", ",
-        round(high, digits = 1),
-        "]    ",
-        true_activities[name],
-    )
-end
-low, high = quantile([v.alpha for v in samples.v], weights, [0.16, 0.84])
-println(
-    rpad("alpha (counts per keV)", 25),
-    round(best.alpha, digits = 2),
-    " [",
-    round(low, digits = 2),
-    ", ",
-    round(high, digits = 2),
-    "]    ",
-    true_alpha,
+fit = [best[n] / truth[n] for n in names]
+interval = [
+    quantile([v[n] for v in samples.v], weights, [0.16, 0.84]) ./ truth[n] for n in names
+]
+
+scatter(
+    string.(names),
+    fit;
+    yerror = (max.(fit .- first.(interval), 0), max.(last.(interval) .- fit, 0)),
+    color = :black,
+    label = "best fit and 68% interval",
+    ylabel = "best fit / true activity",
+    xrotation = 30,
+    bottom_margin = 12Plots.mm,
+    legend = :bottomright,
 )
+hline!([1]; color = :red, label = "true activity")
 ```
 
 Finally, the prediction of the best fit is compared with the measured counts, both as
