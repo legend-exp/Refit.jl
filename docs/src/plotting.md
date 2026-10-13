@@ -135,8 +135,10 @@ The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`.
 `plot_posterior!(ax, samples, name)` draws the marginal posterior of the parameter `name` on
 a CairoMakie axis. `samples` are the samples from `bat_sample`: the parameters of each
 sample are in `samples.v` and its weight in `samples.weight`. The bins inside the smallest
-68% interval (or another `level`) are filled, and the keywords `best` and `truth` draw a
-dashed line at the best fit and a red line at a true value. The function returns the
+68% interval (or another `level`) are filled, and `bandcolor` sets the color of the filled
+band (light blue here, by default the color of the line with some transparency). The
+keywords `best` and `truth` draw a dashed line at the best fit and a red line at a true
+value. The function returns the
 interval. Here the samples are made up:
 
 ```@example demo
@@ -152,7 +154,8 @@ ax = CairoMakie.Axis(
     xlabel = "K40 activity [mBq]",
     ylabel = "Probability density",
 )
-interval = plot_posterior!(ax, samples, :K40_hpge_bulk; best = 40, truth = 42)
+interval =
+    plot_posterior!(ax, samples, :K40_hpge_bulk; best = 40, truth = 42, bandcolor = :lightblue)
 fig
 ```
 

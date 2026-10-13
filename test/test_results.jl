@@ -213,14 +213,21 @@ end
     fig = CairoMakie.Figure()
     ax = CairoMakie.Axis(fig[1, 1])
     interval = plot_posterior!(ax, samples, :a; best = 0.0, truth = 0.5, color = :blue)
+    @test ax.limits[][2][1] == 0  # the y axis starts at 0
     @test interval isa ClosedInterval
     @test interval.left < 0 < interval.right
     @test interval.right - interval.left ≈ 2 atol = 0.15
 
     # the other parameter is twice as wide, and a different level and number of bins
     ax_b = CairoMakie.Axis(fig[2, 1])
-    interval_b = plot_posterior!(ax_b, samples, :b; level = 0.95, nbins = 20)
+    interval_b =
+        plot_posterior!(ax_b, samples, :b; level = 0.95, nbins = 20, bandcolor = :lightblue)
     @test interval_b.right - interval_b.left ≈ 8 atol = 0.5
+
+    # the filled band has the color of the line with transparency, or bandcolor
+    bands(axis) = [p for p in axis.scene.plots if p isa CairoMakie.Makie.Band]
+    @test only(bands(ax)).color[] == (:blue, 0.4)
+    @test only(bands(ax_b)).color[] == :lightblue
 
     file = tempname() * ".png"
     CairoMakie.save(file, fig)
