@@ -1,6 +1,6 @@
 # Refit.jl
 
-[![Codecov](https://codecov.io/gh/legend-exp/Refit.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/legend-exp/Refit.jl)
+[![Codecov](https://codecov.io/gh/legend-exp/Refit.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/legend-exp/Refit.jl)
 [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://legend-exp.github.io/Refit.jl/dev)
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
