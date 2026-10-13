@@ -56,7 +56,7 @@ ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)</code
   :Ar39_liquid_argon     =&gt; 0.0 .. 6440.01
   :two_vbb_hpge_bulk     =&gt; 0.0 .. 5150.82</code></pre><p>A range can be changed by hand where the guess is poor, for example <code>ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0</code> (with <code>using IntervalSets</code>).</p><p><code>build_prior</code> makes the prior: a uniform distribution on the range of each activity. <code>rand(prior)</code> draws one random value for each activity, a named tuple that goes directly into the model.</p><pre><code class="language-julia hljs">prior = build_prior(ranges)
 
-rand(prior)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(fibers_Pb212_to_Pb208 = 2998.3970459922793, alpha = 270.4364330232066, cables_K40 = 3385.484818821507, fibers_K40 = 1687.7952507798793, cables_Pb212_to_Pb208 = 2293.1367294556253, Ar39_liquid_argon = 5495.454408936203, two_vbb_hpge_bulk = 887.7447901411774)</code></pre><h2 id="Sampling-the-posterior"><a class="docs-heading-anchor" href="#Sampling-the-posterior">Sampling the posterior</a><a id="Sampling-the-posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-the-posterior" title="Permalink"></a></h2><p><a href="https://bat.github.io/">BAT.jl</a> samples the posterior with a Markov chain Monte Carlo (a random walk through the space of the parameters that visits each value with a probability given by the posterior). The first steps of each chain are discarded as burn-in. This run is short, a real fit uses more steps.</p><pre><code class="language-julia hljs">using BAT
+rand(prior)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(fibers_Pb212_to_Pb208 = 170.0535582045678, alpha = 568.8611242082887, cables_K40 = 2138.339391070849, fibers_K40 = 2829.9496214012806, cables_Pb212_to_Pb208 = 854.1666306647187, Ar39_liquid_argon = 319.16266250344006, two_vbb_hpge_bulk = 2804.178779064011)</code></pre><h2 id="Sampling-the-posterior"><a class="docs-heading-anchor" href="#Sampling-the-posterior">Sampling the posterior</a><a id="Sampling-the-posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-the-posterior" title="Permalink"></a></h2><p><a href="https://bat.github.io/">BAT.jl</a> samples the posterior with a Markov chain Monte Carlo (a random walk through the space of the parameters that visits each value with a probability given by the posterior). The first steps of each chain are discarded as burn-in. This run is short, a real fit uses more steps.</p><pre><code class="language-julia hljs">using BAT
 
 posterior = PosteriorMeasure(likelihood, prior)
 
@@ -65,31 +65,31 @@ samples = bat_sample(
     TransformedMCMC(
         proposal = RandomWalk(),
         strict = false,
-        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 10_000, max_ncycles = 30),
+        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 10_000, max_ncycles = 50),
         nsteps = 5 * 10^5,
         nchains = 4,
     ),
 ).result</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: MCMCChainPoolInit: trying to generate 4 viable MCMC chain state(s).
 [ Info: Selected 4 MCMC chain state(s).
 [ Info: Begin tuning of 4 MCMC chain(s).
-[ Info: MCMC Tuning cycle 1 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 2 finished, 4 chains, 3 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 3 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 4 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 1 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 2 finished, 4 chains, 2 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 3 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 4 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 5 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 6 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 7 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 8 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 9 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 8 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 9 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 10 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 11 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 12 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 13 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 14 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 15 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 12 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 13 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 14 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 15 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 16 finished, 4 chains, 3 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 17 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 18 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 17 finished, 4 chains, 3 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 18 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 19 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 20 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 21 finished, 4 chains, 4 tuned, 0 converged.
@@ -100,8 +100,14 @@ samples = bat_sample(
 [ Info: MCMC Tuning cycle 26 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 27 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 28 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 29 finished, 4 chains, 4 tuned, 4 converged.
-[ Info: MCMC tuning of 4 chains successful after 29 cycle(s).
+[ Info: MCMC Tuning cycle 29 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 30 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 31 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 32 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 33 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 34 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 35 finished, 4 chains, 4 tuned, 4 converged.
+[ Info: MCMC tuning of 4 chains successful after 35 cycle(s).
 [ Info: Running post-tuning stabilization steps for 4 MCMC chain(s).
 [ Info: Generate main samples using 4 MCMC chain(s).</code></pre><h2 id="Result"><a class="docs-heading-anchor" href="#Result">Result</a><a id="Result-1"></a><a class="docs-heading-anchor-permalink" href="#Result" title="Permalink"></a></h2><p>The activities used to make the fake data are:</p><pre><code class="language-julia hljs">true_activities = (  # mBq
     cables_K40 = 200.0,
@@ -138,7 +144,7 @@ plot(
     left_margin = 8Plots.mm,
     bottom_margin = 6Plots.mm,
     top_margin = 3Plots.mm,
-)</code></pre><img src="59ef081a.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The K40 activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
+)</code></pre><img src="efa0b810.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The K40 activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
     samples,
     (:cables_K40, :fibers_K40);
     nbins = 50,
@@ -146,41 +152,27 @@ plot(
     legend = :bottomleft,
     xlabel = &quot;cables_K40 activity (mBq)&quot;,
     ylabel = &quot;fibers_K40 activity (mBq)&quot;,
-)</code></pre><img src="bad99bbc.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the central 68% interval of its distribution. Both are compared with the activities used to make the measured spectrum:</p><pre><code class="language-julia hljs">best = mode(samples)
+)</code></pre><img src="50198c3e.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the central 68% interval of its distribution, from the 16% and 84% quantiles of the samples. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
 weights = Weights(samples.weight)
+names = collect(keys(truth))
 
-println(rpad(&quot;source&quot;, 25), &quot;best fit [68% interval]    true (mBq)&quot;)
-for name in keys(true_activities)
-    low, high = quantile([v[name] for v in samples.v], weights, [0.16, 0.84])
-    println(
-        rpad(name, 25),
-        round(best[name], digits = 1),
-        &quot; [&quot;,
-        round(low, digits = 1),
-        &quot;, &quot;,
-        round(high, digits = 1),
-        &quot;]    &quot;,
-        true_activities[name],
-    )
-end
-low, high = quantile([v.alpha for v in samples.v], weights, [0.16, 0.84])
-println(
-    rpad(&quot;alpha (counts per keV)&quot;, 25),
-    round(best.alpha, digits = 2),
-    &quot; [&quot;,
-    round(low, digits = 2),
-    &quot;, &quot;,
-    round(high, digits = 2),
-    &quot;]    &quot;,
-    true_alpha,
-)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">source                   best fit [68% interval]    true (mBq)
-cables_K40               196.5 [165.5, 226.5]    200.0
-fibers_K40               101.4 [73.2, 131.4]    100.0
-cables_Pb212_to_Pb208    50.4 [44.0, 56.5]    50.0
-fibers_Pb212_to_Pb208    30.8 [25.5, 36.8]    30.0
-two_vbb_hpge_bulk        3498.4 [3492.7, 3503.0]    3500.0
-Ar39_liquid_argon        1003.1 [998.1, 1009.0]    1000.0
-alpha (counts per keV)   2.0 [1.95, 2.05]    2.0</code></pre><p>Finally, the prediction of the best fit is compared with the measured counts, both as histograms in the bins of the fit. <code>counts_to_histogram</code> turns the counts back into a <code>Histogram</code>. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
+fit = [best[n] / truth[n] for n in names]
+interval = [
+    quantile([v[n] for v in samples.v], weights, [0.16, 0.84]) ./ truth[n] for n in names
+]
+
+scatter(
+    string.(names),
+    fit;
+    yerror = (max.(fit .- first.(interval), 0), max.(last.(interval) .- fit, 0)),
+    color = :black,
+    label = &quot;best fit and 68% interval&quot;,
+    ylabel = &quot;best fit / true activity&quot;,
+    xrotation = 30,
+    bottom_margin = 12Plots.mm,
+    legend = :bottomright,
+)
+hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="57d0c072.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts, both as histograms in the bins of the fit. <code>counts_to_histogram</code> turns the counts back into a <code>Histogram</code>. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
 fit_hist = counts_to_histogram(model(best), bin_edges)
 
 plot(
@@ -198,4 +190,4 @@ plot!(fit_hist; seriestype = :stepbins, label = &quot;best fit&quot;, color = :b
 # grey band over the empty bin, which is wider than the blinded region because bins
 # are only fitted if they are fully outside of it
 empty = findfirst(==(0), fit_hist.weights)
-vspan!(fit_hist.edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = &quot;blinded&quot;)</code></pre><img src="c949eca7.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../priors/">« Priors</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 15:27">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+vspan!(fit_hist.edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = &quot;blinded&quot;)</code></pre><img src="b90388f3.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../priors/">« Priors</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 15:37">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
