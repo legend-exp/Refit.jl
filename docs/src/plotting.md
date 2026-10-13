@@ -1,10 +1,8 @@
 # Plotting
 
-The spectra, the best fit and its sources are plotted with
-[CairoMakie](https://docs.makie.org/), by the functions of this package. The posterior
-distributions are plotted with the plot recipes of [BAT.jl](https://bat.github.io/),
-which use [Plots.jl](https://docs.juliaplots.org/). The [tutorial](tutorial.md) shows
-both for a complete fit.
+The spectra, the best fit and its sources, and the posterior distributions are plotted
+with [CairoMakie](https://docs.makie.org/), by the functions of this package. The
+[tutorial](tutorial.md) shows them for a complete fit.
 
 ```@setup demo
 include("example_data.jl")
@@ -131,13 +129,32 @@ fig
     added with other Makie functions. See the [Makie documentation](https://docs.makie.org/)
     for the options.
 
-The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`. These functions call
-CairoMakie only with its full names, so loading both CairoMakie and Plots.jl with `using`
-makes names such as `plot` clash. Load one with `import`.
-
+The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`.
 ## Posterior distributions
 
-The posterior samples from `bat_sample` are plotted with the plot recipes of BAT.jl,
-which use Plots.jl. See the
-[plotting section of the BAT.jl manual](https://bat.github.io/BAT.jl/stable/plotting/).
-The [tutorial](tutorial.md) shows them for a fit.
+`plot_posterior!(ax, samples, name)` draws the marginal posterior of the parameter `name` on
+a CairoMakie axis. `samples` are the samples from `bat_sample`: the parameters of each
+sample are in `samples.v` and its weight in `samples.weight`. The bins inside the smallest
+68% interval (or another `level`) are filled, and the keywords `best` and `truth` draw a
+dashed line at the best fit and a red line at a true value. The function returns the
+interval. Here the samples are made up:
+
+```@example demo
+Random.seed!(2)
+samples = (
+    v = [(K40_hpge_bulk = x,) for x in 40 .+ 5 .* randn(20_000)],
+    weight = ones(Int, 20_000),
+)
+
+fig = CairoMakie.Figure(size = (700, 400))
+ax = CairoMakie.Axis(
+    fig[1, 1];
+    xlabel = "K40 activity [mBq]",
+    ylabel = "Probability density",
+)
+interval = plot_posterior!(ax, samples, :K40_hpge_bulk; best = 40, truth = 42)
+fig
+```
+
+BAT.jl also has plot recipes for Plots.jl, for example for the correlation of two
+parameters. See the [plotting section of the BAT.jl manual](https://bat.github.io/BAT.jl/stable/plotting/).

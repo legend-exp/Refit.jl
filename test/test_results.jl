@@ -1,5 +1,7 @@
 import CairoMakie
 using Distributions
+using IntervalSets
+using Random
 using Refit
 using StatsBase
 using Test
@@ -183,4 +185,49 @@ end
 
     other_bins = counts_to_histogram(fill(1.0, 3), (low = [0.0, 1, 2], high = [1.0, 2, 3]))
     @test_throws ArgumentError plot_residuals!(ax_res, total, other_bins)
+end
+
+@testset "plot_posterior!" begin
+    # the shortest interval of a skewed distribution starts at its lowest values
+    x = collect(0.0:99.0)
+    weights = 100.0 .- x
+    low, high = Refit._smallest_interval(x, weights, 0.68)
+    @test low == 0.0
+    # brute force: the shortest of all the intervals that contain 68% of the weight
+    widths = [
+        (x[j] - x[i], i, j) for i in eachindex(x) for
+        j = i:length(x) if sum(weights[i:j]) >= 0.68 * sum(weights)
+    ]
+    @test (high - low) == minimum(first.(widths))
+
+    # a symmetric distribution: the same as the central interval, within the bin
+    Random.seed!(1)
+    gauss = randn(100_000)
+    low, high = Refit._smallest_interval(gauss, ones(length(gauss)), 0.6827)
+    @test low ≈ -1 atol = 0.05
+    @test high ≈ 1 atol = 0.05
+    @test_throws DimensionMismatch Refit._smallest_interval([1.0, 2.0], [1.0], 0.68)
+
+    # samples in the format of bat_sample: the parameters in v and the weights
+    samples = (v = [(a = x, b = 2x) for x in gauss[1:20_000]], weight = rand(1:3, 20_000))
+    fig = CairoMakie.Figure()
+    ax = CairoMakie.Axis(fig[1, 1])
+    interval = plot_posterior!(ax, samples, :a; best = 0.0, truth = 0.5, color = :blue)
+    @test interval isa ClosedInterval
+    @test interval.left < 0 < interval.right
+    @test interval.right - interval.left ≈ 2 atol = 0.15
+
+    # the other parameter is twice as wide, and a different level and number of bins
+    ax_b = CairoMakie.Axis(fig[2, 1])
+    interval_b = plot_posterior!(ax_b, samples, :b; level = 0.95, nbins = 20)
+    @test interval_b.right - interval_b.left ≈ 8 atol = 0.5
+
+    file = tempname() * ".png"
+    CairoMakie.save(file, fig)
+    @test filesize(file) > 0
+
+    @test_throws ArgumentError plot_posterior!(ax, samples, :c)
+    @test_throws ArgumentError plot_posterior!(ax, samples, :a; level = 1.0)
+    constant = (v = [(a = 1.0,), (a = 1.0,)], weight = [1, 1])
+    @test_throws ArgumentError plot_posterior!(ax, constant, :a)
 end
