@@ -10,103 +10,25 @@ with the truth at the end.
 
 ## Fake data
 
-The next two blocks generate the input files in LH5 format in a temporary directory.
-They stand in for the output of a real simulation and for a measured spectrum. A real
-fit skips this section and reads the files of the simulation.
+The input files are in `test/test_files/tutorial` of the repository, in LH5 format. They
+stand in for the output of a real simulation and for a measured spectrum. A real fit
+reads the files of the simulation instead. The script `make_files.jl` in the same
+directory makes them again.
 
-There is one file for each simulated source, with the histograms `pdf/mul1/icpc` and
-`pdf/mul1/bege` (the two detector types) and the number of simulated primaries. The
-sources with a gamma line have a peak with a 1 keV width on a flat or linear
+- There is one file for each simulated source, for example `cables_K40.lh5`, with the
+  histograms `pdf/mul1/icpc` and `pdf/mul1/bege` (the two detector types) and the
+  number of simulated primaries. The 2νββ decay has one file for each detector type.
+- `data.lh5` has the measured histograms `hist/mul1/icpc` and `hist/mul1/bege`.
+
+The sources with a gamma line have a peak with a 1 keV width on a flat or linear
 continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
-centered at 1 MeV).
+centered at 1 MeV), and it makes about 90% of the counts. The measured spectrum is
+generated from known activities with Poisson fluctuations, so the result of the fit
+can be compared with the truth at the end.
 
 ```@example tutorial
-using LegendHDF5IO
-using Distributions
-using Random
-
-Random.seed!(1)  # the same fake data in every build
-
-dir = mktempdir()
-lh5_binning = (binedges = (first = 0.0, last = 4000.0, step = 1.0), closedleft = true)
-energy = collect(0.5:1.0:3999.5)  # bin centers in keV
-
-# A peak with a 1 keV width containing 10% of the events, on a linear continuum
-# 1 + slope * energy / peak up to the peak. The spectrum is normalised to 1.
-function peak_shape(peak; slope = 0.0)
-    continuum = (1 .+ slope .* energy ./ peak) .* (energy .< peak)
-    line = exp.(-(energy .- peak) .^ 2 ./ 2)
-    return 0.9 .* continuum ./ sum(continuum) .+ 0.1 .* line ./ sum(line)
-end
-
-# A broad Gaussian spectrum, normalised to 1
-broad_shape(center, sigma) =
-    (w = exp.(-(energy .- center) .^ 2 ./ (2 * sigma^2)); w ./ sum(w))
-
-n_primaries = 1_000_000
-efficiency = 0.3  # fraction of the primaries with an event in the detector
-groups_lh5 = ["mul1/icpc", "mul1/bege"]
-
-# name of the file => spectrum
-sources = Dict(
-    "cables_K40" => peak_shape(1461; slope = 0.0),
-    "fibers_K40" => peak_shape(1461; slope = 1.0),
-    "cables_Pb212_to_Pb208" => peak_shape(2615; slope = -0.5),
-    "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
-    "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
-    "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
-)
-
-for (name, spectrum) in sources
-    lh5open(joinpath(dir, "$name.lh5"), "w") do f
-        for g in groups_lh5
-            f["pdf/$g/binning/axis_0"] = lh5_binning
-            f["pdf/$g/weights"] = efficiency * n_primaries .* spectrum
-        end
-        f["nr_sim_events"] = n_primaries
-    end
-end
-nothing # hide
-```
-
-The measured spectrum is in the file `data.lh5`, with the histograms `hist/mul1/icpc`
-and `hist/mul1/bege`. Its expected counts are the sum of the simulated spectra times
-the activities, in mBq, and the livetime. The 2νββ spectrum is the average of the two
-detector types, weighted with their masses (80 kg and 20 kg). The counts in each bin
-are drawn from a Poisson distribution, and the alpha events are a constant
-2 counts per keV.
-
-```@example tutorial
-true_livetime = 1.0e6  # s
-true_activities = (  # mBq
-    cables_K40 = 200.0,
-    fibers_K40 = 100.0,
-    cables_Pb212_to_Pb208 = 50.0,
-    fibers_Pb212_to_Pb208 = 30.0,
-    two_vbb_hpge_bulk = 8.0,
-)
-true_alpha = 2.0  # counts per 1 keV bin
-
-two_vbb = 0.8 .* sources["hpge_icpc_bulk_2vbb"] .+ 0.2 .* sources["hpge_bege_bulk_2vbb"]
-
-# the simulated spectra are summed over the two detector types, so the efficiency
-# is counted twice
-expected =
-    1e-3 * true_livetime * 2 * efficiency .* (
-        true_activities.cables_K40 .* sources["cables_K40"] .+
-        true_activities.fibers_K40 .* sources["fibers_K40"] .+
-        true_activities.cables_Pb212_to_Pb208 .* sources["cables_Pb212_to_Pb208"] .+
-        true_activities.fibers_Pb212_to_Pb208 .* sources["fibers_Pb212_to_Pb208"] .+
-        true_activities.two_vbb_hpge_bulk .* two_vbb
-    ) .+ true_alpha
-
-lh5open(joinpath(dir, "data.lh5"), "w") do f
-    for g in groups_lh5
-        f["hist/$g/binning/axis_0"] = lh5_binning
-        f["hist/$g/weights"] = Float64.([rand(Poisson(l / 2)) for l in expected])
-    end
-end
-nothing # hide
+dir = "../../test/test_files/tutorial"  # relative to docs/src
+readdir(dir)
 ```
 
 ## Settings
@@ -117,7 +39,7 @@ using StatsBase
 
 livetime = 1.0e6  # s
 e_low, e_high = 100, 4000  # keV, the range of the fit
-binning = 10  # merge 10 bins of 1 keV into one
+binning = 20  # merge 20 bins of 1 keV into one
 blind = (2015.0, 2065.0)  # keV, a region around the 2039 keV Q-value that is not fitted
 
 # The activities are in mBq and the simulated spectra are counts per simulated
@@ -244,6 +166,20 @@ nothing # hide
 
 ## Result
 
+The activities used to make the fake data are:
+
+```@example tutorial
+true_activities = (  # mBq
+    cables_K40 = 200.0,
+    fibers_K40 = 100.0,
+    cables_Pb212_to_Pb208 = 50.0,
+    fibers_Pb212_to_Pb208 = 30.0,
+    two_vbb_hpge_bulk = 3500.0,
+)
+true_alpha = 2.0  # counts per 1 keV bin
+nothing # hide
+```
+
 The marginal posterior of each activity is plotted with the plot recipes of
 BAT.jl. The colored regions are the smallest intervals that contain 68%, 95% and
 99.7% of the distribution, the dashed line is the mode and the red line is the true
@@ -254,7 +190,19 @@ using Plots
 
 truth = merge(true_activities, (alpha = true_alpha,))
 panels = map(collect(keys(truth))) do name
-    plot(samples, name; mean = false, std = false, globalmode = true, nbins = 50, title = string(name), titlefontsize = 8)
+    unit = name == :alpha ? "counts per keV" : "mBq"
+    plot(
+        samples,
+        name;
+        mean = false,
+        std = false,
+        globalmode = true,
+        nbins = 50,
+        title = string(name),
+        titlefontsize = 8,
+        xlabel = "activity ($unit)",
+        ylabel = "probability density (1/$unit)",
+    )
     vline!([truth[name]]; color = :red, linewidth = 2, label = "")
 end
 plot(panels...; layout = (2, 3), size = (900, 650), legend = false)
@@ -264,7 +212,15 @@ A pair of activities shows their correlation. The K40 activities of the cables a
 the fibers are anticorrelated, because the data constrain mostly their sum:
 
 ```@example tutorial
-plot(samples, (:cables_K40, :fibers_K40); nbins = 50, globalmode = true, legend = :bottomleft)
+plot(
+    samples,
+    (:cables_K40, :fibers_K40);
+    nbins = 50,
+    globalmode = true,
+    legend = :bottomleft,
+    xlabel = "cables_K40 activity (mBq)",
+    ylabel = "fibers_K40 activity (mBq)",
+)
 ```
 
 The best fit is the global mode. The uncertainty of each activity is the central 68%
@@ -302,23 +258,28 @@ println(
 )
 ```
 
-Finally, the prediction of the best fit is compared with the measured counts. The
-error bars are the square root of the counts. The blinded region is not fitted.
+Finally, the prediction of the best fit is compared with the measured counts, both as
+histograms in the bins of the fit. `counts_to_histogram` turns the counts back into a
+`Histogram`. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.
 
 ```@example tutorial
-centers = (bin_edges.low .+ bin_edges.high) ./ 2
+data_hist = counts_to_histogram(counts, bin_edges)
+fit_hist = counts_to_histogram(model(best), bin_edges)
 
-scatter(
-    centers,
-    counts;
-    yerror = sqrt.(counts),
-    label = "data",
-    color = :black,
-    markersize = 2,
-    yscale = :log10,
-    ylims = (0.5, :auto),
+plot(
+    fit_hist;
+    seriestype = :stepbins,
+    label = "best fit",
+    color = :red,
+    linewidth = 3,
+    xlims = (e_low, e_high),
     xlabel = "energy (keV)",
-    ylabel = "counts per bin",
+    ylabel = "counts per $binning keV",
 )
-plot!(centers, model(best); label = "best fit", color = :red, linewidth = 2)
+plot!(data_hist; seriestype = :stepbins, label = "data", color = :black, linewidth = 1)
+
+# grey band over the empty bin, which is wider than the blinded region because bins
+# are only fitted if they are fully outside of it
+empty = findfirst(==(0), fit_hist.weights)
+vspan!(fit_hist.edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = "blinded")
 ```
