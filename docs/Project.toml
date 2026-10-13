@@ -1,5 +1,6 @@
 [deps]
 BAT = "c0cd4b16-88b7-57fa-983b-ab80aecada7e"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"

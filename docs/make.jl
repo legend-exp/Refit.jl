@@ -15,6 +15,7 @@ makedocs(;
             "Forward model" => "forward_model.md",
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",
+            "Plotting" => "plotting.md",
             "Saving the results" => "saving.md",
         ],
         "Tutorial" => "tutorial.md",
