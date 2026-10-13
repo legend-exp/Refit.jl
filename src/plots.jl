@@ -132,8 +132,11 @@ distribution are filled. This is the same interval as the one saved by
 The filled region has the color of the histogram with some transparency, or `bandcolor`,
 for example `bandcolor = :lightblue`. With `best` (for example `mode(samples)[name]`) a
 dashed vertical line marks the best fit, and with `truth` a red line marks the true
-value. The lower limit of the y axis is 0. The other keywords, for example `color`, go to
-[`plot_hist!`](@ref).
+value. The lower limit of the y axis is 0. The other keywords, for example `color` or
+`label`, go to [`plot_hist!`](@ref).
+
+The plots have labels, so a legend can be added with `CairoMakie.axislegend(ax)`, or in
+another place with `CairoMakie.Legend(fig[2, 4], ax)`.
 
 Returns the interval as `low .. high`.
 """
@@ -166,13 +169,24 @@ function plot_posterior!(
     centers = (edges[1:(end-1)] .+ edges[2:end]) ./ 2
     inside = (low .<= centers) .& (centers .<= high)
 
-    attributes = merge((color = :black,), NamedTuple(kwargs))
+    attributes = merge((color = :black, label = "Posterior"), NamedTuple(kwargs))
     fill_color = isnothing(bandcolor) ? (attributes.color, 0.4) : bandcolor
-    plot_hist!(ax, Histogram(edges, density .* inside); filled = true, color = fill_color)
+    plot_hist!(
+        ax,
+        Histogram(edges, density .* inside);
+        filled = true,
+        color = fill_color,
+        label = "Smallest $(round(Int, 100 * level))% interval",
+    )
     plot_hist!(ax, posterior; attributes...)
-    isnothing(best) ||
-        CairoMakie.vlines!(ax, best; color = attributes.color, linestyle = :dash)
-    isnothing(truth) || CairoMakie.vlines!(ax, truth; color = :red)
+    isnothing(best) || CairoMakie.vlines!(
+        ax,
+        best;
+        color = attributes.color,
+        linestyle = :dash,
+        label = "Best fit",
+    )
+    isnothing(truth) || CairoMakie.vlines!(ax, truth; color = :red, label = "True value")
     CairoMakie.ylims!(ax; low = 0)  # a density cannot be negative
 
     return low .. high
