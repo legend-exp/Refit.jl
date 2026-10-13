@@ -45,11 +45,17 @@ The histogram is counts per primary, here `h.weights ./ 1000`:
 pdf.weights ≈ h.weights ./ 1000
 ```
 
-`groups` lists several groups, which are summed before the division. `n_prim_field`
-is the name of the field with the number of primaries:
+`groups` is the name of the group to read, `"pdf/mul_surv"` by default. A vector of
+names reads several groups, which are summed before the division. `n_prim_field` is the
+name of the field with the number of primaries:
 
 ```@example demo
-pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"], n_prim_field = "nr_sim_events")
+pdf = read_pdf(file; groups = "pdf/mul_other")  # a single group
+pdf.weights ≈ 2 .* h.weights ./ 1000
+```
+
+```@example demo
+pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])  # summed
 pdf.weights ≈ 3 .* h.weights ./ 1000
 ```
 
@@ -68,8 +74,8 @@ pdf.weights ≈ h.weights ./ 2000
 gives a weighted sum, for example to merge two components of a detector:
 
 ```@example demo
-pdf_a = read_pdf(file; groups = ["pdf/mul_surv"])
-pdf_b = read_pdf(file; groups = ["pdf/mul_other"])
+pdf_a = read_pdf(file; groups = "pdf/mul_surv")
+pdf_b = read_pdf(file; groups = "pdf/mul_other")
 
 pdf_a.weights .*= 0.7
 pdf_b.weights .*= 0.3
