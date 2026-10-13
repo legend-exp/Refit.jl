@@ -14,5 +14,5 @@ export rebin_hist, add_histograms, integrate_hist, get_counts, counts_to_histogr
 export build_forward_model
 export poisson_likelihood, build_likelihood
 export get_max_norm, get_priors
-export read_hist
+export read_hist, read_scalar, read_pdf
 end # module Refit

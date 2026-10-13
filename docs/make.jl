@@ -8,6 +8,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "User manual" => [
+            "Reading spectra" => "reading.md",
             "Forward model" => "forward_model.md",
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",

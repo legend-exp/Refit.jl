@@ -36,3 +36,22 @@ function read_scalar(field::String, file::String)
         f[field]
     end
 end
+
+"""
+    read_pdf(file; groups = ["pdf/mul_surv"], n_prim_field = "nr_sim_events")
+
+Read a simulated spectrum from `file` as counts per simulated primary.
+
+The histograms in `groups` are summed, then divided by the number of simulated primaries
+stored in the field `n_prim_field`. To scale by anything else, change the weights of the
+result: `h.weights ./= factor`.
+"""
+function read_pdf(
+    file::String;
+    groups::Vector{String} = ["pdf/mul_surv"],
+    n_prim_field::String = "nr_sim_events",
+)
+    h = add_histograms([read_hist(g, file) for g in groups])
+    h.weights ./= read_scalar(n_prim_field, file)
+    return h
+end
