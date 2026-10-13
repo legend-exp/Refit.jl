@@ -1,6 +1,6 @@
 # Refit.jl
 
-Tools to perform Bayesian (with [BAT.jl](https://bat.github.io/) fits of binned data with models 
+Tools to perform Bayesian (with [BAT.jl](https://bat.github.io/) fits of binned data with models
 based on Monte-Carlo simulations, often generated with [remage](https://remage.readthedocs.io/en/stable/).
 
 `Refit.jl` is a toolkit, it does not provide an end-to-end fitting tool. A fit
