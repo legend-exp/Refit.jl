@@ -42,6 +42,11 @@ end
     pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])
     @test pdf.weights ≈ 3 .* weights ./ 1000
 
+    # no normalisation: the raw histogram
+    @test read_pdf(file; n_prim_field = nothing).weights == weights
+    @test read_pdf(file; n_prim_field = nothing).edges ==
+          read_hist("pdf/mul_surv", file).edges
+
     # weights multiply each group before the sum
     pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"], weights = [0.7, 0.3])
     @test pdf.weights ≈ (0.7 .+ 0.3 .* 2) .* weights ./ 1000
