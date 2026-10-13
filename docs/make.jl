@@ -13,6 +13,7 @@ makedocs(;
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",
         ],
+        "Tutorial" => "tutorial.md",
         "API" => "api.md",
     ],
 )
