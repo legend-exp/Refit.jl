@@ -1,17 +1,14 @@
 # Forward model
 
 The forward model is a function mapping the parameters of interest onto the predicted
-counts.
+observables (in our case the counts in each bin).
 
 ## Definition
-Here the parameters are the activities of the simulated sources, for example
-the decay rate of one isotope in one detector component. The prediction is the
-expected number of counts in each energy bin of the measured spectrum.
-
-The predicted counts in energy bin ``i`` are a sum over the simulated spectra:
+In `Refit.jl` a linear template fit model is implemented,
+the predicted counts in energy bin ``i`` are a sum over the simulated spectra:
 
 ```math
-\mu_i = \sum_k a_k \, N \, h_{k,i}
+\mu_i(\vec{a}) = \sum_k a_k \times h_{k,i} \times N
 ```
 
 Here ``h_{k,i}`` is the content of bin ``i`` in simulated spectrum ``k``, ``N`` is the
@@ -23,13 +20,13 @@ source ``k``. Usually the parameters are activities, and the model is written fo
 that case. Any other choice of `norm` changes the meaning of ``a_k`` in the same way.
 
 `build_forward_model` turns a set of simulated energy spectra into such a function.
-It maps the activities to the predicted counts in each energy bin.
+This maps the activities to the predicted counts in each energy bin.
 
 ## Building the model
 
-The examples in this manual use made-up spectra with three simulated sources, defined
-in `example_data.jl`. A real fit has many more, one for each source and each location
-in the setup. The simulated spectra are a dictionary of `Histogram`s with the energy
+The examples in this manual use simplified spectra with three simulated sources, defined
+in `example_data.jl`. A real fit has many more sources.
+The simulated spectra are a dictionary of `Histogram`s with the energy
 in keV, and all have the same binning:
 
 ```@setup demo
@@ -92,13 +89,9 @@ activities does not matter. A missing activity raises an error.
 as `pred`:
 
 ```@example demo
-# lower edge of each bin in keV
-bin_edges.low
-```
+# lower, upper edge of each bin in keV
+bin_edges.low, bin_edges.high
 
-```@example demo
-# upper edge of each bin in keV
-bin_edges.high
 ```
 
 With `blind` the kept bins are not contiguous, so two vectors are returned instead of
