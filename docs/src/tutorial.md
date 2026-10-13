@@ -4,22 +4,109 @@ This tutorial fits a measured energy spectrum with a sum of simulated spectra, f
 reading the files to sampling the posterior. It runs every time the documentation
 is built.
 
-The files are made up. A script, `docs/src/tutorial_data.jl`, writes them in LH5
-format to a temporary directory. They stand in for the output of a real simulation
-and for a measured spectrum:
+The fit uses automatically generated fake data (pseudo-experiments). The measured
+spectrum is generated from known activities, so the result of the fit can be compared
+with the truth at the end.
 
-- one file for each simulated source with the histograms `pdf/mul1/icpc` and
-  `pdf/mul1/bege` (the two detector types) and the number of simulated primaries,
-- one file `data.lh5` with the measured histograms `hist/mul1/icpc` and
-  `hist/mul1/bege`.
+## Fake data
 
-Each source with a gamma line has a peak with a 1 keV width on a flat or linear
+The next two blocks generate the input files in LH5 format in a temporary directory.
+They stand in for the output of a real simulation and for a measured spectrum. A real
+fit skips this section and reads the files of the simulation.
+
+There is one file for each simulated source, with the histograms `pdf/mul1/icpc` and
+`pdf/mul1/bege` (the two detector types) and the number of simulated primaries. The
+sources with a gamma line have a peak with a 1 keV width on a flat or linear
 continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
-centered at 1 MeV). The measured spectrum is generated from known activities, so the
-result of the fit can be compared with the truth at the end.
+centered at 1 MeV).
 
-```@setup tutorial
-include("tutorial_data.jl")
+```@example tutorial
+using LegendHDF5IO
+using Distributions
+using Random
+
+Random.seed!(1)  # the same fake data in every build
+
+dir = mktempdir()
+lh5_binning = (binedges = (first = 0.0, last = 4000.0, step = 1.0), closedleft = true)
+energy = collect(0.5:1.0:3999.5)  # bin centers in keV
+
+# A peak with a 1 keV width containing 10% of the events, on a linear continuum
+# 1 + slope * energy / peak up to the peak. The spectrum is normalised to 1.
+function peak_shape(peak; slope = 0.0)
+    continuum = (1 .+ slope .* energy ./ peak) .* (energy .< peak)
+    line = exp.(-(energy .- peak) .^ 2 ./ 2)
+    return 0.9 .* continuum ./ sum(continuum) .+ 0.1 .* line ./ sum(line)
+end
+
+# A broad Gaussian spectrum, normalised to 1
+broad_shape(center, sigma) =
+    (w = exp.(-(energy .- center) .^ 2 ./ (2 * sigma^2)); w ./ sum(w))
+
+n_primaries = 1_000_000
+efficiency = 0.3  # fraction of the primaries with an event in the detector
+groups_lh5 = ["mul1/icpc", "mul1/bege"]
+
+# name of the file => spectrum
+sources = Dict(
+    "cables_K40" => peak_shape(1461; slope = 0.0),
+    "fibers_K40" => peak_shape(1461; slope = 1.0),
+    "cables_Pb212_to_Pb208" => peak_shape(2615; slope = -0.5),
+    "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
+    "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
+    "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
+)
+
+for (name, spectrum) in sources
+    lh5open(joinpath(dir, "$name.lh5"), "w") do f
+        for g in groups_lh5
+            f["pdf/$g/binning/axis_0"] = lh5_binning
+            f["pdf/$g/weights"] = efficiency * n_primaries .* spectrum
+        end
+        f["nr_sim_events"] = n_primaries
+    end
+end
+nothing # hide
+```
+
+The measured spectrum is in the file `data.lh5`, with the histograms `hist/mul1/icpc`
+and `hist/mul1/bege`. Its expected counts are the sum of the simulated spectra times
+the activities, in mBq, and the livetime. The 2νββ spectrum is the average of the two
+detector types, weighted with their masses (80 kg and 20 kg). The counts in each bin
+are drawn from a Poisson distribution, and the alpha events are a constant
+2 counts per keV.
+
+```@example tutorial
+true_livetime = 1.0e6  # s
+true_activities = (  # mBq
+    cables_K40 = 200.0,
+    fibers_K40 = 100.0,
+    cables_Pb212_to_Pb208 = 50.0,
+    fibers_Pb212_to_Pb208 = 30.0,
+    two_vbb_hpge_bulk = 8.0,
+)
+true_alpha = 2.0  # counts per 1 keV bin
+
+two_vbb = 0.8 .* sources["hpge_icpc_bulk_2vbb"] .+ 0.2 .* sources["hpge_bege_bulk_2vbb"]
+
+# the simulated spectra are summed over the two detector types, so the efficiency
+# is counted twice
+expected =
+    1e-3 * true_livetime * 2 * efficiency .* (
+        true_activities.cables_K40 .* sources["cables_K40"] .+
+        true_activities.fibers_K40 .* sources["fibers_K40"] .+
+        true_activities.cables_Pb212_to_Pb208 .* sources["cables_Pb212_to_Pb208"] .+
+        true_activities.fibers_Pb212_to_Pb208 .* sources["fibers_Pb212_to_Pb208"] .+
+        true_activities.two_vbb_hpge_bulk .* two_vbb
+    ) .+ true_alpha
+
+lh5open(joinpath(dir, "data.lh5"), "w") do f
+    for g in groups_lh5
+        f["hist/$g/binning/axis_0"] = lh5_binning
+        f["hist/$g/weights"] = Float64.([rand(Poisson(l / 2)) for l in expected])
+    end
+end
+nothing # hide
 ```
 
 ## Settings
@@ -120,15 +207,14 @@ ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)
 A range can be changed by hand where the guess is poor, for example
 `ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0` (with `using IntervalSets`).
 
-The prior of each activity is a uniform distribution on its range. The prior is a
-`NamedTupleDist` from ValueShapes.jl, with the same names as the activities.
+`build_prior` makes the prior: a uniform distribution on the range of each activity.
+`rand(prior)` draws one random value for each activity, a named tuple that goes
+directly into the model.
 
 ```@example tutorial
-using Distributions
-using ValueShapes
+prior = build_prior(ranges)
 
-prior = NamedTupleDist(; (k => Uniform(r.left, r.right) for (k, r) in ranges)...)
-nothing # hide
+rand(prior)
 ```
 
 ## Sampling the posterior
@@ -158,15 +244,81 @@ nothing # hide
 
 ## Result
 
-The most probable value of each activity is compared with the one used to make the
-measured spectrum.
+The marginal posterior of each activity is plotted with the plot recipes of
+BAT.jl. The colored regions are the smallest intervals that contain 68%, 95% and
+99.7% of the distribution, the dashed line is the mode and the red line is the true
+activity used to make the measured spectrum.
+
+```@example tutorial
+using Plots
+
+truth = merge(true_activities, (alpha = true_alpha,))
+panels = map(collect(keys(truth))) do name
+    plot(samples, name; mean = false, std = false, globalmode = true, nbins = 50, title = string(name), titlefontsize = 8)
+    vline!([truth[name]]; color = :red, linewidth = 2, label = "")
+end
+plot(panels...; layout = (2, 3), size = (900, 650), legend = false)
+```
+
+A pair of activities shows their correlation. The K40 activities of the cables and of
+the fibers are anticorrelated, because the data constrain mostly their sum:
+
+```@example tutorial
+plot(samples, (:cables_K40, :fibers_K40); nbins = 50, globalmode = true, legend = :bottomleft)
+```
+
+The best fit is the global mode. The uncertainty of each activity is the central 68%
+interval of its distribution. Both are compared with the activities used to make the
+measured spectrum:
 
 ```@example tutorial
 best = mode(samples)
+weights = Weights(samples.weight)
+
+println(rpad("source", 25), "best fit [68% interval]    true (mBq)")
 for name in keys(true_activities)
-    println(rpad(name, 25), "fit ", round(best[name], digits = 1),
-            " mBq, true ", true_activities[name], " mBq")
+    low, high = quantile([v[name] for v in samples.v], weights, [0.16, 0.84])
+    println(
+        rpad(name, 25),
+        round(best[name], digits = 1),
+        " [",
+        round(low, digits = 1),
+        ", ",
+        round(high, digits = 1),
+        "]    ",
+        true_activities[name],
+    )
 end
-println(rpad(:alpha, 25), "fit ", round(best.alpha, digits = 2),
-        " counts per keV, true ", true_alpha)
+low, high = quantile([v.alpha for v in samples.v], weights, [0.16, 0.84])
+println(
+    rpad("alpha (counts per keV)", 25),
+    round(best.alpha, digits = 2),
+    " [",
+    round(low, digits = 2),
+    ", ",
+    round(high, digits = 2),
+    "]    ",
+    true_alpha,
+)
+```
+
+Finally, the prediction of the best fit is compared with the measured counts. The
+error bars are the square root of the counts. The blinded region is not fitted.
+
+```@example tutorial
+centers = (bin_edges.low .+ bin_edges.high) ./ 2
+
+scatter(
+    centers,
+    counts;
+    yerror = sqrt.(counts),
+    label = "data",
+    color = :black,
+    markersize = 2,
+    yscale = :log10,
+    ylims = (0.5, :auto),
+    xlabel = "energy (keV)",
+    ylabel = "counts per bin",
+)
+plot!(centers, model(best); label = "best fit", color = :red, linewidth = 2)
 ```

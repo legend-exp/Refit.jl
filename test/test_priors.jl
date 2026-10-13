@@ -106,7 +106,8 @@ end
     ranges = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 1e-3)
 
     # a uniform distribution on each range
-    prior = NamedTupleDist(; (k => Uniform(r.left, r.right) for (k, r) in ranges)...)
+    prior = build_prior(ranges)
+    @test prior isa NamedTupleDist
 
     Random.seed!(1)  # fixed seed, so that the random draw is the same in every run
     draw = rand(prior)

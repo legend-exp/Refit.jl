@@ -70,11 +70,14 @@ priors[:K40_hpge_bulk] = 0.0 .. 100.0
 priors
 ```
 
-Informative priors can use the guessed maximum:
+## The prior distribution
 
-```julia
-using Distributions
+`build_prior` turns the ranges into a prior: a uniform distribution on the range of
+each activity. `rand(prior)` draws one value for each activity as a named tuple, which
+goes directly into the forward model.
 
-a_max = priors[:Pb212_to_Pb208_hpge_bulk].right
-priors[:Pb212_to_Pb208_hpge_bulk] = truncated(Normal(2.0, 0.5), 0, a_max)
+```@example demo
+prior = build_prior(priors)
+
+rand(prior)
 ```
