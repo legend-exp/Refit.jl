@@ -1,5 +1,4 @@
 using LegendHDF5IO
-using OrderedCollections: OrderedDict
 using YAML
 
 """

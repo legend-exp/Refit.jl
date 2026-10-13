@@ -15,6 +15,7 @@ sampling the posterior, which combines the likelihood of the data with priors.
 - [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
 - [Likelihood](likelihood.md): compare the predicted counts with the measured ones
 - [Priors](priors.md): estimate ranges for the activities from the data
+- [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
 - [Saving the results](saving.md): save the samples, the best fit spectra and the activities
 
 ## Tutorial
