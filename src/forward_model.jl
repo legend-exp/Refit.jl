@@ -11,7 +11,7 @@ region are kept. `binning` merges that many consecutive bins first.
 Returns `(forward_model, bin_edges)`:
 - `bin_edges`: `(low, high)`, the lower and upper edges in keV of the kept bins
 - `forward_model(params)`: predicted counts per kept bin for
-  `params = (activities = (name1 = a1, name2 = a2, ...),)`, with one activity per
+  `params = (name1 = a1, name2 = a2, ...)`, with one activity per
   spectrum, in any order. Each spectrum is scaled by `activity * norm`. Use `norm`
   for unit conversions and the livetime. Each call allocates one array.
 
@@ -38,9 +38,9 @@ function build_forward_model(
     bin_high = edges[2:end][is_valid]
     mc = NamedTuple{names}(map(h -> h.weights[is_valid] .* norm, hists))
 
-    function forward_model(params::NamedTuple{(:activities,),<:Tuple{NamedTuple}})
+    function forward_model(params::NamedTuple)
         pred = zeros(length(bin_low))
-        foreach(values(NamedTuple{keys(mc)}(params.activities)), values(mc)) do a, pdf
+        foreach(values(NamedTuple{keys(mc)}(params)), values(mc)) do a, pdf
             pred .+= a .* pdf
         end
         return pred
