@@ -52,12 +52,11 @@ nothing # hide
 ```
 
 !!! note "Units"
-    The fit has no built-in units. The factor `1e-3` in `norm` sets them. The simulated
-    spectra are normalized to counts per simulated primary, so the expected counts are
-    `norm * activity * spectrum`. With the livetime in seconds, `1e-3 * livetime` makes
-    the activities come out in mBq (the factor converts mBq to Bq). For activities in Bq,
-    use `norm = livetime`. If the spectra are not normalized per primary, the activities
-    are in different units.
+    In the standard case, where the PDFs are normalized, the fit parameters represent the
+    activity of the sources. The unit of the activity is the inverse of the unit of the
+    livetime, or Bq if the livetime is in s. In many cases it is more convenient to use a
+    different unit. For example, scaling `norm` by 10⁻³ changes the unit of the activity
+    to mBq, as done here.
 
 ## Reading the data
 
