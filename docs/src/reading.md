@@ -25,6 +25,7 @@ end
 ```
 
 ```@example demo
+# one raw histogram from the group "pdf/mul_surv"
 h = read_hist("pdf/mul_surv", file)
 ```
 
@@ -36,12 +37,14 @@ activity of the source scales it to the measured counts (see the
 the number of primaries in the field `nr_sim_events`:
 
 ```@example demo
+# the default group, divided by the number of primaries
 pdf = read_pdf(file)
 ```
 
 The histogram is counts per primary, here `h.weights ./ 1000`:
 
 ```@example demo
+# compare with dividing the raw histogram by hand
 pdf.weights ≈ h.weights ./ 1000
 ```
 
@@ -50,12 +53,14 @@ names reads several groups, which are summed before the division. `n_prim_field`
 name of the field with the number of primaries:
 
 ```@example demo
-pdf = read_pdf(file; groups = "pdf/mul_other")  # a single group
+# read a single group (the weights of this group are twice those of "pdf/mul_surv")
+pdf = read_pdf(file; groups = "pdf/mul_other")
 pdf.weights ≈ 2 .* h.weights ./ 1000
 ```
 
 ```@example demo
-pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])  # summed
+# sum two groups, then divide by the number of primaries
+pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])
 pdf.weights ≈ 3 .* h.weights ./ 1000
 ```
 
@@ -66,7 +71,7 @@ for example a branching ratio or the fraction of decays in a component:
 
 ```@example demo
 pdf = read_pdf(file)
-pdf.weights ./= 2   # the histogram is divided in place
+pdf.weights ./= 2  # divide the histogram by 2, in place
 pdf.weights ≈ h.weights ./ 2000
 ```
 
@@ -74,12 +79,15 @@ pdf.weights ≈ h.weights ./ 2000
 gives a weighted sum, for example to merge two components of a detector:
 
 ```@example demo
+# two components, each as counts per primary
 pdf_a = read_pdf(file; groups = "pdf/mul_surv")
 pdf_b = read_pdf(file; groups = "pdf/mul_other")
 
+# weight each by its fraction of the decays
 pdf_a.weights .*= 0.7
 pdf_b.weights .*= 0.3
 
+# sum the two (they must have the same binning)
 merged = add_histograms([pdf_a, pdf_b])
 merged.weights ≈ (0.7 .* h.weights .+ 0.3 .* 2 .* h.weights) ./ 1000
 ```

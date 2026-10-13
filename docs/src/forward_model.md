@@ -20,10 +20,12 @@ include("example_data.jl")
 ```
 
 ```@example demo
+# the names of the simulated spectra, these name the parameters
 keys(mc_dict)
 ```
 
 ```@example demo
+# keep the bins between 500 and 3200 keV
 model, bin_edges = build_forward_model(
     mc_dict;
     e_low = 500,
@@ -52,12 +54,14 @@ The parameters are a named tuple with one activity per spectrum, named after the
 dictionary keys. Here the activities are in mBq, which `norm` converts to counts:
 
 ```@example demo
+# one activity (in mBq) for each spectrum
 params = (activities = (
     K40_hpge_bulk = 40.0,
     Pb212_to_Pb208_hpge_bulk = 10.0,
     two_vbb_hpge_bulk = 100.0,
 ),)
 
+# predicted counts in each bin
 pred = model(params)
 ```
 
@@ -72,14 +76,17 @@ activities does not matter. A missing activity raises an error.
 as `pred`:
 
 ```@example demo
+# lower edge of each bin in keV
 bin_edges.low
 ```
 
 ```@example demo
+# upper edge of each bin in keV
 bin_edges.high
 ```
 
 ```@example demo
+# one prediction for each bin
 length(pred) == length(bin_edges.low)
 ```
 
@@ -93,6 +100,7 @@ the model at the best-fit parameters. It is the inverse of `get_counts`
 (see [Likelihood](likelihood.md)).
 
 ```@example demo
+# the prediction as a Histogram, for plotting
 best_fit = counts_to_histogram(pred, bin_edges)
 ```
 
