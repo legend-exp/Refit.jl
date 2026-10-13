@@ -26,10 +26,11 @@ include("example_data.jl")
 
 ```@example demo
 # 100 keV bins between 500 and 3200 keV
-low = collect(500.0:100.0:3100.0)
-bin_edges = (low = low, high = low .+ 100.0);
+low = collect(500.0:100.0:3100.0)  # lower edge of each bin
+bin_edges = (low = low, high = low .+ 100.0);  # upper edge = lower edge + 100 keV
 
-counts = get_counts(data, bin_edges)  # Vector{Float64}, one entry per bin
+# measured counts in each bin, as a Vector{Float64}
+counts = get_counts(data, bin_edges)
 ```
 
 The bins can be any bins whose edges are also edges of `data`, otherwise an error is
@@ -40,6 +41,7 @@ edges of the bins it predicts, whatever energy range, blinding and binning it us
 Using them guarantees that the measured and predicted bins match:
 
 ```@example demo
+# merge pairs of bins (20 keV bins) and keep 500 to 3200 keV
 model, bin_edges = build_forward_model(
     mc_dict;
     e_low = 500,
@@ -48,6 +50,7 @@ model, bin_edges = build_forward_model(
     norm = 1e-3 * livetime,
 );
 
+# the measured counts in exactly the bins of the model
 counts = get_counts(data, bin_edges)
 counts
 ```
@@ -57,14 +60,17 @@ counts
 ```@example demo
 using DensityInterface
 
+# the likelihood of the measured counts as a function of the parameters
 likelihood = build_likelihood(counts, model);
 
+# one activity (in mBq) for each spectrum
 params = (activities = (
     K40_hpge_bulk = 40.0,
     Pb212_to_Pb208_hpge_bulk = 10.0,
     two_vbb_hpge_bulk = 100.0,
 ),)
 
+# log-likelihood for these parameters
 logdensityof(likelihood, params)
 ```
 
@@ -72,6 +78,7 @@ The value is largest when the prediction matches the data. Here the data were ma
 with these activities, so changing one of them lowers the value:
 
 ```@example demo
+# the same parameters, but with K40 changed from 40 to 50 mBq
 other = (activities = merge(params.activities, (K40_hpge_bulk = 50.0,)),)
 logdensityof(likelihood, other)
 ```

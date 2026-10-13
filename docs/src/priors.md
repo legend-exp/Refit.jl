@@ -34,11 +34,13 @@ include("example_data.jl")
 ```
 
 ```@example demo
+# energy range in keV for each source, here around a peak
 ref_ranges = Dict(
-    :K40 => (1456, 1466),            # energy ranges in keV, here around a peak
+    :K40 => (1456, 1466),
     :Pb212_to_Pb208 => (2610, 2620),
 )
 
+# a range 0 .. a_max for the activity of each spectrum
 priors = get_priors(
     mc_dict,
     data;
@@ -63,6 +65,7 @@ The result is a normal dictionary, so single entries can be replaced:
 ```@example demo
 using IntervalSets
 
+# replace the range of one spectrum by hand
 priors[:K40_hpge_bulk] = 0.0 .. 100.0
 priors
 ```
