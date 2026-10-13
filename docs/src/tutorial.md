@@ -164,7 +164,7 @@ samples = bat_sample(
     TransformedMCMC(
         proposal = RandomWalk(),
         strict = false,
-        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 10_000, max_ncycles = 30),
+        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 10_000, max_ncycles = 50),
         nsteps = 5 * 10^5,
         nchains = 4,
     ),
