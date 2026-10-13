@@ -238,25 +238,25 @@ plot(
 )
 ```
 
-The best fit is the global mode. The uncertainty of each activity is the central 68%
-interval of its distribution, from the 16% and 84% quantiles of the samples. Activities
-differ by orders of magnitude, so the plot shows the best fit divided by the true
-value. A good fit is consistent with 1.
+The best fit is the global mode. The uncertainty of each activity is the smallest 68%
+credible interval: the shortest interval that contains 68% of its posterior
+distribution. BAT.jl computes it for all the activities at once, and `mode = :connected`
+gives a single interval for each one. Activities differ by orders of magnitude, so the
+plot shows the best fit divided by the true value. A good fit is consistent with 1.
 
 ```@example tutorial
 best = mode(samples)
-weights = Weights(samples.weight)
-names = collect(keys(truth))
+intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
 
+names = collect(keys(truth))
 fit = [best[n] / truth[n] for n in names]
-interval = [
-    quantile([v[n] for v in samples.v], weights, [0.16, 0.84]) ./ truth[n] for n in names
-]
+lower = [intervals[n].left / truth[n] for n in names]
+upper = [intervals[n].right / truth[n] for n in names]
 
 scatter(
     string.(names),
     fit;
-    yerror = (max.(fit .- first.(interval), 0), max.(last.(interval) .- fit, 0)),
+    yerror = (max.(fit .- lower, 0), max.(upper .- fit, 0)),
     color = :black,
     label = "best fit and 68% interval",
     ylabel = "best fit / true activity",
@@ -268,12 +268,14 @@ hline!([1]; color = :red, label = "true activity")
 ```
 
 Finally, the prediction of the best fit is compared with the measured counts, both as
-histograms in the bins of the fit. `counts_to_histogram` turns the counts back into a
-`Histogram`. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.
+histograms in the bins of the fit. `get_best_fit_histograms` makes the histogram of
+the total prediction, in the key `:total`, and of the contribution of each source. The
+bins that overlap the blinded region are not fitted and are merged into one empty bin,
+shown as a grey band.
 
 ```@example tutorial
 data_hist = counts_to_histogram(counts, bin_edges)
-fit_hist = counts_to_histogram(model(best), bin_edges)
+hists = get_best_fit_histograms(best, model, bin_edges)
 
 plot(
     data_hist;
@@ -285,10 +287,48 @@ plot(
     xlabel = "energy (keV)",
     ylabel = "counts per $binning keV",
 )
-plot!(fit_hist; seriestype = :stepbins, label = "best fit", color = :black, linewidth = 1.5)
+for name in names
+    plot!(hists[name]; seriestype = :stepbins, label = string(name), linewidth = 1)
+end
+plot!(hists[:total]; seriestype = :stepbins, label = "best fit", color = :black, linewidth = 1.5)
 
 # grey band over the empty bin, which is wider than the blinded region because bins
 # are only fitted if they are fully outside of it
-empty = findfirst(==(0), fit_hist.weights)
-vspan!(fit_hist.edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = "blinded")
+empty = findfirst(==(0), hists[:total].weights)
+vspan!(hists[:total].edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = "blinded")
+```
+
+## Saving the results
+
+The results are saved in formats for long term preservation (see
+[Saving the results](saving.md)). The posterior samples are written by BAT.jl to an
+HDF5 file, which needs the package `HDF5`. The best fit histograms, of the total and of
+each source, and the measured spectrum go into an LH5 file. The activities with the
+smallest 68% interval go into a YAML file.
+
+```@example tutorial
+using HDF5
+
+outdir = mktempdir()
+
+bat_write(joinpath(outdir, "samples.h5"), samples)
+write_best_fit(joinpath(outdir, "best_fit.lh5"), hists; data = data_hist)
+write_activities(joinpath(outdir, "activities.yaml"), best, intervals; level = 0.68)
+
+readdir(outdir)
+```
+
+The YAML file is plain text:
+
+```@example tutorial
+print(read(joinpath(outdir, "activities.yaml"), String))
+```
+
+The saved samples and histograms read back as they were written:
+
+```@example tutorial
+samples_saved = bat_read(joinpath(outdir, "samples.h5")).result
+fit_saved = read_hist("best_fit/total", joinpath(outdir, "best_fit.lh5"))
+
+(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)
 ```

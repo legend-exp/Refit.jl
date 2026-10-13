@@ -1,7 +1,9 @@
 using LegendHDF5IO
 using Refit
 using StatsBase
+using IntervalSets
 using Test
+using YAML
 
 @testset "test_read_histograms" begin
 
@@ -97,4 +99,70 @@ end
     # no division by the number of primaries
     pdf = read_pdf(Dict(files[1] => 1.0, files[2] => 1.0); n_prim_field = nothing)
     @test pdf.weights ≈ 1.5 .* weights
+end
+
+@testset "best fit histograms" begin
+    edges = 0.0:100.0:1000.0
+    pdfs =
+        Dict(:a => Histogram(edges, fill(10.0, 10)), :b => Histogram(edges, fill(5.0, 10)))
+    model, bin_edges = build_forward_model(
+        pdfs;
+        e_low = 100,
+        e_high = 900,
+        blind = (450.0, 550.0),
+        norm = 1e-3,
+    )
+    parameters = (a = 2.0, b = 4.0)
+
+    hists = get_best_fit_histograms(parameters, model, bin_edges)
+    @test Set(keys(hists)) == Set([:total, :a, :b])
+    @test all(h -> h isa Histogram, values(hists))
+
+    # the sources add up to the total
+    @test hists[:total].weights ≈ hists[:a].weights .+ hists[:b].weights
+    @test hists[:a].weights ≈
+          model((a = 2.0, b = 0.0)) |> x -> counts_to_histogram(x, bin_edges).weights
+
+    # outside of the fit and in the blinded region the bins are empty
+    @test hists[:total].edges[1][1] == 100.0
+    @test hists[:total].edges[1][end] == 900.0
+    @test any(==(0), hists[:total].weights)
+    @test sum(hists[:total].weights) ≈ sum(model(parameters))
+
+    # the order of the parameters does not matter
+    reversed = get_best_fit_histograms((b = 4.0, a = 2.0), model, bin_edges)
+    @test reversed[:total].weights ≈ hists[:total].weights
+
+    @test_throws ArgumentError get_best_fit_histograms((total = 1.0,), model, bin_edges)
+
+    # write to lh5 and read back
+    file = tempname() * ".lh5"
+    data = counts_to_histogram(fill(3.0, length(bin_edges.low)), bin_edges)
+    write_best_fit(file, hists; data)
+    @test read_hist("best_fit/total", file).weights == hists[:total].weights
+    @test read_hist("best_fit/a", file).weights == hists[:a].weights
+    @test read_hist("best_fit/b", file).edges == hists[:b].edges
+    @test read_hist("data", file).weights == data.weights
+
+    # without data nothing is written for it
+    write_best_fit(file, hists)
+    @test !lh5open(f -> haskey(f, "data"), file, "r")
+end
+
+@testset "activities" begin
+    parameters = (a = 60.0, b = 160.0)
+    intervals = (a = 40.0 .. 70.0, b = 150.0 .. 190.0)
+
+    file = tempname() * ".yaml"
+    write_activities(file, parameters, intervals)
+    result = YAML.load_file(file)
+    @test result["credible_level"] == 0.68
+    @test Set(keys(result["activities"])) == Set(["a", "b"])
+    @test result["activities"]["a"] ==
+          Dict("best_fit" => 60.0, "low" => 40.0, "high" => 70.0)
+    @test result["activities"]["b"] ==
+          Dict("best_fit" => 160.0, "low" => 150.0, "high" => 190.0)
+
+    write_activities(file, parameters, intervals; level = 0.95)
+    @test YAML.load_file(file)["credible_level"] == 0.95
 end
