@@ -84,12 +84,12 @@ priors
 
 ## The prior distribution
 
-`build_prior` turns the entries into a prior. A range becomes a uniform distribution
+`build_prior_dist` turns the entries into a prior. A range becomes a uniform distribution
 on that range, a distribution is used as it is. `rand(prior)` draws one value for each activity as a named tuple, which
 goes directly into the forward model.
 
 ```@example demo
-prior = build_prior(priors)
+prior = build_prior_dist(priors)
 
 rand(prior)
 ```
