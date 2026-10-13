@@ -6,7 +6,9 @@ is built.
 
 The files are made up. A script, `docs/src/tutorial_data.jl`, writes them in LH5
 format to a temporary directory. They stand in for the output of a real simulation
-and for a measured spectrum:
+and for a measured spectrum. Each source with a gamma line has a peak with a 1 keV
+width on a flat or linear continuum below the peak. The 2νββ spectrum is a broad
+Gaussian (600 keV width, centered at 1 MeV).
 
 - one file for each simulated source with the histograms `pdf/mul1/icpc` and
   `pdf/mul1/bege` (the two detector types) and the number of simulated primaries,
@@ -157,8 +159,7 @@ nothing # hide
 ## Result
 
 The most probable value of each activity is compared with the one used to make the
-measured spectrum. The cables and the fibers have almost the same spectrum shape, so
-the data constrain their sum better than each activity alone.
+measured spectrum.
 
 ```@example tutorial
 best = mode(samples)
