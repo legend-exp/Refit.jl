@@ -9,6 +9,10 @@ The histogram format is described in the LH5 specification. The `group` should c
 """
 function read_hist(group::String, file::String)
 
+    # files written from Julia count the axes from 1, files from the simulation from 0
+    from_julia = lh5open(f -> haskey(f, "$group/binning/axis_1"), "$file", "r")
+    from_julia && return lh5open(f -> f[group], "$file", "r")
+
     binning = lh5open("$file", "r") do f
         f["$group/binning/axis_0"]
     end
