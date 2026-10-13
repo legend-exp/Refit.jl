@@ -27,18 +27,22 @@ end
         f["n_events"] = 500
     end
 
-    @test read_scalar("nr_sim_events", file) == 1000
+    @test Refit.read_scalar("nr_sim_events", file) == 1000
 
     pdf = read_pdf(file)
     @test pdf isa Histogram
     @test pdf.edges == read_hist("hist", source).edges
     @test pdf.weights ≈ weights ./ 1000
 
+    # one group as a string or a vector
+    @test read_pdf(file; groups = "pdf/mul_other").weights ≈ 2 .* weights ./ 1000
+    @test read_pdf(file; groups = ["pdf/mul_other"]).weights ≈ 2 .* weights ./ 1000
+
     # groups are summed before the normalisation
     pdf = read_pdf(file; groups = ["pdf/mul_surv", "pdf/mul_other"])
     @test pdf.weights ≈ 3 .* weights ./ 1000
 
-    pdf = read_pdf(file; groups = ["pdf/mul_other"], n_prim_field = "n_events")
+    pdf = read_pdf(file; groups = "pdf/mul_other", n_prim_field = "n_events")
     @test pdf.weights ≈ 2 .* weights ./ 500
 
     # the file is not changed by scaling the result
