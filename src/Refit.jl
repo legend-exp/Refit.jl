@@ -1,7 +1,7 @@
 module Refit
 
 using DensityInterface
-using Distributions: Uniform
+using Distributions: Uniform, UnivariateDistribution
 using IntervalSets
 using StatsBase
 using ValueShapes: NamedTupleDist

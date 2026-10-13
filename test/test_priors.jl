@@ -38,7 +38,7 @@ using ValueShapes
 
         # without regions only the fit range is used
         priors = get_priors(pdfs, data; e_low = 100, e_high = 900)
-        @test priors isa Dict{Symbol,<:Interval}
+        @test all(p -> p isa Interval, values(priors))
         @test priors[:other_source] == 0.0 .. range_max
         @test priors[:K40_hpge_bulk] == 0.0 .. range_max
 
@@ -108,6 +108,10 @@ end
     # a uniform distribution on each range
     prior = build_prior(ranges)
     @test prior isa NamedTupleDist
+
+    # a distribution is used as it is
+    ranges[:K40_hpge_bulk] = truncated(Normal(50.0, 10.0), 0.0, Inf)
+    @test build_prior(ranges) isa NamedTupleDist
 
     Random.seed!(1)  # fixed seed, so that the random draw is the same in every run
     draw = rand(prior)
