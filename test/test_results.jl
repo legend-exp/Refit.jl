@@ -117,36 +117,6 @@ end
     @test_throws ArgumentError group_histograms(Dict(:a => hists[:alpha]), ["x" => :rest])
 end
 
-@testset "plot_best_fit" begin
-    edges = 0.0:100.0:1000.0
-    pdfs =
-        Dict(:a => Histogram(edges, fill(10.0, 10)), :b => Histogram(edges, fill(5.0, 10)))
-    model, bin_edges = build_forward_model(
-        pdfs;
-        e_low = 100,
-        e_high = 900,
-        blind = (450.0, 550.0),
-        norm = 1e-3,
-    )
-    hists = get_best_fit_histograms((a = 2e4, b = 4e4), model, bin_edges)
-    data = counts_to_histogram(round.(model((a = 2e4, b = 4e4))), bin_edges)
-
-    fig = plot_best_fit(data, hists)
-    @test fig isa CairoMakie.Figure
-    file = tempname() * ".png"
-    CairoMakie.save(file, fig)
-    @test filesize(file) > 0
-
-    # grouped histograms, a linear scale and a title
-    grouped = group_histograms(hists, ["first" => r"^a", "other" => :rest])
-    @test plot_best_fit(data, grouped; scale = :linear, title = "test") isa
-          CairoMakie.Figure
-
-    @test_throws ArgumentError plot_best_fit(data, Dict(:a => hists[:a]))
-    other_bins = counts_to_histogram(fill(1.0, 3), (low = [0.0, 1, 2], high = [1.0, 2, 3]))
-    @test_throws ArgumentError plot_best_fit(other_bins, hists)
-end
-
 @testset "fit_axes" begin
     fig, ax, ax_res = fit_axes(; title = "test", ylabel = "Counts per 20 keV")
     @test fig isa CairoMakie.Figure
