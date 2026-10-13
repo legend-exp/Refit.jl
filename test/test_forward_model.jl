@@ -11,15 +11,14 @@ using Test
     fm, bin_edges = build_forward_model(pdfs; e_low = 1000, e_high = 4000, norm = 2e-3)
     @test bin_edges.low == [1000.0, 2000.0, 3000.0]
     @test bin_edges.high == [2000.0, 3000.0, 4000.0]
-    @test fm((activities = (a = 1.0, b = 0.0),)) ≈ [2.0, 3.0, 4.0] .* 2e-3
-    @test fm((activities = (a = 1.0, b = 0.5),)) ≈
-          ([2.0, 3.0, 4.0] .+ 0.5 .* [20.0, 30.0, 40.0]) .* 2e-3
-    @test_throws FieldError fm((activities = (a = 1.0,),))
-    @test fm((activities = (b = 0.5, a = 1.0),)) ≈ fm((activities = (a = 1.0, b = 0.5),))
-    @inferred fm((activities = (b = 0.5, a = 1.0),))
+    @test fm((a = 1.0, b = 0.0)) ≈ [2.0, 3.0, 4.0] .* 2e-3
+    @test fm((a = 1.0, b = 0.5)) ≈ ([2.0, 3.0, 4.0] .+ 0.5 .* [20.0, 30.0, 40.0]) .* 2e-3
+    @test_throws FieldError fm((a = 1.0,))
+    @test fm((b = 0.5, a = 1.0)) ≈ fm((a = 1.0, b = 0.5))
+    @inferred fm((b = 0.5, a = 1.0))
 
     # hot-loop requirements: inferred types and a single allocation per call
-    p = (activities = (a = 1.0, b = 0.5),)
+    p = (a = 1.0, b = 0.5)
     @inferred fm(p)
     fm(p)
     @test (@allocated fm(p)) <= @allocated zeros(3)
