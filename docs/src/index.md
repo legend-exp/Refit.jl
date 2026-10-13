@@ -16,6 +16,10 @@ sampling the posterior, which combines the likelihood of the data with priors.
 - [Likelihood](likelihood.md): compare the predicted counts with the measured ones
 - [Priors](priors.md): estimate ranges for the activities from the data
 
+## Tutorial
+
+- [Fitting a background spectrum](tutorial.md): a complete fit on made-up data, from reading the files to sampling the posterior
+
 ## Reference
 
 - [API](api.md): docstrings of all functions
