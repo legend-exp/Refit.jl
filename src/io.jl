@@ -67,3 +67,27 @@ function read_pdf(
     isnothing(n_prim_field) || (total.weights ./= read_scalar(n_prim_field, file))
     return total
 end
+
+"""
+    read_pdf(files::AbstractDict; groups = "pdf/mul_surv", n_prim_field = "nr_sim_events")
+
+Read the same source simulated in several files, for example once per detector type,
+and return the weighted average of the spectra.
+
+`files` maps each file name to its weight, for example the mass of the detector type.
+The weights are divided by their sum. Each file is read with the single-file method,
+so it is divided by its own number of primaries.
+"""
+function read_pdf(
+    files::AbstractDict{String,<:Real};
+    groups::Union{String,AbstractVector{String}} = "pdf/mul_surv",
+    n_prim_field::Union{String,Nothing} = "nr_sim_events",
+)
+    total = sum(values(files))
+    hists = map(collect(files)) do (file, w)
+        h = read_pdf(file; groups, n_prim_field)
+        h.weights .*= w / total
+        h
+    end
+    return add_histograms(hists)
+end

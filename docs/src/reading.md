@@ -66,3 +66,18 @@ example, to divide by 2 in place:
 ```julia
 pdf.weights ./= 2
 ```
+
+## The same source in several files
+
+A source is often simulated once per detector type. `read_pdf` takes a dictionary from
+file name to weight, for example the mass of each detector type, and returns the
+weighted average of the spectra. The weights are divided by their sum, and each file
+is divided by its own number of primaries.
+
+```julia
+files = Dict(
+    "icpc_bulk_2vbb-tier_pdf.lh5" => 87.1,  # detector mass in kg
+    "bege_bulk_2vbb-tier_pdf.lh5" => 19.1,
+)
+pdf = read_pdf(files; groups = "pdf/mul_surv")
+```
