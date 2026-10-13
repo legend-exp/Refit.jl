@@ -56,7 +56,7 @@ ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)</code
   :Ar39_liquid_argon     =&gt; 0.0 .. 6440.01
   :two_vbb_hpge_bulk     =&gt; 0.0 .. 5150.82</code></pre><p>A range can be changed by hand where the guess is poor, for example <code>ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0</code> (with <code>using IntervalSets</code>).</p><p><code>build_prior</code> makes the prior: a uniform distribution on the range of each activity. <code>rand(prior)</code> draws one random value for each activity, a named tuple that goes directly into the model.</p><pre><code class="language-julia hljs">prior = build_prior(ranges)
 
-rand(prior)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(fibers_Pb212_to_Pb208 = 4867.0071692730135, alpha = 21.15978933820431, cables_K40 = 3508.8245266770423, fibers_K40 = 2838.924588861484, cables_Pb212_to_Pb208 = 393.5448171621392, Ar39_liquid_argon = 3623.741805321493, two_vbb_hpge_bulk = 1799.1297970551248)</code></pre><h2 id="Sampling-the-posterior"><a class="docs-heading-anchor" href="#Sampling-the-posterior">Sampling the posterior</a><a id="Sampling-the-posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-the-posterior" title="Permalink"></a></h2><p><a href="https://bat.github.io/">BAT.jl</a> samples the posterior with a Markov chain Monte Carlo.</p><pre><code class="language-julia hljs">using BAT
+rand(prior)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(fibers_Pb212_to_Pb208 = 1095.3126381640081, alpha = 568.3548271723855, cables_K40 = 3154.296253019769, fibers_K40 = 1521.3674582677475, cables_Pb212_to_Pb208 = 3629.412830094405, Ar39_liquid_argon = 3545.6770192230656, two_vbb_hpge_bulk = 1641.933193785127)</code></pre><h2 id="Sampling-the-posterior"><a class="docs-heading-anchor" href="#Sampling-the-posterior">Sampling the posterior</a><a id="Sampling-the-posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-the-posterior" title="Permalink"></a></h2><p><a href="https://bat.github.io/">BAT.jl</a> samples the posterior with a Markov chain Monte Carlo.</p><pre><code class="language-julia hljs">using BAT
 
 posterior = PosteriorMeasure(likelihood, prior)
 
@@ -72,21 +72,18 @@ samples = bat_sample(
 ).result</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: MCMCChainPoolInit: trying to generate 4 viable MCMC chain state(s).
 [ Info: Selected 4 MCMC chain state(s).
 [ Info: Begin tuning of 4 MCMC chain(s).
-[ Info: MCMC Tuning cycle 1 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 1 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 2 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 3 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 4 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 5 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 5 finished, 4 chains, 3 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 6 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 7 finished, 4 chains, 4 tuned, 0 converged.
 [ Info: MCMC Tuning cycle 8 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 9 finished, 4 chains, 3 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 10 finished, 4 chains, 3 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 11 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 12 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 13 finished, 4 chains, 4 tuned, 0 converged.
-[ Info: MCMC Tuning cycle 14 finished, 4 chains, 4 tuned, 4 converged.
-[ Info: MCMC tuning of 4 chains successful after 14 cycle(s).
+[ Info: MCMC Tuning cycle 9 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 10 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 11 finished, 4 chains, 4 tuned, 4 converged.
+[ Info: MCMC tuning of 4 chains successful after 11 cycle(s).
 [ Info: Running post-tuning stabilization steps for 4 MCMC chain(s).
 [ Info: Generate main samples using 4 MCMC chain(s).</code></pre><h2 id="Result"><a class="docs-heading-anchor" href="#Result">Result</a><a id="Result-1"></a><a class="docs-heading-anchor-permalink" href="#Result" title="Permalink"></a></h2><p>The activities used to make the fake data are:</p><pre><code class="language-julia hljs">true_activities = (  # mBq
     cables_K40 = 200.0,
@@ -123,7 +120,7 @@ plot(
     left_margin = 8Plots.mm,
     bottom_margin = 6Plots.mm,
     top_margin = 3Plots.mm,
-)</code></pre><img src="0229699d.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The <span>$^{40}$</span>K activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
+)</code></pre><img src="f1487e31.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The <span>$^{40}$</span>K activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
     samples,
     (:cables_K40, :fibers_K40);
     nbins = 50,
@@ -131,7 +128,7 @@ plot(
     legend = :bottomleft,
     xlabel = &quot;cables_K40 activity (mBq)&quot;,
     ylabel = &quot;fibers_K40 activity (mBq)&quot;,
-)</code></pre><img src="22a3e0e6.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the smallest 68% credible interval: the smallest interval that contains 68% of its posterior density. BAT.jl computes it for all the activities at once, and <code>mode = :connected</code> gives a single interval for each one. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
+)</code></pre><img src="97cdba07.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the smallest 68% credible interval: the smallest interval that contains 68% of its posterior density. BAT.jl computes it for all the activities at once, and <code>mode = :connected</code> gives a single interval for each one. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
 intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
 
 names = collect(keys(truth))
@@ -150,7 +147,7 @@ scatter(
     bottom_margin = 12Plots.mm,
     legend = :bottomright,
 )
-hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="1aae6a79.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts, both as histograms in the bins of the fit. <code>get_best_fit_histograms</code> makes the histogram of the total prediction, in the key <code>:total</code>, and of the contribution of each source. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
+hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="35547e85.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts, both as histograms in the bins of the fit. <code>get_best_fit_histograms</code> makes the histogram of the total prediction, in the key <code>:total</code>, and of the contribution of each source. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
 plot(
@@ -171,7 +168,7 @@ plot!(hists[:total]; seriestype = :stepbins, label = &quot;best fit&quot;, color
 # grey band over the empty bin, which is wider than the blinded region because bins
 # are only fitted if they are fully outside of it
 empty = findfirst(==(0), hists[:total].weights)
-vspan!(hists[:total].edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = &quot;blinded&quot;)</code></pre><img src="c1286d60.svg" alt="Example block output"/><h2 id="Saving-the-results"><a class="docs-heading-anchor" href="#Saving-the-results">Saving the results</a><a id="Saving-the-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-the-results" title="Permalink"></a></h2><p>The results are saved in formats for long term preservation (see <a href="../saving/">Saving the results</a>). The posterior samples are written by BAT.jl to an HDF5 file, which needs the package <code>HDF5</code>. The best fit histograms, of the total and of each source, and the measured spectrum go into an LH5 file. The values of the activities with the smallest 68% interval go into a YAML file.</p><pre><code class="language-julia hljs">using HDF5
+vspan!(hists[:total].edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = &quot;blinded&quot;)</code></pre><img src="48d062fd.svg" alt="Example block output"/><h2 id="Saving-the-results"><a class="docs-heading-anchor" href="#Saving-the-results">Saving the results</a><a id="Saving-the-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-the-results" title="Permalink"></a></h2><p>The results are saved in formats for long term preservation (see <a href="../saving/">Saving the results</a>). The posterior samples are written by BAT.jl to an HDF5 file, which needs the package <code>HDF5</code>. The best fit histograms, of the total and of each source, and the measured spectrum go into an LH5 file. The values of the activities with the smallest 68% interval go into a YAML file.</p><pre><code class="language-julia hljs">using HDF5
 
 outdir = mktempdir()
 
@@ -185,33 +182,33 @@ readdir(outdir)</code></pre><pre class="documenter-example-output"><code class="
  &quot;samples.h5&quot;</code></pre><p>The YAML file is plain text:</p><pre><code class="language-julia hljs">print(read(joinpath(outdir, &quot;parameters.yaml&quot;), String))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">credible_level: 0.68
 parameters:
   fibers_Pb212_to_Pb208:
-    best_fit: 30.222623817083747
-    low: 25.649257733874958
-    high: 36.84188058594966
+    best_fit: 31.21665914573195
+    low: 25.482388658307997
+    high: 36.710886244514064
   alpha:
-    best_fit: 2.0006611579864453
-    low: 1.9471730215555414
-    high: 2.048237716620083
+    best_fit: 1.991059553505996
+    low: 1.9477737170863543
+    high: 2.048822609017821
   cables_K40:
-    best_fit: 196.77518484470409
-    low: 168.4674398104601
-    high: 224.06720796765737
+    best_fit: 193.7859536190259
+    low: 167.368712852774
+    high: 226.37463126825074
   fibers_K40:
-    best_fit: 101.43456847271607
-    low: 74.74108663718937
-    high: 127.8141658079672
+    best_fit: 104.717365139474
+    low: 73.19877458185185
+    high: 129.5004918079866
   cables_Pb212_to_Pb208:
-    best_fit: 51.13771596330203
-    low: 43.95195934509087
-    high: 56.402370915403914
+    best_fit: 50.320432329997615
+    low: 44.16602527504281
+    high: 56.680065736397424
   Ar39_liquid_argon:
-    best_fit: 1003.2673159968476
-    low: 998.5510036951192
-    high: 1008.6789079812658
+    best_fit: 1004.114145717253
+    low: 998.2352223482485
+    high: 1008.8585829471647
   two_vbb_hpge_bulk:
-    best_fit: 3497.752795546746
-    low: 3492.7833279590013
-    high: 3502.787718942652</code></pre><p>The saved samples and histograms read back as they were written:</p><pre><code class="language-julia hljs">samples_saved = bat_read(joinpath(outdir, &quot;samples.h5&quot;)).result
+    best_fit: 3497.4668812217865
+    low: 3492.7235153547263
+    high: 3502.9604904078765</code></pre><p>The saved samples and histograms read back as they were written:</p><pre><code class="language-julia hljs">samples_saved = bat_read(joinpath(outdir, &quot;samples.h5&quot;)).result
 fit_saved = read_hist(&quot;best_fit/total&quot;, joinpath(outdir, &quot;best_fit.lh5&quot;))
 
-(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(true, true)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../saving/">« Saving the results</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 17:09">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(true, true)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../saving/">« Saving the results</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 17:25">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
