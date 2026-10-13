@@ -60,7 +60,7 @@ range. `e_low`, `e_high`, `blind` and `norm` are as in the forward model.
 
 ## Changing a range by hand
 
-The result is a normal dictionary, so single entries can be replaced:
+The result is a dictionary, so single entries can be replaced:
 
 ```@example demo
 using IntervalSets
@@ -70,10 +70,22 @@ priors[:K40_hpge_bulk] = 0.0 .. 100.0
 priors
 ```
 
+The prior does not have to be a range. It can be any 1D distribution from
+[Distributions.jl](https://juliastats.org/Distributions.jl/stable/univariate/). 
+For example, a Gaussian with mean 50 and width 10, truncated to positive
+activities between 0 and 1000.
+
+```@example demo
+using Distributions
+
+priors[:K40_hpge_bulk] = truncated(Normal(50.0, 10.0), 0.0, 1000.0)
+priors
+```
+
 ## The prior distribution
 
-`build_prior` turns the ranges into a prior: a uniform distribution on the range of
-each activity. `rand(prior)` draws one value for each activity as a named tuple, which
+`build_prior` turns the entries into a prior. A range becomes a uniform distribution
+on that range, a distribution is used as it is. `rand(prior)` draws one value for each activity as a named tuple, which
 goes directly into the forward model.
 
 ```@example demo
