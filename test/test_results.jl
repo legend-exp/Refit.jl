@@ -229,6 +229,12 @@ end
     @test only(bands(ax)).color[] == (:blue, 0.4)
     @test only(bands(ax_b)).color[] == :lightblue
 
+    # the plots have labels for a legend
+    @test only(bands(ax)).label[] == "Smallest 68% interval"
+    @test only(bands(ax_b)).label[] == "Smallest 95% interval"
+    legend = CairoMakie.axislegend(ax)
+    @test length(legend.entrygroups[][1][2]) == 4  # posterior, interval, best fit, truth
+
     file = tempname() * ".png"
     CairoMakie.save(file, fig)
     @test filesize(file) > 0

@@ -199,7 +199,7 @@ style of all CairoMakie plots once it is loaded (it also needs `Format`). The be
 the global mode of the posterior. `plot_posterior!` draws the marginal posterior of one
 parameter. The bins inside the smallest 68% interval are filled (`bandcolor` changes the color of the
 band), the dashed line is the best fit and the red line is the true activity that was used
-to make the fake data.
+to make the fake data. All the panels have the same labels, so one legend is enough.
 
 ```@example tutorial
 using LegendMakie
@@ -228,6 +228,9 @@ for (i, name) in enumerate(keys(best))
         bandcolor = :lightblue,
     )
 end
+
+# the legend of the first panel, in the empty place of the grid
+CairoMakie.Legend(fig[2, 4], fig.content[1]; framevisible = false)
 fig
 ```
 

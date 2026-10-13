@@ -130,6 +130,7 @@ fig
     for the options.
 
 The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`.
+
 ## Posterior distributions
 
 `plot_posterior!(ax, samples, name)` draws the marginal posterior of the parameter `name` on
@@ -138,8 +139,8 @@ sample are in `samples.v` and its weight in `samples.weight`. The bins inside th
 68% interval (or another `level`) are filled, and `bandcolor` sets the color of the filled
 band (light blue here, by default the color of the line with some transparency). The
 keywords `best` and `truth` draw a dashed line at the best fit and a red line at a true
-value. The function returns the
-interval. Here the samples are made up:
+value. The plots have labels for a legend, which `CairoMakie.axislegend(ax)` adds to one
+axis. The function returns the interval. Here the samples are made up:
 
 ```@example demo
 Random.seed!(2)
@@ -156,6 +157,7 @@ ax = CairoMakie.Axis(
 )
 interval =
     plot_posterior!(ax, samples, :K40_hpge_bulk; best = 40, truth = 42, bandcolor = :lightblue)
+CairoMakie.axislegend(ax)
 fig
 ```
 
