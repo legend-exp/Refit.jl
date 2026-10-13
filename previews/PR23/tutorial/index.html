@@ -115,7 +115,7 @@ plot(
     left_margin = 8Plots.mm,
     bottom_margin = 6Plots.mm,
     top_margin = 3Plots.mm,
-)</code></pre><img src="e463bb6d.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The <span>$^{40}$</span>K activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
+)</code></pre><img src="018fafba.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The <span>$^{40}$</span>K activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
     samples,
     (:cables_K40, :fibers_K40);
     nbins = 50,
@@ -123,7 +123,7 @@ plot(
     legend = :bottomleft,
     xlabel = &quot;cables_K40 activity (mBq)&quot;,
     ylabel = &quot;fibers_K40 activity (mBq)&quot;,
-)</code></pre><img src="3a9e5b91.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the smallest 68% credible interval: the smallest interval that contains 68% of its posterior density. BAT.jl computes it for all the activities at once, and <code>mode = :connected</code> gives a single interval for each one. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
+)</code></pre><img src="b7fad83a.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the smallest 68% credible interval: the smallest interval that contains 68% of its posterior density. BAT.jl computes it for all the activities at once, and <code>mode = :connected</code> gives a single interval for each one. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
 intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
 
 names = collect(keys(truth))
@@ -142,7 +142,7 @@ scatter(
     bottom_margin = 12Plots.mm,
     legend = :bottomright,
 )
-hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="65f48f17.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts. The sources are summed into a few groups and plotted with CairoMakie, here in the LEGEND style of <a href="https://legend-exp.github.io/LegendMakie.jl/stable/">LegendMakie.jl</a>. See <a href="../plotting/">Plotting</a> for the functions that are used and how the plot can be customised.</p><pre><code class="language-julia hljs">using LegendMakie
+hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="d4a02418.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts. The sources are summed into a few groups and plotted with CairoMakie, here in the LEGEND style of <a href="https://legend-exp.github.io/LegendMakie.jl/stable/">LegendMakie.jl</a>. See <a href="../plotting/">Plotting</a> for the functions that are used and how the plot can be customised.</p><pre><code class="language-julia hljs">using LegendMakie
 import Format</code></pre><pre><code class="language-julia hljs">import CairoMakie
 
 data_hist = counts_to_histogram(counts, bin_edges)
@@ -163,7 +163,7 @@ grouped = group_histograms(
 fig, ax, ax_res = fit_axes(; ylabel = &quot;Counts per $binning keV&quot;)
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
-plot_hist!(ax, data_hist; filled = true, alpha = 0.4, color = :lightblue, label = &quot;Data&quot;)
+plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = &quot;Data&quot;)
 for (label, h) in grouped
     label == :total || plot_hist!(ax, h; label = string(label))
 end
@@ -179,7 +179,7 @@ CairoMakie.ylims!(ax, 1, 1e5)
 CairoMakie.ylims!(ax_res, -6, 6)
 CairoMakie.axislegend(ax; nbanks = 3)
 CairoMakie.axislegend(ax_res; nbanks = 3)
-fig</code></pre><img src="900f0f97.png" alt="Example block output"/><h2 id="Saving-the-results"><a class="docs-heading-anchor" href="#Saving-the-results">Saving the results</a><a id="Saving-the-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-the-results" title="Permalink"></a></h2><p>The results are saved in formats for long term preservation (see <a href="../saving/">Saving the results</a>). The posterior samples are written by BAT.jl to an HDF5 file, which needs the package <code>HDF5</code>. The best fit histograms, of the total and of each source, and the measured spectrum go into an LH5 file. The values of the activities with the smallest 68% interval go into a YAML file.</p><pre><code class="language-julia hljs">using HDF5
+fig</code></pre><img src="520a825e.png" alt="Example block output"/><h2 id="Saving-the-results"><a class="docs-heading-anchor" href="#Saving-the-results">Saving the results</a><a id="Saving-the-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-the-results" title="Permalink"></a></h2><p>The results are saved in formats for long term preservation (see <a href="../saving/">Saving the results</a>). The posterior samples are written by BAT.jl to an HDF5 file, which needs the package <code>HDF5</code>. The best fit histograms, of the total and of each source, and the measured spectrum go into an LH5 file. The values of the activities with the smallest 68% interval go into a YAML file.</p><pre><code class="language-julia hljs">using HDF5
 
 outdir = mktempdir()
 
@@ -222,4 +222,4 @@ parameters:
     high: 3503.960086461518</code></pre><p>The saved samples and histograms read back as they were written:</p><pre><code class="language-julia hljs">samples_saved = bat_read(joinpath(outdir, &quot;samples.h5&quot;)).result
 fit_saved = read_hist(&quot;best_fit/total&quot;, joinpath(outdir, &quot;best_fit.lh5&quot;))
 
-(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(true, true)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../saving/">« Saving the results</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 22:18">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(true, true)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../saving/">« Saving the results</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 22:20">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
