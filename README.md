@@ -16,7 +16,8 @@ This includes:
 - Plotting and saving outputs.
 
 
-> [!WARNING]: `Refit.jl` is still under heavy development, use at your risk!
+> [!WARNING]
+> `Refit.jl` is still under heavy development, use at your risk!
 
 
 ## Basic usage
