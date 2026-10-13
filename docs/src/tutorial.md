@@ -165,7 +165,7 @@ samples = bat_sample(
         proposal = RandomWalk(),
         strict = false,
         burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 10_000, max_ncycles = 30),
-        nsteps = 10^5,
+        nsteps = 5 * 10^5,
         nchains = 4,
     ),
 ).result
@@ -214,7 +214,15 @@ panels = map(collect(keys(truth))) do name
     )
     vline!([truth[name]]; color = :red, linewidth = 2, label = "")
 end
-plot(panels...; layout = (2, 4), size = (1200, 650), legend = false)
+plot(
+    panels...;
+    layout = (2, 4),
+    size = (1300, 700),
+    legend = false,
+    left_margin = 8Plots.mm,
+    bottom_margin = 6Plots.mm,
+    top_margin = 3Plots.mm,
+)
 ```
 
 A pair of activities shows their correlation. The K40 activities of the cables and of
