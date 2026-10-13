@@ -8,6 +8,22 @@ expected number of counts in each energy bin of the measured spectrum.
 `build_forward_model` turns a set of simulated energy spectra into such a function.
 It maps the activities to the predicted counts in each energy bin.
 
+## Definition
+
+The predicted counts in energy bin ``i`` are a sum over the simulated spectra:
+
+```math
+\mu_i = \sum_k a_k \, N \, h_{k,i}
+```
+
+Here ``h_{k,i}`` is the content of bin ``i`` in simulated spectrum ``k``, ``N`` is the
+factor `norm`, and ``a_k`` is the parameter of spectrum ``k``. Each simulated spectrum
+is scaled by its parameter and by `norm`, and the scaled spectra are added.
+
+If `norm` holds the unit conversions and the livetime, ``a_k`` is the activity of
+source ``k``. Usually the parameters are activities, and the model is written for
+that case. Any other choice of `norm` changes the meaning of ``a_k`` in the same way.
+
 ## Building the model
 
 The examples in this manual use made-up spectra with three simulated sources, defined
