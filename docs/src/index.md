@@ -10,6 +10,8 @@ sampling the posterior, which combines the likelihood of the data with priors.
 
 ## User manual
 `Refit.jl` can also do a lot more than this, for details see the following pages!
+
+- [Reading spectra](reading.md): read the simulated spectra and normalise them
 - [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
 - [Likelihood](likelihood.md): compare the predicted counts with the measured ones
 - [Priors](priors.md): estimate ranges for the activities from the data

@@ -2,6 +2,7 @@
 DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+LegendHDF5IO = "c9265ca6-b027-5446-b1a4-febfa8dd10b0"
 Refit = "25c10485-62ee-4db8-aac8-96ff0b0b3b5a"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
