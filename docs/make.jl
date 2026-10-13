@@ -3,6 +3,7 @@ using Refit
 
 makedocs(;
     sitename = "Refit.jl",
+    format = Documenter.HTML(; canonical = "https://legend-exp.github.io/Refit.jl"),
     modules = [Refit],
     pages = [
         "Home" => "index.md",
@@ -13,4 +14,10 @@ makedocs(;
         ],
         "API" => "api.md",
     ],
+)
+
+deploydocs(;
+    repo = "github.com/legend-exp/Refit.jl.git",
+    devbranch = "main",
+    push_preview = true,
 )

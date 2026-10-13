@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main, master]
+    tags: ['v*']
   pull_request:
     branches: [main, master]
 
@@ -38,11 +39,15 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   # ----------------------------------------------------------------------
-  # 2️) Build the documentation
+  # 2️) Build and deploy the documentation
   # ----------------------------------------------------------------------
   docs:
     name: Build documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      statuses: write
 
     steps:
       - uses: actions/checkout@v5
@@ -54,8 +59,10 @@ jobs:
         run: julia -e 'using Pkg; pkg"registry add General https://github.com/legend-exp/LegendJuliaRegistry.git"'
       - name: Install documentation environment
         run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
-      - name: Build documentation
+      - name: Build and deploy documentation
         run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ----------------------------------------------------------------------
   # 3️) Julia tests via Aqua.jl
