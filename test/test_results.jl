@@ -125,6 +125,10 @@ end
     @test ax.yscale[] === log10
     @test ax.title[] == "test"
 
+    # the size of the figure
+    fig_big, _, _ = fit_axes(; size = (800, 700))
+    @test Tuple(fig_big.scene.viewport[].widths) == (800, 700)
+
     _, ax_linear, _ = fit_axes(; scale = :linear)
     @test ax_linear.yscale[] === identity
     @test_throws ArgumentError fit_axes(; scale = :sqrt)
