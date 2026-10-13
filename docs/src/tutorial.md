@@ -278,7 +278,14 @@ bins that overlap the blinded region are not fitted and are merged into one empt
 shown as a grey band. The plot is made with CairoMakie and the result is a `Figure`,
 which can be saved with `CairoMakie.save("fit.png", fig)`.
 
+The plot uses the LEGEND style of [LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/),
+which changes the style of all CairoMakie plots once it is loaded (it also needs `Format`).
+Without it the default style of CairoMakie is used.
+
 ```@example tutorial
+using LegendMakie
+import Format
+
 data_hist = counts_to_histogram(counts, bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
