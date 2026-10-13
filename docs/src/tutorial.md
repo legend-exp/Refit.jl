@@ -197,8 +197,9 @@ The plots are made with CairoMakie, here in the LEGEND style of
 [LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/), which changes the
 style of all CairoMakie plots once it is loaded (it also needs `Format`). The best fit is
 the global mode of the posterior. `plot_posterior!` draws the marginal posterior of one
-parameter. The bins inside the smallest 68% interval are filled, the dashed line is the
-best fit and the red line is the true activity that was used to make the fake data.
+parameter. The bins inside the smallest 68% interval are filled (`bandcolor` changes the color of the
+band), the dashed line is the best fit and the red line is the true activity that was used
+to make the fake data.
 
 ```@example tutorial
 using LegendMakie
@@ -218,7 +219,14 @@ for (i, name) in enumerate(keys(best))
         ylabel = "Probability density",
         xticks = CairoMakie.LinearTicks(3),
     )
-    plot_posterior!(ax, samples, name; best = best[name], truth = truth[name])
+    plot_posterior!(
+        ax,
+        samples,
+        name;
+        best = best[name],
+        truth = truth[name],
+        bandcolor = :lightblue,
+    )
 end
 fig
 ```

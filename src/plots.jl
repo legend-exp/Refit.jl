@@ -129,9 +129,11 @@ smallest and the largest value.
 The bins inside the smallest interval that contains the fraction `level` of the
 distribution are filled. This is the same interval as the one saved by
 [`write_parameter_values`](@ref) when it comes from `BAT.smallest_credible_intervals`.
-With `best` (for example `mode(samples)[name]`) a dashed vertical line marks the best fit,
-and with `truth` a red line marks the true value. The other keywords, for example `color`,
-go to [`plot_hist!`](@ref).
+The filled region has the color of the histogram with some transparency, or `bandcolor`,
+for example `bandcolor = :lightblue`. With `best` (for example `mode(samples)[name]`) a
+dashed vertical line marks the best fit, and with `truth` a red line marks the true
+value. The lower limit of the y axis is 0. The other keywords, for example `color`, go to
+[`plot_hist!`](@ref).
 
 Returns the interval as `low .. high`.
 """
@@ -143,6 +145,7 @@ function plot_posterior!(
     nbins::Integer = 50,
     best::Union{Nothing,Real} = nothing,
     truth::Union{Nothing,Real} = nothing,
+    bandcolor = nothing,
     kwargs...,
 )
     0 < level < 1 || throw(ArgumentError("level must be between 0 and 1"))
@@ -164,16 +167,13 @@ function plot_posterior!(
     inside = (low .<= centers) .& (centers .<= high)
 
     attributes = merge((color = :black,), NamedTuple(kwargs))
-    plot_hist!(
-        ax,
-        Histogram(edges, density .* inside);
-        filled = true,
-        color = (attributes.color, 0.4),
-    )
+    fill_color = isnothing(bandcolor) ? (attributes.color, 0.4) : bandcolor
+    plot_hist!(ax, Histogram(edges, density .* inside); filled = true, color = fill_color)
     plot_hist!(ax, posterior; attributes...)
     isnothing(best) ||
         CairoMakie.vlines!(ax, best; color = attributes.color, linestyle = :dash)
     isnothing(truth) || CairoMakie.vlines!(ax, truth; color = :red)
+    CairoMakie.ylims!(ax; low = 0)  # a density cannot be negative
 
     return low .. high
 end
