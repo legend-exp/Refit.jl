@@ -38,7 +38,21 @@ using Test
     reversed = get_best_fit_histograms((b = 4.0, a = 2.0), model, bin_edges)
     @test reversed[:total].weights ≈ hists[:total].weights
 
-    @test_throws ArgumentError get_best_fit_histograms((total = 1.0,), model, bin_edges)
+    clash, clash_edges = build_forward_model(Dict(:total => pdfs[:a]); e_low = 100)
+    @test_throws ArgumentError get_best_fit_histograms((total = 1.0,), clash, clash_edges)
+
+    # components with an activity function and a shared parameter
+    shared, shared_edges = build_forward_model(
+        Dict(
+            :a => (pdf = pdfs[:a], activity = p -> p.s),
+            :b => (pdf = pdfs[:b], activity = p -> 2 * p.s),
+        );
+        e_low = 100,
+        e_high = 900,
+    )
+    parts = get_best_fit_histograms((s = 2.0,), shared, shared_edges)
+    @test Set(keys(parts)) == Set([:total, :a, :b])
+    @test parts[:total].weights ≈ parts[:a].weights .+ parts[:b].weights
 end
 
 @testset "normalised_poisson_residual" begin

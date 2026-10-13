@@ -22,6 +22,9 @@ that case. Any other choice of `norm` changes the meaning of ``a_k`` in the same
 `build_forward_model` turns a set of simulated energy spectra into such a function.
 This maps the activities to the predicted counts in each energy bin.
 
+The activity of a component can also be a function of the fit parameters, see
+[Activity functions](#Activity-functions) below.
+
 ## Building the model
 
 The examples in this manual use simplified spectra with three simulated sources, defined
@@ -82,6 +85,41 @@ pred = model(params)
 `length(pred)` = 270. Entry `i` is the sum over all
 spectra of `activity * norm * (counts in the simulated bin)`. The order of the
 activities does not matter. A missing activity raises an error.
+
+## Activity functions
+
+The activity of a component does not have to be a fit parameter of its own. It can be a
+function of the fit parameters, given with the spectrum as `(pdf = histogram, activity
+= f)`. For example, to fit the half-life of the ``2\nu\beta\beta`` decay instead of its
+activity:
+
+```@example demo
+n_ge76 = 1.0e28  # made-up number of Ge-76 nuclei
+year = 3.156e7   # s
+
+components = merge(
+    mc_dict,
+    Dict(
+        :two_vbb_hpge_bulk => (
+            pdf = mc_dict[:two_vbb_hpge_bulk],
+            # activity in mBq, with the half-life in units of 1e21 yr
+            activity = p -> 1e3 * log(2) * n_ge76 / (p.T_half * 1e21 * year),
+        ),
+    ),
+)
+model_t, _ = build_forward_model(components; e_low = 500, e_high = 3200, norm = 1e-3 * livetime)
+pred_t = model_t((K40_hpge_bulk = 40.0, Pb212_to_Pb208_hpge_bulk = 10.0, T_half = 2.2))
+
+# the activity in mBq for a half-life of 2.2e21 yr
+components[:two_vbb_hpge_bulk].activity((T_half = 2.2,))
+```
+
+The global `norm` applies to this component as to the others, so the function returns
+an activity in mBq. [Model components](components.md) lists the forms a component can
+take and the rules for its parameters and priors.
+
+`model(params, Val(:by_component))` returns the predicted counts of each component
+separately, as a named tuple. [`get_best_fit_histograms`](@ref) uses this.
 
 ## Bin edges
 
