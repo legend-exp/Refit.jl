@@ -108,7 +108,8 @@ end
     # a uniform distribution on each range
     prior = NamedTupleDist(; (k => Uniform(r.left, r.right) for (k, r) in ranges)...)
 
-    draw = rand(Xoshiro(1), prior)
+    Random.seed!(1)  # fixed seed, so that the random draw is the same in every run
+    draw = rand(prior)
     @test draw isa NamedTuple
     @test Set(keys(draw)) == Set(keys(pdfs))
     @test all(ranges[k].left <= draw[k] <= ranges[k].right for k in keys(draw))
@@ -120,5 +121,5 @@ end
     @test logdensityof(likelihood, reversed) == logdensityof(likelihood, draw)
 
     # nested named tuples cannot be sampled, so the activities are not nested
-    @test_throws MethodError rand(Xoshiro(1), NamedTupleDist(activities = prior))
+    @test_throws MethodError rand(NamedTupleDist(activities = prior))
 end
