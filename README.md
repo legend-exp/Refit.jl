@@ -16,7 +16,7 @@ This includes:
 - Plotting and saving outputs.
 
 
-> Warning: `Refit.jl` is still under heavy development, use at your risk!
+> [!WARNING]: `Refit.jl` is still under heavy development, use at your risk!
 
 
 ## Basic usage
@@ -33,8 +33,8 @@ data = read_hist("hist/spectrum",data_file)
 
 # dictionary of MC pdfs to fit, the keys are Symbols and name the parameters
 mc_dict = Dict(
-    :Ar39_liquid_argon => read_hist("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5"),
-    :two_vbb_hpge_bulk => read_hist("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5"),
+    :Ar39_liquid_argon => read_pdf("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5"),
+    :two_vbb_hpge_bulk => read_pdf("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5"),
     # ...
 )
 
@@ -48,7 +48,7 @@ priors[:two_vbb_hpge_bulk] = 0.. 2
 # priors = get_priors(mc_dict, data; e_low = 500, e_high = 3200)
 
 # convert to a distribution
-prior_dist = get_prior_dist(priors)
+prior_dist = build_prior_dist(priors)
 
 # get a model mapping parameters to data, and the edges of the bins it predicts
 model, bin_edges = build_forward_model(mc_dict; bin = 20, e_low = 500, e_high = 3200)
