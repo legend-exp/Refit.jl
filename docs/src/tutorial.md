@@ -6,17 +6,17 @@ is built.
 
 The files are made up. A script, `docs/src/tutorial_data.jl`, writes them in LH5
 format to a temporary directory. They stand in for the output of a real simulation
-and for a measured spectrum. Each source with a gamma line has a peak with a 1 keV
-width on a flat or linear continuum below the peak. The 2νββ spectrum is a broad
-Gaussian (600 keV width, centered at 1 MeV).
+and for a measured spectrum:
 
 - one file for each simulated source with the histograms `pdf/mul1/icpc` and
   `pdf/mul1/bege` (the two detector types) and the number of simulated primaries,
 - one file `data.lh5` with the measured histograms `hist/mul1/icpc` and
   `hist/mul1/bege`.
 
-The measured spectrum is generated from known activities, so the result of the fit
-can be compared with the truth at the end.
+Each source with a gamma line has a peak with a 1 keV width on a flat or linear
+continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width,
+centered at 1 MeV). The measured spectrum is generated from known activities, so the
+result of the fit can be compared with the truth at the end.
 
 ```@setup tutorial
 include("tutorial_data.jl")
