@@ -27,7 +27,9 @@ end
                range_factor, peak_factor)
 
 Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
-`pdfs` (a `Dict(name => Histogram)`), based on the measured spectrum `data`.
+`pdfs` (a `Dict(name => component)`, see [`build_forward_model`](@ref)), based on the
+measured spectrum `data`. Components with an `activity` function are skipped: the
+parameters of the function need priors by hand.
 Returns `Dict(name => Interval)`. The entries can be replaced by any 1D distribution
 from Distributions.jl before calling [`build_prior_dist`](@ref).
 
@@ -47,7 +49,7 @@ the fit range. `e_low`, `e_high`, `blind` and `norm` are as in
 [`build_forward_model`](@ref).
 """
 function get_priors(
-    pdfs::AbstractDict{Symbol,<:Histogram{<:Real,1}},
+    pdfs::AbstractDict{Symbol},
     data::Histogram{<:Real,1};
     ref_ranges::AbstractDict{Symbol,<:Tuple{Real,Real}} = Dict{Symbol,Tuple{Real,Real}}(),
     e_low::Real = 500,
@@ -58,7 +60,13 @@ function get_priors(
     peak_factor::Real = 1.5,
 )
     priors = Dict{Symbol,Any}()
-    for (name, pdf) in pdfs
+    for (name, component) in pdfs
+        spec = _component_spec(component)
+        if !isnothing(spec.activity)
+            @info "get_priors: $name has an activity function, its parameters need priors by hand"
+            continue
+        end
+        pdf = spec.pdf
         a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; blind) / norm
         isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
 
