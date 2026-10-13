@@ -303,8 +303,8 @@ vspan!(hists[:total].edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, labe
 The results are saved in formats for long term preservation (see
 [Saving the results](saving.md)). The posterior samples are written by BAT.jl to an
 HDF5 file, which needs the package `HDF5`. The best fit histograms, of the total and of
-each source, and the measured spectrum go into an LH5 file. The activities with the
-smallest 68% interval go into a YAML file.
+each source, and the measured spectrum go into an LH5 file. The values of the activities
+with the smallest 68% interval go into a YAML file.
 
 ```@example tutorial
 using HDF5
@@ -313,7 +313,7 @@ outdir = mktempdir()
 
 bat_write(joinpath(outdir, "samples.h5"), samples)
 write_best_fit(joinpath(outdir, "best_fit.lh5"), hists; data = data_hist)
-write_activities(joinpath(outdir, "activities.yaml"), best, intervals; level = 0.68)
+write_parameter_values(joinpath(outdir, "parameters.yaml"), best, intervals; level = 0.68)
 
 readdir(outdir)
 ```
@@ -321,7 +321,7 @@ readdir(outdir)
 The YAML file is plain text:
 
 ```@example tutorial
-print(read(joinpath(outdir, "activities.yaml"), String))
+print(read(joinpath(outdir, "parameters.yaml"), String))
 ```
 
 The saved samples and histograms read back as they were written:
