@@ -71,7 +71,7 @@ priors
 ```
 
 The prior does not have to be a range. It can be any 1D distribution from
-[Distributions.jl](https://juliastats.org/Distributions.jl/stable/univariate/). 
+[Distributions.jl](https://juliastats.org/Distributions.jl/stable/univariate/).
 For example, a Gaussian with mean 50 and width 10, truncated to positive
 activities between 0 and 1000.
 
