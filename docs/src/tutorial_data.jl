@@ -9,17 +9,20 @@ dir = mktempdir()
 file_binning = (binedges = (first = 0.0, last = 4000.0, step = 1.0), closedleft = true)
 energy = collect(0.5:1.0:3999.5)  # bin centers in keV
 
-# Counts per bin of one simulated source with a smooth continuum and an optional peak.
-# The spectrum is normalised to 1, so that its sum is the fraction of the primaries
-# that give an event.
-function shape(slope; peak = nothing)
-    w = exp.(-energy ./ slope)
-    w ./= sum(w)
-    if !isnothing(peak)
-        p = exp.(-(energy .- peak) .^ 2 ./ (2 * 2.0^2))  # 2 keV width
-        w = 0.9 .* w .+ 0.1 .* p ./ sum(p)
-    end
-    return w
+# Spectrum of one simulated source, normalised to 1: a peak with a 1 keV width, containing
+# 10% of the events, on a linear continuum up to the peak. The continuum is
+# 1 + slope * energy / peak, so a slope of 0 is flat.
+function peak_shape(peak; slope = 0.0)
+    continuum = (1 .+ slope .* energy ./ peak) .* (energy .< peak)
+    continuum ./= sum(continuum)
+    line = exp.(-(energy .- peak) .^ 2 ./ (2 * 1.0^2))
+    return 0.9 .* continuum .+ 0.1 .* line ./ sum(line)
+end
+
+# A broad Gaussian spectrum with no peak, normalised to 1.
+function broad_shape(center, sigma)
+    w = exp.(-(energy .- center) .^ 2 ./ (2 * sigma^2))
+    return w ./ sum(w)
 end
 
 n_primaries = 1_000_000
@@ -27,12 +30,12 @@ efficiency = 0.3  # fraction of the primaries with an event in the detector
 
 # name of the pdf file => spectrum
 sources = Dict(
-    "cables_K40" => shape(900; peak = 1461),
-    "fibers_K40" => shape(700; peak = 1461),
-    "cables_Pb212_to_Pb208" => shape(1200; peak = 2615),
-    "fibers_Pb212_to_Pb208" => shape(1000; peak = 2615),
-    "hpge_icpc_bulk_2vbb" => shape(500),
-    "hpge_bege_bulk_2vbb" => shape(450),
+    "cables_K40" => peak_shape(1461; slope = 0.0),
+    "fibers_K40" => peak_shape(1461; slope = 1.0),
+    "cables_Pb212_to_Pb208" => peak_shape(2615; slope = -0.5),
+    "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
+    "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
+    "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
 )
 
 groups = ["mul1/icpc", "mul1/bege"]  # the two detector types of the spectrum
