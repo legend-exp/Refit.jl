@@ -137,12 +137,12 @@ ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)
 A range can be changed by hand where the guess is poor, for example
 `ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0` (with `using IntervalSets`).
 
-`build_prior` makes the prior: a uniform distribution on the range of each activity.
+`build_prior_dist` makes the prior: a uniform distribution on the range of each activity.
 `rand(prior)` draws one random value for each activity, a named tuple that goes
 directly into the model.
 
 ```@example tutorial
-prior = build_prior(ranges)
+prior = build_prior_dist(ranges)
 
 rand(prior)
 ```

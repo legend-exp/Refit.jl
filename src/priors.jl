@@ -29,7 +29,7 @@ end
 Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
 `pdfs` (a `Dict(name => Histogram)`), based on the measured spectrum `data`.
 Returns `Dict(name => Interval)`. The entries can be replaced by any 1D distribution
-from Distributions.jl before calling [`build_prior`](@ref).
+from Distributions.jl before calling [`build_prior_dist`](@ref).
 
 These are not real informative priors. They come from the data and only limit the range of the
 fit to improve convergence. We can also use external knowledge for informative priors.
@@ -75,14 +75,14 @@ function get_priors(
 end
 
 """
-    build_prior(ranges)
+    build_prior_dist(ranges)
 
 Build a prior distribution from the entries of [`get_priors`](@ref), a
 `Dict(name => prior)`. Each prior is either a range (`Interval`), which becomes a
 uniform distribution, or any 1D distribution from Distributions.jl, which is used as is. It is a `NamedTupleDist` (from ValueShapes.jl) and `rand(prior)` draws a
 named tuple of activities, which can be passed to the forward model.
 """
-function build_prior(ranges::AbstractDict{Symbol})
+function build_prior_dist(ranges::AbstractDict{Symbol})
     return NamedTupleDist(; (k => _to_distribution(r) for (k, r) in ranges)...)
 end
 
