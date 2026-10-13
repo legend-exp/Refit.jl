@@ -11,6 +11,7 @@ include("forward_model.jl")
 include("likelihood.jl")
 include("priors.jl")
 include("io.jl")
+include("results.jl")
 
 export rebin_hist, add_histograms, integrate_hist, get_counts, counts_to_histogram
 export build_forward_model
