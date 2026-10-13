@@ -1,14 +1,12 @@
 # Forward model
 
 The forward model is a function mapping the parameters of interest onto the predicted
-counts. Here the parameters are the activities of the simulated sources, for example
-the decay rate of one isotope in one detector component. The prediction is the
-expected number of counts in each energy bin of the measured spectrum.
-
-`build_forward_model` turns a set of simulated energy spectra into such a function.
-It maps the activities to the predicted counts in each energy bin.
+counts. 
 
 ## Definition
+Here the parameters are the activities of the simulated sources, for example
+the decay rate of one isotope in one detector component. The prediction is the
+expected number of counts in each energy bin of the measured spectrum.
 
 The predicted counts in energy bin ``i`` are a sum over the simulated spectra:
 
@@ -23,6 +21,9 @@ is scaled by its parameter and by `norm`, and the scaled spectra are added.
 If `norm` holds the unit conversions and the livetime, ``a_k`` is the activity of
 source ``k``. Usually the parameters are activities, and the model is written for
 that case. Any other choice of `norm` changes the meaning of ``a_k`` in the same way.
+
+`build_forward_model` turns a set of simulated energy spectra into such a function.
+It maps the activities to the predicted counts in each energy bin.
 
 ## Building the model
 
