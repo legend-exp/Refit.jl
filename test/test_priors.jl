@@ -1,7 +1,11 @@
+using DensityInterface
+using Distributions
 using IntervalSets
+using Random
 using Refit
 using StatsBase
 using Test
+using ValueShapes
 
 @testset "priors" begin
     edges = 0.0:100.0:1000.0
@@ -86,4 +90,35 @@ using Test
         )
         @test_throws TypeError get_priors(pdfs, data; ref_ranges = Dict(:K40 => 1461))
     end
+end
+
+# The ranges become a prior for the fit. BAT samples a prior made of ValueShapes
+# distributions, which needs the parameters to be a flat named tuple.
+@testset "prior distribution" begin
+    edges = 0.0:100.0:1000.0
+    pdfs =
+        Dict(:a => Histogram(edges, fill(10.0, 10)), :b => Histogram(edges, fill(5.0, 10)))
+    data = Histogram(edges, fill(50.0, 10))
+
+    model, bin_edges = build_forward_model(pdfs; e_low = 100, e_high = 900, norm = 1e-3)
+    counts = get_counts(data, bin_edges)
+    likelihood = build_likelihood(counts, model)
+    ranges = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 1e-3)
+
+    # a uniform distribution on each range
+    prior = NamedTupleDist(; (k => Uniform(r.left, r.right) for (k, r) in ranges)...)
+
+    draw = rand(Xoshiro(1), prior)
+    @test draw isa NamedTuple
+    @test Set(keys(draw)) == Set(keys(pdfs))
+    @test all(ranges[k].left <= draw[k] <= ranges[k].right for k in keys(draw))
+
+    # a draw goes directly into the model and the likelihood, in any order
+    @test length(model(draw)) == length(counts)
+    @test isfinite(logdensityof(likelihood, draw))
+    reversed = NamedTuple{reverse(keys(draw))}(draw)
+    @test logdensityof(likelihood, reversed) == logdensityof(likelihood, draw)
+
+    # nested named tuples cannot be sampled, so the activities are not nested
+    @test_throws MethodError rand(Xoshiro(1), NamedTupleDist(activities = prior))
 end
