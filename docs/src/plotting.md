@@ -42,8 +42,16 @@ parameters `best` (for example `mode(samples)`): the total in the key `:total`, 
 by the contribution of each source. The bins outside of the fit range and in the
 blinded region are empty.
 
+The made-up data of this example has no statistical fluctuation, so each bin is drawn
+from a Poisson distribution around its value:
+
 ```@example demo
-data_hist = counts_to_histogram(get_counts(data, bin_edges), bin_edges)
+using Random, Distributions
+
+Random.seed!(1)
+data_fluctuated = Histogram(data.edges, Float64.(rand.(Poisson.(data.weights))))
+
+data_hist = counts_to_histogram(get_counts(data_fluctuated, bin_edges), bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
 keys(hists)
@@ -82,20 +90,26 @@ The plot is made with a few functions that draw on a CairoMakie axis:
 - `plot_residuals!(ax, prediction, data)` draws the residuals in units of standard
   deviations, with the bands of 1, 2 and 3 standard deviations unless `bands = false`.
 
-An example, with the data filled in light blue, the sources as colored lines and the best
-fit in black:
+An example, with the data filled in light blue, the sources as thin colored lines and the
+best fit as a thick black line, and with larger fonts:
 
 ```@example demo
 import CairoMakie
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per 10 keV")
+# larger fonts for the axes and the legends
+CairoMakie.update_theme!(
+    Axis = (xlabelsize = 26, ylabelsize = 26, xticklabelsize = 22, yticklabelsize = 22),
+    Legend = (labelsize = 22,),
+)
+
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per 10 keV", size = (1300, 800))
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
 for (label, h) in grouped
-    label == :total || plot_hist!(ax, h; label = string(label))
+    label == :total || plot_hist!(ax, h; label = string(label), linewidth = 1)
 end
-plot_hist!(ax, grouped[:total]; color = :black, linewidth = 2, label = "Best fit")
+plot_hist!(ax, grouped[:total]; color = :black, linewidth = 4, label = "Best fit")
 
 # the blinded region (the empty bins) and the residuals
 mark_blinded!(ax, grouped[:total])

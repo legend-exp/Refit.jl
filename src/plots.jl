@@ -73,7 +73,8 @@ function plot_residuals!(
     fitted = findall(!=(0), prediction.weights)
     edges = prediction.edges[1]
     centers = (edges[1:(end-1)] .+ edges[2:end]) ./ 2
-    attributes = merge((color = :black, markersize = 6), NamedTuple(kwargs))
+    attributes =
+        merge((color = :black, marker = :circle, markersize = 10), NamedTuple(kwargs))
     return CairoMakie.scatter!(
         ax,
         centers[fitted],
@@ -83,12 +84,12 @@ function plot_residuals!(
 end
 
 """
-    fit_axes(; scale = :log, title = "", ylabel = "Counts")
+    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600))
 
 Make a CairoMakie figure for the plot of a fit: an axis for the spectra with an axis for
 the residuals below it. The energy axes are linked and only the lower one has labels.
-Returns `(fig, ax, ax_residuals)`. With `scale = :log` the y axis of `ax` is
-logarithmic, with `:linear` it is linear. Draw on the axes with [`plot_hist!`](@ref),
+`size` is the size of the figure in pixels. Returns `(fig, ax, ax_residuals)`. With
+`scale = :log` the y axis of `ax` is logarithmic, with `:linear` it is linear. Draw on the axes with [`plot_hist!`](@ref),
 [`mark_blinded!`](@ref) and [`plot_residuals!`](@ref), and set the limits, for example
 with `CairoMakie.xlims!(ax, 100, 4000)`.
 """
@@ -96,16 +97,17 @@ function fit_axes(;
     scale::Symbol = :log,
     title::AbstractString = "",
     ylabel::AbstractString = "Counts",
+    size::Tuple{Integer,Integer} = (1300, 600),
 )
     scale in (:log, :linear) || throw(ArgumentError("scale must be :log or :linear"))
 
-    fig = CairoMakie.Figure(size = (1300, 600))
+    fig = CairoMakie.Figure(; size)
     ax =
         CairoMakie.Axis(fig[1, 1]; ylabel, yscale = scale == :log ? log10 : identity, title)
     ax_res = CairoMakie.Axis(fig[2, 1]; ylabel = "Residual [σ]", xlabel = "Energy [keV]")
 
     CairoMakie.rowsize!(fig.layout, 1, CairoMakie.Relative(0.7))
-    CairoMakie.rowgap!(fig.layout, 5)
+    CairoMakie.rowgap!(fig.layout, 12)
     CairoMakie.hidexdecorations!(ax; grid = false)
     CairoMakie.linkxaxes!(ax, ax_res)
     return fig, ax, ax_res
