@@ -90,8 +90,8 @@ The plot is made with a few functions that draw on a CairoMakie axis:
 - `plot_residuals!(ax, prediction, data)` draws the residuals in units of standard
   deviations, with the bands of 1, 2 and 3 standard deviations unless `bands = false`.
 
-An example, with the data filled in light blue, the sources as thin colored lines and the
-best fit as a thick black line, and with larger fonts:
+An example, with the data filled in light blue, the sources as colored lines and the
+best fit as a thicker black line, and with larger fonts:
 
 ```@example demo
 import CairoMakie
@@ -107,7 +107,7 @@ fig, ax, ax_res = fit_axes(; ylabel = "Counts per 10 keV", size = (1300, 800))
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
 for (label, h) in grouped
-    label == :total || plot_hist!(ax, h; label = string(label), linewidth = 1)
+    label == :total || plot_hist!(ax, h; label = string(label))
 end
 plot_hist!(ax, grouped[:total]; color = :black, linewidth = 4, label = "Best fit")
 

@@ -6,7 +6,7 @@
 # Sources with a gamma line have a peak with a 1 keV width on a flat or linear
 # continuum below the peak. The 2vbb spectrum is a broad Gaussian (600 keV width,
 # centered at 1 MeV) and makes about 70% of the counts. The Ar39 spectrum is an
-# exponential that falls with the energy and makes about 20% of the counts.
+# exponential with a decay constant of 300 keV and makes about 20% of the counts.
 #
 # Run with: julia --project=docs test/test_files/tutorial/make_files.jl
 using LegendHDF5IO
@@ -46,7 +46,7 @@ sources = Dict(
     "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
     "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
     "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
-    "liquid_argon_Ar39" => exp_shape(400),
+    "liquid_argon_Ar39" => exp_shape(300),
 )
 
 for (name, spectrum) in sources
