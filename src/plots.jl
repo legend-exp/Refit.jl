@@ -122,13 +122,16 @@ the result of [`get_best_fit_histograms`](@ref) and `groups` is a vector with on
 - `:rest`, for all the sources that no other group selects.
 
 Returns an ordered dictionary in the same format as `hists`, with `:total` followed by
-the groups, which are named by their label as a `Symbol`. It can be used in place of
-`hists`, for example in [`plot_best_fit`](@ref). A source goes into the first group that
-selects it, and a group without sources is left out. A name that does not exist, or a
-regular expression that matches no source, is an error.
+the groups, which are named by their label as a `Symbol`. The label can be any text,
+including Unicode such as `"²¹²Pb"` or `"2νββ"`. A source goes into the first
+group that selects it, and a group without sources is left out. A name that does not
+exist, or a regular expression that matches no source, is an error.
 
 ```julia
-grouped = group_histograms(hists, ["K40" => r"K40", "Pb212" => [:Pb212_cables], "other" => :rest])
+grouped = group_histograms(
+    hists,
+    ["K40" => r"K40", "Pb212" => [:Pb212_cables], "other" => :rest],
+)
 ```
 """
 function group_histograms(
@@ -172,61 +175,4 @@ function group_histograms(
         isempty(members) || (grouped[name] = add_histograms([hists[s] for s in members]))
     end
     return grouped
-end
-
-"""
-    plot_best_fit(data, hists; scale = :log, title = "")
-
-Plot the measured spectrum, the best fit and its sources, with the residuals below.
-Returns a CairoMakie `Figure`, which can be saved with `CairoMakie.save("fit.png", fig)`.
-
-`data` is the measured spectrum as a `Histogram` (see [`counts_to_histogram`](@ref))
-and `hists` is the result of [`get_best_fit_histograms`](@ref), or of
-[`group_histograms`](@ref) to plot fewer lines, with the same bins. The data are the
-filled histogram, `hists[:total]` the black line and each of the other histograms a
-line with its own color, named in the legend by its key. The empty bins of
-`hists[:total]`, the blinded region, are a grey band and have no residual. The energy
-axis covers the range of `hists[:total]`. With `scale = :log` the y axis is logarithmic,
-and with `:linear` it is linear.
-
-The plot is made of [`fit_axes`](@ref), [`plot_hist!`](@ref), [`mark_blinded!`](@ref)
-and [`plot_residuals!`](@ref), which can be used to make a plot with a different style.
-"""
-function plot_best_fit(
-    data::Histogram{<:Real,1},
-    hists::AbstractDict{Symbol,<:Histogram{<:Real,1}};
-    scale::Symbol = :log,
-    title::AbstractString = "",
-)
-    haskey(hists, :total) ||
-        throw(ArgumentError("hists must have the key :total, see get_best_fit_histograms"))
-    total = hists[:total]
-    data.edges == total.edges || throw(ArgumentError("data and hists differ in binning"))
-
-    bin_width = round(minimum(diff(total.edges[1])), sigdigits = 3)
-    fig, ax, ax_res = fit_axes(; scale, title, ylabel = "Counts per $bin_width keV")
-
-    # the data, the sources (with the colors of Makie's palette) and the best fit
-    plot_hist!(ax, data; filled = true, color = :lightblue, label = "Data")
-    for (name, h) in hists
-        name == :total || plot_hist!(ax, h; label = string(name))
-    end
-    plot_hist!(ax, total; color = :black, linewidth = 2, label = "Best fit")
-
-    mark_blinded!(ax, total)
-    mark_blinded!(ax_res, total)
-    plot_residuals!(ax_res, total, data)
-
-    edges = total.edges[1]
-    CairoMakie.xlims!(ax, first(edges), last(edges))
-    CairoMakie.ylims!(
-        ax,
-        scale == :log ? 0.5 : 0,
-        (scale == :log ? 3 : 1.1) * maximum(data.weights),
-    )
-    CairoMakie.ylims!(ax_res, -6, 6)
-    CairoMakie.axislegend(ax; nbanks = 3)
-    CairoMakie.axislegend(ax_res; nbanks = 3)
-
-    return fig
 end

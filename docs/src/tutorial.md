@@ -267,66 +267,53 @@ scatter(
 hline!([1]; color = :red, label = "true activity")
 ```
 
-Finally, the prediction of the best fit is compared with the measured counts.
-`get_best_fit_histograms` makes the histogram of the total prediction, in the key
-`:total`, and of the contribution of each source. `group_histograms` sums sources into
-one line to plot fewer lines: each group is a label and either a list of source names or
-a regular expression for the names, and `:rest` stands for all the sources that no group
-selects. `plot_best_fit` draws the data, the best fit and the lines, and below them the
-residuals in units of standard deviations ([`normalised_poisson_residual`](@ref)). The
-bins that overlap the blinded region are not fitted and are merged into one empty bin,
-shown as a grey band. The plot is made with CairoMakie and the result is a `Figure`,
-which can be saved with `CairoMakie.save("fit.png", fig)`.
-
-The plot uses the LEGEND style of [LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/),
-which changes the style of all CairoMakie plots once it is loaded (it also needs `Format`).
-Without it the default style of CairoMakie is used.
+Finally, the prediction of the best fit is compared with the measured counts. The
+sources are summed into a few groups and plotted with CairoMakie, here in the LEGEND
+style of [LegendMakie.jl](https://legend-exp.github.io/LegendMakie.jl/stable/). See
+[Plotting](plotting.md) for the functions that are used and how the plot can be customised.
 
 ```@example tutorial
 using LegendMakie
 import Format
-
-data_hist = counts_to_histogram(counts, bin_edges)
-hists = get_best_fit_histograms(best, model, bin_edges)
-
-grouped = group_histograms(
-    hists,
-    [
-        "K40" => r"K40",
-        "Pb212_to_Pb208" => r"Pb212",
-        "2vbb" => r"two_vbb",
-        "Ar39" => r"Ar39",
-        "other" => :rest,
-    ],
-)
-
-plot_best_fit(data_hist, grouped)
 ```
-
-The figure is made of building blocks that draw on a CairoMakie axis, and they can be
-used to change the style. `fit_axes` makes the figure with an axis for the spectra and
-one for the residuals, `plot_hist!` draws a histogram as a line (or filled with
-`filled = true`) and passes the other keywords to Makie, `mark_blinded!` draws the grey
-band and `plot_residuals!` the residuals. For example, the data as a line and the best
-fit and the 2νββ source in color:
 
 ```@example tutorial
 import CairoMakie
 
+data_hist = counts_to_histogram(counts, bin_edges)
+hists = get_best_fit_histograms(best, model, bin_edges)
+
+# sum the sources into a few lines
+grouped = group_histograms(
+    hists,
+    [
+        "⁴⁰K" => r"K40",
+        "²¹²Pb → ²⁰⁸Pb" => r"Pb212",
+        "2νββ" => r"two_vbb",
+        "³⁹Ar" => r"Ar39",
+        "other" => :rest,
+    ],
+)
+
 fig, ax, ax_res = fit_axes(; ylabel = "Counts per $binning keV")
 
-plot_hist!(ax, data_hist; color = :black, label = "Data")
-plot_hist!(ax, hists[:total]; color = :red, linewidth = 3, label = "Best fit")
-plot_hist!(ax, hists[:two_vbb_hpge_bulk]; color = :blue, linestyle = :dash, label = "2vbb")
+# the data, the groups of sources (with the colors of the palette) and the best fit
+plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
+for (label, h) in grouped
+    label == :total || plot_hist!(ax, h; label = string(label))
+end
+plot_hist!(ax, grouped[:total]; color = :black, linewidth = 2, label = "Best fit")
 
-mark_blinded!(ax, hists[:total]; color = (:grey, 0.3))
-mark_blinded!(ax_res, hists[:total]; color = (:grey, 0.3))
-plot_residuals!(ax_res, hists[:total], data_hist; bands = false, color = :red)
+# the blinded region (the empty bins) and the residuals
+mark_blinded!(ax, grouped[:total])
+mark_blinded!(ax_res, grouped[:total])
+plot_residuals!(ax_res, grouped[:total], data_hist)
 
 CairoMakie.xlims!(ax, e_low, e_high)
 CairoMakie.ylims!(ax, 1, 1e5)
 CairoMakie.ylims!(ax_res, -6, 6)
-CairoMakie.axislegend(ax)
+CairoMakie.axislegend(ax; nbanks = 3)
+CairoMakie.axislegend(ax_res; nbanks = 3)
 fig
 ```
 
