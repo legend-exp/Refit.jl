@@ -63,12 +63,11 @@ using DensityInterface
 # the likelihood of the measured counts as a function of the parameters
 likelihood = build_likelihood(counts, model);
 
-# one activity (in mBq) for each spectrum
-params = (activities = (
+params = (
     K40_hpge_bulk = 40.0,
     Pb212_to_Pb208_hpge_bulk = 10.0,
     two_vbb_hpge_bulk = 100.0,
-),)
+)
 
 # log-likelihood for these parameters
 logdensityof(likelihood, params)
@@ -78,8 +77,7 @@ The value is largest when the prediction matches the data. Here the data were ma
 with these activities, so changing one of them lowers the value:
 
 ```@example demo
-# the same parameters, but with K40 changed from 40 to 50 mBq
-other = (activities = merge(params.activities, (K40_hpge_bulk = 50.0,)),)
+other = merge(params, (K40_hpge_bulk = 50.0,))
 logdensityof(likelihood, other)
 ```
 

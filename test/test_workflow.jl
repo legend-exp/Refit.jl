@@ -14,7 +14,7 @@ using Test
     )
 
     # measured spectrum: the model for known activities, in 10 keV bins
-    true_params = (activities = (Ar39_liquid_argon = 2.0, two_vbb_hpge_bulk = 0.5),)
+    true_params = (Ar39_liquid_argon = 2.0, two_vbb_hpge_bulk = 0.5)
     data = Histogram(h.edges, 2.0 .* h.weights .+ 0.5 .* reverse(h.weights))
 
     model, bin_edges = build_forward_model(
@@ -37,10 +37,10 @@ using Test
     @test get_counts(fit, bin_edges) ≈ counts
 
     likelihood = build_likelihood(counts, model)
-    logL(activities) = logdensityof(likelihood, (activities = activities,))
+    logL(params) = logdensityof(likelihood, params)
 
     # the likelihood is largest at the true activities
-    at_truth = logL(true_params.activities)
+    at_truth = logL(true_params)
     @test at_truth > logL((Ar39_liquid_argon = 2.2, two_vbb_hpge_bulk = 0.5))
     @test at_truth > logL((Ar39_liquid_argon = 2.0, two_vbb_hpge_bulk = 0.4))
 end

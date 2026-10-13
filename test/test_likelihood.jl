@@ -31,7 +31,7 @@ end
     @test counts == [2.0, 3.0, 5.0]
 
     likelihood = build_likelihood(counts, model)
-    params = (activities = (a = 1000.0,),)
+    params = (a = 1000.0,)
     @test logdensityof(likelihood, params) ≈ poisson_likelihood(counts, model(params))
     @inferred logdensityof(likelihood, params)
 

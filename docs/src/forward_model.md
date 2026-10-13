@@ -50,16 +50,15 @@ All histograms must have the same binning.
 
 ## Calling the model
 
-The parameters are a named tuple with one activity per spectrum, named after the
+The parameters are a flat named tuple with one activity per spectrum, named after the
 dictionary keys. Here the activities are in mBq, which `norm` converts to counts:
 
 ```@example demo
-# one activity (in mBq) for each spectrum
-params = (activities = (
+params = (
     K40_hpge_bulk = 40.0,
     Pb212_to_Pb208_hpge_bulk = 10.0,
     two_vbb_hpge_bulk = 100.0,
-),)
+)
 
 # predicted counts in each bin
 pred = model(params)
