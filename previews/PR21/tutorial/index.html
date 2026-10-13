@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · Refit.jl</title><meta name="title" content="Tutorial · Refit.jl"/><meta property="og:title" content="Tutorial · Refit.jl"/><meta property="twitter:title" content="Tutorial · Refit.jl"/><meta name="description" content="Documentation for Refit.jl."/><meta property="og:description" content="Documentation for Refit.jl."/><meta property="twitter:description" content="Documentation for Refit.jl."/><meta property="og:url" content="https://legend-exp.github.io/Refit.jl/tutorial/"/><meta property="twitter:url" content="https://legend-exp.github.io/Refit.jl/tutorial/"/><link rel="canonical" href="https://legend-exp.github.io/Refit.jl/tutorial/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Refit.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">User manual</span><ul><li><a class="tocitem" href="../reading/">Reading spectra</a></li><li><a class="tocitem" href="../forward_model/">Forward model</a></li><li><a class="tocitem" href="../likelihood/">Likelihood</a></li><li><a class="tocitem" href="../priors/">Priors</a></li><li><a class="tocitem" href="../saving/">Saving the results</a></li></ul></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Fake-data"><span>Fake data</span></a></li><li><a class="tocitem" href="#Settings"><span>Settings</span></a></li><li><a class="tocitem" href="#Reading-the-data"><span>Reading the data</span></a></li><li><a class="tocitem" href="#Reading-the-simulated-spectra"><span>Reading the simulated spectra</span></a></li><li><a class="tocitem" href="#Forward-model-and-likelihood"><span>Forward model and likelihood</span></a></li><li><a class="tocitem" href="#Ranges-for-the-activities"><span>Ranges for the activities</span></a></li><li><a class="tocitem" href="#Sampling-the-posterior"><span>Sampling the posterior</span></a></li><li><a class="tocitem" href="#Result"><span>Result</span></a></li><li><a class="tocitem" href="#Saving-the-results"><span>Saving the results</span></a></li></ul></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl/blob/main/docs/src/tutorial.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial:-fitting-a-background-spectrum"><a class="docs-heading-anchor" href="#Tutorial:-fitting-a-background-spectrum">Tutorial: fitting a background spectrum</a><a id="Tutorial:-fitting-a-background-spectrum-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial:-fitting-a-background-spectrum" title="Permalink"></a></h1><p>This tutorial fits a measured energy spectrum with a sum of simulated spectra, from reading the file, sampling the posterior and plotting the results. This runs every time the documentation is built.</p><p>The fit uses automatically generated fake data (pseudo-experiments). The measured spectrum is generated from known activities, so the result of the fit can be compared with the truth at the end.</p><h2 id="Fake-data"><a class="docs-heading-anchor" href="#Fake-data">Fake data</a><a id="Fake-data-1"></a><a class="docs-heading-anchor-permalink" href="#Fake-data" title="Permalink"></a></h2><p>The input files are in <code>test/test_files/tutorial</code> of the repository, in LH5 format. They stand in for the output of a real simulation and for a measured spectrum. A real fit reads the files of the simulation instead. The script <code>make_files.jl</code> in the same directory makes them again.</p><ul><li>There is one file for each simulated source, for example <code>cables_K40.lh5</code>, with the histograms <code>pdf/mul1/icpc</code> and <code>pdf/mul1/bege</code> (the two detector types) and the number of simulated primaries. The 2νββ decay has one file for each detector type.</li><li><code>data.lh5</code> has the measured histograms <code>hist/mul1/icpc</code> and <code>hist/mul1/bege</code>.</li></ul><p>The sources with a γ line have a peak with a 1 keV sigma on a flat or linear continuum below the peak. The 2νββ spectrum is a broad Gaussian (600 keV width, centered at 1 MeV), and it makes about 70% of the counts. The <span>$^{39}$</span>Ar spectrum is an exponential that falls with the energy and makes about 20% of the counts. The measured spectrum is generated from known activities with Poisson fluctuations, so the result of the fit can be compared with the truth at the end.</p><pre><code class="language-julia hljs">dir = &quot;../../test/test_files/tutorial&quot;  # relative to docs/src
+readdir(dir)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">9-element Vector{String}:
+ &quot;cables_K40.lh5&quot;
+ &quot;cables_Pb212_to_Pb208.lh5&quot;
+ &quot;data.lh5&quot;
+ &quot;fibers_K40.lh5&quot;
+ &quot;fibers_Pb212_to_Pb208.lh5&quot;
+ &quot;hpge_bege_bulk_2vbb.lh5&quot;
+ &quot;hpge_icpc_bulk_2vbb.lh5&quot;
+ &quot;liquid_argon_Ar39.lh5&quot;
+ &quot;make_files.jl&quot;</code></pre><h2 id="Settings"><a class="docs-heading-anchor" href="#Settings">Settings</a><a id="Settings-1"></a><a class="docs-heading-anchor-permalink" href="#Settings" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Refit
+using StatsBase
+
+livetime = 1.0e6  # s
+e_low, e_high = 100, 4000  # keV, the range of the fit
+binning = 20  # merge 20 bins of 1 keV into one
+blind = (2015.0, 2065.0)  # keV, a region around the 2039 keV Q-value that is not fitted
+
+# The activities are in mBq and the simulated spectra are counts per simulated
+# primary, so the expected counts are 1e-3 * livetime * activity * spectrum
+norm = 1e-3 * livetime
+
+# the histograms of the measured spectrum and of each simulation are summed over these groups
+spec = [&quot;mul1/icpc&quot;, &quot;mul1/bege&quot;]</code></pre><h2 id="Reading-the-data"><a class="docs-heading-anchor" href="#Reading-the-data">Reading the data</a><a id="Reading-the-data-1"></a><a class="docs-heading-anchor-permalink" href="#Reading-the-data" title="Permalink"></a></h2><p><code>read_hist</code> reads one histogram. The data of the two detector types are added with <code>add_histograms</code>.</p><pre><code class="language-julia hljs">data = add_histograms([read_hist(&quot;hist/$s&quot;, joinpath(dir, &quot;data.lh5&quot;)) for s in spec])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StatsBase.Histogram{Float64, 1, Tuple{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}}
+edges:
+  0.0:1.0:4000.0
+weights: [1964.0, 1959.0, 2029.0, 1972.0, 2064.0, 1996.0, 1962.0, 2021.0, 1974.0, 1965.0  …  4.0, 3.0, 0.0, 3.0, 0.0, 6.0, 4.0, 0.0, 2.0, 1.0]
+closed: left
+isdensity: false</code></pre><h2 id="Reading-the-simulated-spectra"><a class="docs-heading-anchor" href="#Reading-the-simulated-spectra">Reading the simulated spectra</a><a id="Reading-the-simulated-spectra-1"></a><a class="docs-heading-anchor-permalink" href="#Reading-the-simulated-spectra" title="Permalink"></a></h2><p>Each source has its own file. <code>read_pdf</code> sums the groups and divides by the number of simulated primaries, so that the spectrum is in counts per primary. The name of each spectrum is a <code>Symbol</code>, the activity of the source gets the same name.</p><pre><code class="language-julia hljs">groups = [&quot;pdf/$s&quot; for s in spec]
+
+components = [&quot;cables&quot;, &quot;fibers&quot;]
+isotopes = [&quot;K40&quot;, &quot;Pb212_to_Pb208&quot;]
+
+mc_dict = Dict(
+    Symbol(comp, &quot;_&quot;, iso) =&gt; read_pdf(joinpath(dir, &quot;$(comp)_$iso.lh5&quot;); groups) for
+    comp in components for iso in isotopes
+)
+keys(mc_dict)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">KeySet for a Dict{Symbol, StatsBase.Histogram{Float64, 1, Tuple{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}}} with 4 entries. Keys:
+  :fibers_Pb212_to_Pb208
+  :cables_K40
+  :fibers_K40
+  :cables_Pb212_to_Pb208</code></pre><p>The 2νββ decay is simulated once for each detector type. <code>read_pdf</code> accepts a dictionary from file name to weight and returns the weighted average of the spectra. The weights are normalised. Here the weight is the mass of each detector type in kg.</p><pre><code class="language-julia hljs">mass = Dict(&quot;icpc&quot; =&gt; 80.0, &quot;bege&quot; =&gt; 20.0)
+bulk = Dict(joinpath(dir, &quot;hpge_$(t)_bulk_2vbb.lh5&quot;) =&gt; w for (t, w) in mass)
+
+mc_dict[:two_vbb_hpge_bulk] = read_pdf(bulk; groups)</code></pre><p>The <span>$^{39}$</span>Ar decay has one file.</p><pre><code class="language-julia hljs">mc_dict[:Ar39_liquid_argon] = read_pdf(joinpath(dir, &quot;liquid_argon_Ar39.lh5&quot;); groups)</code></pre><p>Alpha events have no simulation. As a simple model they are a constant spectrum. Its activity is the number of counts in each 1 keV bin, so the spectrum is <code>1 / norm</code> in every bin.</p><pre><code class="language-julia hljs">mc_dict[:alpha] = Histogram(data.edges, fill(1 / norm, length(data.weights)))</code></pre><h2 id="Forward-model-and-likelihood"><a class="docs-heading-anchor" href="#Forward-model-and-likelihood">Forward model and likelihood</a><a id="Forward-model-and-likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Forward-model-and-likelihood" title="Permalink"></a></h2><p>The <a href="../forward_model/">forward model</a> maps the activities to the expected counts in each energy bin. The <a href="../likelihood/">likelihood</a> compares these with the measured counts, which are taken from the data in the same bins.</p><pre><code class="language-julia hljs">model, bin_edges = build_forward_model(mc_dict; e_low, e_high, blind, binning, norm)
+counts = get_counts(data, bin_edges)
+likelihood = build_likelihood(counts, model)</code></pre><h2 id="Ranges-for-the-activities"><a class="docs-heading-anchor" href="#Ranges-for-the-activities">Ranges for the activities</a><a id="Ranges-for-the-activities-1"></a><a class="docs-heading-anchor-permalink" href="#Ranges-for-the-activities" title="Permalink"></a></h2><p>The fit needs a range for each activity. <code>get_priors</code> estimates it from the data (see <a href="../priors/">Priors</a>). The reference ranges give the energy window of a peak of each isotope in keV. The 1461 keV line of <span>$^{40}$</span>K and the 2615 keV line of <span>$^{208}$</span>Tl limit the activities of these sources.</p><pre><code class="language-julia hljs">ref_ranges = Dict(:K40 =&gt; (1456, 1466), :Pb212_to_Pb208 =&gt; (2610, 2620))
+
+ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Dict{Symbol, IntervalSets.ClosedInterval{Float64}} with 7 entries:
+  :fibers_Pb212_to_Pb208 =&gt; 0.0 .. 5257.24
+  :alpha                 =&gt; 0.0 .. 780.858
+  :cables_K40            =&gt; 0.0 .. 5339.42
+  :fibers_K40            =&gt; 0.0 .. 5232.76
+  :cables_Pb212_to_Pb208 =&gt; 0.0 .. 5327.18
+  :Ar39_liquid_argon     =&gt; 0.0 .. 6440.01
+  :two_vbb_hpge_bulk     =&gt; 0.0 .. 5150.82</code></pre><p>A range can be changed by hand where the guess is poor, for example <code>ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0</code> (with <code>using IntervalSets</code>).</p><p><code>build_prior</code> makes the prior: a uniform distribution on the range of each activity. <code>rand(prior)</code> draws one random value for each activity, a named tuple that goes directly into the model.</p><pre><code class="language-julia hljs">prior = build_prior(ranges)
+
+rand(prior)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(fibers_Pb212_to_Pb208 = 2941.309962689188, alpha = 594.9503352742856, cables_K40 = 1212.7559859294188, fibers_K40 = 4464.8514725740615, cables_Pb212_to_Pb208 = 1303.8531297633076, Ar39_liquid_argon = 6254.6744295817525, two_vbb_hpge_bulk = 2241.899993232282)</code></pre><h2 id="Sampling-the-posterior"><a class="docs-heading-anchor" href="#Sampling-the-posterior">Sampling the posterior</a><a id="Sampling-the-posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Sampling-the-posterior" title="Permalink"></a></h2><p><a href="https://bat.github.io/">BAT.jl</a> samples the posterior with a Markov chain Monte Carlo.</p><pre><code class="language-julia hljs">using BAT
+
+posterior = PosteriorMeasure(likelihood, prior)
+
+samples = bat_sample(
+    posterior,
+    TransformedMCMC(
+        proposal = RandomWalk(),
+        strict = false,
+        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 50_000, max_ncycles = 50),
+        nsteps = 5 * 10^5,
+        nchains = 4,
+    ),
+).result</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: MCMCChainPoolInit: trying to generate 4 viable MCMC chain state(s).
+[ Info: Selected 4 MCMC chain state(s).
+[ Info: Begin tuning of 4 MCMC chain(s).
+[ Info: MCMC Tuning cycle 1 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 2 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 3 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 4 finished, 4 chains, 4 tuned, 0 converged.
+[ Info: MCMC Tuning cycle 5 finished, 4 chains, 4 tuned, 4 converged.
+[ Info: MCMC tuning of 4 chains successful after 5 cycle(s).
+[ Info: Running post-tuning stabilization steps for 4 MCMC chain(s).
+[ Info: Generate main samples using 4 MCMC chain(s).</code></pre><h2 id="Result"><a class="docs-heading-anchor" href="#Result">Result</a><a id="Result-1"></a><a class="docs-heading-anchor-permalink" href="#Result" title="Permalink"></a></h2><p>The activities used to make the fake data are:</p><pre><code class="language-julia hljs">true_activities = (  # mBq
+    cables_K40 = 200.0,
+    fibers_K40 = 100.0,
+    cables_Pb212_to_Pb208 = 50.0,
+    fibers_Pb212_to_Pb208 = 30.0,
+    two_vbb_hpge_bulk = 3500.0,
+    Ar39_liquid_argon = 1000.0,
+)
+true_alpha = 2.0  # counts per 1 keV bin</code></pre><p>The marginal posterior of each activity is plotted with the plot recipes of BAT.jl. The colored regions are the smallest intervals that contain 68%, 95% and 99.7% of the distribution, the dashed line is the mode and the red line is the true activity used to make the measured spectrum.</p><pre><code class="language-julia hljs">using Plots
+
+truth = merge(true_activities, (alpha = true_alpha,))
+panels = map(collect(keys(truth))) do name
+    unit = name == :alpha ? &quot;counts per keV&quot; : &quot;mBq&quot;
+    plot(
+        samples,
+        name;
+        mean = false,
+        std = false,
+        globalmode = true,
+        nbins = 50,
+        title = string(name),
+        titlefontsize = 8,
+        xlabel = &quot;activity ($unit)&quot;,
+        ylabel = &quot;probability density (1/$unit)&quot;,
+    )
+    vline!([truth[name]]; color = :red, linewidth = 2, label = &quot;&quot;)
+end
+plot(
+    panels...;
+    layout = (2, 4),
+    size = (1300, 700),
+    legend = false,
+    left_margin = 8Plots.mm,
+    bottom_margin = 6Plots.mm,
+    top_margin = 3Plots.mm,
+)</code></pre><img src="8090a4f3.svg" alt="Example block output"/><p>A pair of activities shows their correlation. The <span>$^{40}$</span>K activities of the cables and of the fibers are anticorrelated, because the data constrain mostly their sum:</p><pre><code class="language-julia hljs">plot(
+    samples,
+    (:cables_K40, :fibers_K40);
+    nbins = 50,
+    globalmode = true,
+    legend = :bottomleft,
+    xlabel = &quot;cables_K40 activity (mBq)&quot;,
+    ylabel = &quot;fibers_K40 activity (mBq)&quot;,
+)</code></pre><img src="85a33858.svg" alt="Example block output"/><p>The best fit is the global mode. The uncertainty of each activity is the smallest 68% credible interval: the shortest interval that contains 68% of its posterior distribution. BAT.jl computes it for all the activities at once, and <code>mode = :connected</code> gives a single interval for each one. Activities differ by orders of magnitude, so the plot shows the best fit divided by the true value. A good fit is consistent with 1.</p><pre><code class="language-julia hljs">best = mode(samples)
+intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
+
+names = collect(keys(truth))
+fit = [best[n] / truth[n] for n in names]
+lower = [intervals[n].left / truth[n] for n in names]
+upper = [intervals[n].right / truth[n] for n in names]
+
+scatter(
+    string.(names),
+    fit;
+    yerror = (max.(fit .- lower, 0), max.(upper .- fit, 0)),
+    color = :black,
+    label = &quot;best fit and 68% interval&quot;,
+    ylabel = &quot;best fit / true activity&quot;,
+    xrotation = 30,
+    bottom_margin = 12Plots.mm,
+    legend = :bottomright,
+)
+hline!([1]; color = :red, label = &quot;true activity&quot;)</code></pre><img src="449932d5.svg" alt="Example block output"/><p>Finally, the prediction of the best fit is compared with the measured counts, both as histograms in the bins of the fit. <code>get_best_fit_histograms</code> makes the histogram of the total prediction, in the key <code>:total</code>, and of the contribution of each source. The bins that overlap the blinded region are not fitted and are merged into one empty bin, shown as a grey band.</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
+hists = get_best_fit_histograms(best, model, bin_edges)
+
+plot(
+    data_hist;
+    seriestype = :stepbins,
+    fillrange = 0,
+    color = :lightblue,
+    label = &quot;data&quot;,
+    xlims = (e_low, e_high),
+    xlabel = &quot;energy (keV)&quot;,
+    ylabel = &quot;counts per $binning keV&quot;,
+)
+for name in names
+    plot!(hists[name]; seriestype = :stepbins, label = string(name), linewidth = 1)
+end
+plot!(hists[:total]; seriestype = :stepbins, label = &quot;best fit&quot;, color = :black, linewidth = 1.5)
+
+# grey band over the empty bin, which is wider than the blinded region because bins
+# are only fitted if they are fully outside of it
+empty = findfirst(==(0), hists[:total].weights)
+vspan!(hists[:total].edges[1][empty:(empty+1)]; color = :gray, alpha = 0.3, label = &quot;blinded&quot;)</code></pre><img src="bf94833b.svg" alt="Example block output"/><h2 id="Saving-the-results"><a class="docs-heading-anchor" href="#Saving-the-results">Saving the results</a><a id="Saving-the-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-the-results" title="Permalink"></a></h2><p>The results are saved in formats for long term preservation (see <a href="../saving/">Saving the results</a>). The posterior samples are written by BAT.jl to an HDF5 file, which needs the package <code>HDF5</code>. The best fit histograms, of the total and of each source, and the measured spectrum go into an LH5 file. The values of the activities with the smallest 68% interval go into a YAML file.</p><pre><code class="language-julia hljs">using HDF5
+
+outdir = mktempdir()
+
+bat_write(joinpath(outdir, &quot;samples.h5&quot;), samples)
+write_best_fit(joinpath(outdir, &quot;best_fit.lh5&quot;), hists; data = data_hist)
+write_parameter_values(joinpath(outdir, &quot;parameters.yaml&quot;), best, intervals; level = 0.68)
+
+readdir(outdir)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3-element Vector{String}:
+ &quot;best_fit.lh5&quot;
+ &quot;parameters.yaml&quot;
+ &quot;samples.h5&quot;</code></pre><p>The YAML file is plain text:</p><pre><code class="language-julia hljs">print(read(joinpath(outdir, &quot;parameters.yaml&quot;), String))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">credible_level: 0.68
+parameters:
+  fibers_Pb212_to_Pb208:
+    best_fit: 31.30268353540624
+    low: 25.36204768859881
+    high: 36.7229151727757
+  alpha:
+    best_fit: 1.9940235356055733
+    low: 1.9477593707371055
+    high: 2.048616763636843
+  cables_K40:
+    best_fit: 198.18089270505016
+    low: 167.86657224770758
+    high: 224.70810627100758
+  fibers_K40:
+    best_fit: 100.40305788843172
+    low: 75.28192587718584
+    high: 129.47856219486445
+  cables_Pb212_to_Pb208:
+    best_fit: 50.233847015250134
+    low: 43.96472208310655
+    high: 56.60302865911618
+  Ar39_liquid_argon:
+    best_fit: 1003.1963282280846
+    low: 998.2870829468548
+    high: 1008.6508700739113
+  two_vbb_hpge_bulk:
+    best_fit: 3498.3387466430463
+    low: 3492.8192860072827
+    high: 3502.9077996791666</code></pre><p>The saved samples and histograms read back as they were written:</p><pre><code class="language-julia hljs">samples_saved = bat_read(joinpath(outdir, &quot;samples.h5&quot;)).result
+fit_saved = read_hist(&quot;best_fit/total&quot;, joinpath(outdir, &quot;best_fit.lh5&quot;))
+
+(length(samples_saved) == length(samples), fit_saved.weights == hists[:total].weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(true, true)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../saving/">« Saving the results</a><a class="docs-footer-nextpage" href="../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Tuesday 13 October 2026 17:05">Tuesday 13 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
