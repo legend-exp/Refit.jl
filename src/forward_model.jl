@@ -1,5 +1,5 @@
 """
-    build_forward_model(components; e_low, e_high, blind, norm, binning, edges)
+    build_forward_model(components; e_low, e_high, blind, norm, binning, edges, points_per_bin)
 
 Build a function that maps fit parameters to the predicted counts per energy bin.
 
@@ -22,8 +22,11 @@ simulation. `E_i` is the energy at the centre of the bin and `width_i` its width
 The model is the sum over the components. Use the global `norm` for unit conversions and
 the livetime: it multiplies every component with a histogram, so an `activity` function
 returns an activity in the same units as a fit parameter. It does not multiply an
-analytic component with no simulation. `g` is evaluated at the bin centre only, which is
-inaccurate for features narrower than about one bin, such as peaks.
+analytic component with no simulation. By default `g` is evaluated at the bin centre
+only, which is inaccurate for features narrower than about one bin, such as peaks. With
+`points_per_bin = n`, the bin is split into `n` equal parts, `g` is evaluated at the
+centre of each and the `n` values are averaged. This takes `n` times as many calls of
+`g`, and the error of the integral over the bin falls as ``1/n^2``.
 
 All histograms must share the same binning. Without any (only analytic components),
 give the bin edges in keV with `edges`. Only bins fully inside `[e_low, e_high]` and
@@ -48,10 +51,19 @@ function build_forward_model(
     norm::Real = 1,
     binning::Int = 1,
     edges::Union{AbstractVector{<:Real},Nothing} = nothing,
+    points_per_bin::Int = 1,
 )
     isempty(components) && throw(ArgumentError("components is empty"))
+    points_per_bin >= 1 || throw(ArgumentError("points_per_bin must be at least 1"))
     names = Tuple(sort!(collect(keys(components))))
     specs = [_component_spec(components[k]) for k in names]
+    for (name, s) in zip(names, specs)
+        slow = isnothing(s.analytic) ? Symbol[] : _slow_globals(s.analytic)
+        isempty(slow) || @warn "The analytic function of $name reads the global \
+            variable(s) $(join(slow, ", ")), neither `const` nor of a fixed type. This \
+            makes every call of the model much slower: declare them `const`, or with a \
+            type such as `x::Float64 = 1.0`"
+    end
     # the simulated spectra, rebinned. An analytic component with no simulation has none
     hists = [isnothing(s.pdf) ? nothing : rebin_hist(s.pdf, binning) for s in specs]
     model_edges = _model_edges(hists, edges, binning)
@@ -59,8 +71,13 @@ function build_forward_model(
     is_valid = get_valid_bins(model_edges, (e_low, e_high), blind)
     bin_low = model_edges[1:(end-1)][is_valid]
     bin_high = model_edges[2:end][is_valid]
-    centre = (bin_low .+ bin_high) ./ 2
     width = bin_high .- bin_low
+    # the energies in keV at which analytic functions are evaluated, `points_per_bin` of
+    # them in every bin: the centres of that many equal parts of the bin
+    energies = [
+        bin_low[i] + (j - 0.5) * width[i] / points_per_bin for
+        j = 1:points_per_bin, i in eachindex(bin_low)
+    ]
 
     # counts per kept bin of every component, in the order of `names`: the simulated
     # spectrum times `norm`, or the bin widths for an analytic component with no
@@ -95,12 +112,16 @@ function build_forward_model(
         return a
     end
 
-    # add `a * g(E, params) * c` in every bin, with `E` the bin centre in keV. This is a
-    # function of its own so that Julia looks up which function `g` is once, when it is
-    # called, and not again in every bin
+    # add `a * g * c` in every bin, with `g` the average of `g(E, params)` over the
+    # energies of the bin. This is a function of its own so that Julia looks up which
+    # function `g` is once, when it is called, and not again in every bin
     function add_analytic!(pred, a, g, c, params)
         for i in eachindex(pred)
-            pred[i] += a * g(centre[i], params) * c[i]
+            g_sum = 0.0
+            for j = 1:points_per_bin
+                g_sum += g(energies[j, i], params)
+            end
+            pred[i] += a * g_sum / points_per_bin * c[i]
         end
         return pred
     end
@@ -164,3 +185,27 @@ function _model_edges(hists, edges, binning)
     allequal(binnings) || error("Histogram binning mismatch")
     return first(binnings)
 end
+
+# The global variables that `f` reads directly and that are neither `const` nor of a
+# fixed type. Julia cannot know their type when it compiles `f`, so every call of `f`
+# looks them up and converts them, which is slow. Empty if the code of `f` cannot be
+# read, which uses internals of Julia that may change.
+function _slow_globals(f)
+    try
+        refs = GlobalRef[]
+        for m in methods(f)
+            foreach(x -> _globalrefs!(refs, x), Base.uncompressed_ast(m).code)
+        end
+        slow = filter(refs) do g
+            isdefined(g.mod, g.name) &&
+                !isconst(g.mod, g.name) &&
+                Core.get_binding_type(g.mod, g.name) === Any
+        end
+        return unique(map(g -> g.name, slow))
+    catch
+        return Symbol[]
+    end
+end
+_globalrefs!(refs, x) = refs
+_globalrefs!(refs, x::GlobalRef) = push!(refs, x)
+_globalrefs!(refs, x::Expr) = (foreach(a -> _globalrefs!(refs, a), x.args); refs)

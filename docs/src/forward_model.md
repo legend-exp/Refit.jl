@@ -12,31 +12,31 @@ are
 \mu_i(\vec{a}) = \sum_k \mu_{k,i}(\vec{a}),
 ```
 
-with ``\vec{a}`` the fit parameters. Most components are simulated spectra scaled by an
-activity, a linear template fit:
+with ``\vec{a}`` the fit parameters. A component is one of two kinds:
 
-```math
-\mu_{k,i}(\vec{a}) = A_k(\vec{a}) \times N \times g_k(E_i, \vec{a}) \times h_{k,i}
-```
+- a simulated spectrum scaled by an activity, a template:
+
+  ```math
+  \mu_{k,i}(\vec{a}) = A_k(\vec{a}) \times N \times g_k(E_i, \vec{a}) \times h_{k,i}
+  ```
+
+- an analytic spectrum, with no simulation:
+
+  ```math
+  \mu_{k,i}(\vec{a}) = g_k(E_i, \vec{a}) \times w_i
+  ```
 
 Here ``h_{k,i}`` is the content of bin ``i`` in the simulated spectrum of component ``k``,
-``N`` is the factor `norm` and ``E_i`` the energy at the centre of bin ``i`` in keV.
+``N`` is the factor `norm`, and ``E_i`` and ``w_i`` are the energy at the centre and the
+width of bin ``i`` in keV.
 - ``A_k`` is the activity of the component. By default it is a fit parameter of its own,
   ``A_k = a_k``. It can also be a function of the fit parameters, ``A_k = f_k(\vec{a})``,
   for example to tie the activities of two components together or to fit a half-life
   instead of an activity (see [Activity functions](@ref) below).
-- ``g_k`` is a function of the energy, ``g_k = 1`` by default. It multiplies the
-  simulated spectrum bin by bin, for example an efficiency curve (see
-  [Analytic functions](@ref) below).
-
-A component can also be analytic, with no simulated spectrum at all. Then
-``g_k(E, \vec{a})`` is the expected number of counts per keV, and
-
-```math
-\mu_{k,i}(\vec{a}) = g_k(E_i, \vec{a}) \times w_i,
-```
-
-with ``w_i`` the width of bin ``i`` in keV.
+- ``g_k`` is a function of the energy and of the fit parameters (see
+  [Analytic functions](@ref) below). With a simulated spectrum it multiplies the
+  spectrum bin by bin, for example an efficiency curve, and ``g_k = 1`` by default. For
+  an analytic spectrum it is the expected number of counts per keV.
 
 ``N`` multiplies every component with a simulated spectrum, also those whose activity is
 a function, but not an analytic component with no simulation. If `norm` holds the unit
@@ -110,6 +110,7 @@ its bins (see below).
 | `binning` | 1 | Number of consecutive bins merged before the range is applied |
 | `norm` | 1 | Factor ``N`` multiplying every component with a simulated spectrum |
 | `edges` | `nothing` | Bin edges in keV, needed only for a model with no histogram |
+| `points_per_bin` | 1 | Number of points in each bin at which an analytic function is evaluated |
 
 ## Calling the model
 
@@ -204,21 +205,28 @@ A model can be made of analytic components only. There is then no histogram to t
 binning from, so the bin edges in keV are given with `edges`, see the tutorial
 [Fitting a peak](tutorial_peak.md).
 
-!!! warning
-    An analytic function is evaluated at the centre of each bin only, never integrated
-    over it. A feature narrower than about one bin, such as a peak, comes out wrong:
-    use bins narrow compared with it.
+By default an analytic function is evaluated at the centre of each bin only. A feature
+narrower than about one bin, such as a peak, then comes out wrong. With
+`points_per_bin = n`, `build_forward_model` splits each bin into `n` equal parts,
+evaluates the function at the centre of each and uses the average. This takes `n` times
+as many calls of the function, and the error of the integral over the bin falls as
+``1/n^2``: `points_per_bin = 5` makes it 25 times smaller.
 
 An analytic function with no simulated spectrum must not be negative for any value of
 the parameters inside their prior ranges: a negative prediction has no Poisson
 probability, and the fit stops with an error. Write it so that it cannot be, for example
 a straight line by its values at the two ends of the fit range.
 
-The function is called in every bin, on every call of the model, so keep it short. A
-constant used inside it, such as a livetime, should be a `const` or a global with a
-fixed type (`livetime::Float64 = 1e6`). An ordinary global variable makes each call of
-the model about ten times slower. Like for activity functions, `get_priors` skips the
-analytic components, and their parameters need a prior by hand.
+!!! warning "Constants in an analytic function"
+    An analytic function is called in every bin, on every call of the model. A constant
+    used inside it, such as a livetime, must be a `const` or a global with a fixed type,
+    for example `livetime::Float64 = 1e6`. An ordinary global variable makes every call
+    of the model about ten times slower, because Julia cannot know its type when it
+    compiles the function. `build_forward_model` warns when an analytic function reads
+    one.
+
+Like for activity functions, `get_priors` skips the analytic components, and their
+parameters need a prior by hand.
 
 ## Each component separately
 

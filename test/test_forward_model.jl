@@ -2,6 +2,11 @@ using Refit
 using StatsBase
 using Test
 
+# global variables read by analytic functions in the tests below: an ordinary one makes
+# the model slow, a constant does not
+slow_rate = 2.0
+const const_rate = 2.0
+
 @testset "build_forward_model" begin
     edges = 0.0:1000.0:5000.0
     h1 = Histogram(edges, [1.0, 2.0, 3.0, 4.0, 5.0])
@@ -137,6 +142,35 @@ using Test
         )
         @test fm_both((x = 1.0,)) ≈ 2.0 .* 2e-3 .* centre ./ 1000 .* [20.0, 30.0, 40.0]
 
+        # several points per bin. For g = E^2 the average over n points of a bin of width
+        # w is below the true average by w^2 / (12 n^2), and the integral by w^3 / (12 n^2)
+        square = Dict(:s => (analytic = (E, p) -> E^2,))
+        for n in (1, 10)
+            fm_n, _ = build_forward_model(
+                square;
+                e_low = 0,
+                e_high = 3,
+                edges = 0.0:1.0:3.0,
+                points_per_bin = n,
+            )
+            @test fm_n((;)) ≈ [1 / 3, 7 / 3, 19 / 3] .- 1 / (12 * n^2)
+        end
+        # the same average multiplies a simulated spectrum
+        fm_sq, _ = build_forward_model(
+            Dict(:a => (pdf = h1, analytic = (E, p) -> E^2));
+            e_low = 1000,
+            e_high = 4000,
+            norm = 2e-3,
+            points_per_bin = 10,
+        )
+        true_mean = [7e9, 19e9, 37e9] ./ 3000  # of E^2 over each bin of 1000 keV
+        @test fm_sq((a = 1.0,)) ≈ 2e-3 .* [2.0, 3.0, 4.0] .* (true_mean .- 1e6 / 1200)
+        @test_throws ArgumentError build_forward_model(
+            square;
+            edges = 0.0:1.0:3.0,
+            points_per_bin = 0,
+        )
+
         # two arrays, plus a few bytes for each of the two functions, to pass them the
         # parameters. Not more in every bin
         @inferred fm(p)
@@ -166,6 +200,15 @@ using Test
         @test_throws ErrorException build_forward_model(
             Dict(:a => h1);
             edges = 0.0:500.0:5000.0,
+        )
+        # a warning for an analytic function that reads an ordinary global variable
+        @test_logs (:warn, r"slow_rate") build_forward_model(
+            Dict(:c => (analytic = (E, p) -> slow_rate,));
+            edges = 0.0:1000.0:5000.0,
+        )
+        @test_logs build_forward_model(
+            Dict(:c => (analytic = (E, p) -> const_rate,));
+            edges = 0.0:1000.0:5000.0,
         )
         # an analytic component with no pdf has no activity
         @test_throws ArgumentError build_forward_model(

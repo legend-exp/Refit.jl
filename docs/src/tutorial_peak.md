@@ -30,7 +30,8 @@ nothing # hide
 
 There is no histogram to take the binning from, so the bin edges in keV are given with
 `edges`. The functions are evaluated at the centre of each bin, so the bins of 0.5 keV
-are narrow compared with the width of the peak.
+are narrow compared with the width of the peak. With wider bins, `points_per_bin`
+evaluates them at several points in each bin and takes the average.
 
 ```@example peak
 model, bin_edges = build_forward_model(

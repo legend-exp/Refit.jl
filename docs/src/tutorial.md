@@ -128,14 +128,22 @@ activity in mBq.
 
 ## Alpha events
 
-Alpha events have no simulation. As a simple model they are a constant spectrum, an
-analytic component (see [Analytic functions](@ref)). Its parameter is the number of
-counts per keV, and `norm` does not apply to it:
+Alpha events have no simulation. As a simple model they are a straight line in energy,
+an analytic component (see [Analytic functions](@ref)). Its two parameters are the
+counts per keV at the two ends of the fit range, so the line stays positive for any
+values in their ranges. `norm` does not apply to it:
 
 ```@example tutorial
-components[:alpha] = (analytic = (E, p) -> p.alpha,)
+# from `alpha_low` counts per keV at 100 keV to `alpha_high` at 4000 keV
+components[:alpha] = (
+    analytic = (E, p) -> p.alpha_low + (p.alpha_high - p.alpha_low) * (E - 100) / 3900,
+)
 nothing # hide
 ```
+
+The ends of the range are written as numbers: `e_low` and `e_high` are ordinary global
+variables, which would make every call of the model much slower inside an analytic
+function.
 
 ## Forward model and likelihood
 
@@ -156,8 +164,8 @@ The fit needs a range for each activity. `get_priors` estimates it from the data
 (see [Priors](priors.md)). The reference ranges give the energy window of a
 peak of each isotope in keV. The 1461 keV line of ``^{40}``K and the 2615 keV line of
 ``^{208}``Tl limit the activities of these sources. `get_priors` skips `fibers_K40`,
-which has no parameter of its own, and the analytic `alpha` component, whose range is
-given by hand.
+which has no parameter of its own, and the analytic `alpha` component, whose ranges
+are given by hand.
 
 ```@example tutorial
 using IntervalSets
@@ -165,7 +173,8 @@ using IntervalSets
 ref_ranges = Dict(:K40 => (1456, 1466), :Pb212_to_Pb208 => (2610, 2620))
 
 ranges = get_priors(components, data; ref_ranges, e_low, e_high, blind, norm)
-ranges[:alpha] = 0.0 .. 10.0  # counts per keV
+ranges[:alpha_low] = 0.0 .. 10.0  # counts per keV
+ranges[:alpha_high] = 0.0 .. 10.0
 ranges
 ```
 
@@ -218,7 +227,7 @@ true_activities = (  # mBq
     two_vbb_hpge_bulk = 3500.0,
     Ar39_liquid_argon = 1000.0,
 )
-true_alpha = 2.0  # counts per keV
+true_alpha = 2.0  # counts per keV, the same at all energies
 nothing # hide
 ```
 
@@ -236,11 +245,11 @@ import Format
 import CairoMakie
 
 best = mode(samples)
-truth = merge(true_activities, (alpha = true_alpha,))
+truth = merge(true_activities, (alpha_low = true_alpha, alpha_high = true_alpha))
 
 fig = CairoMakie.Figure(size = (1300, 700))
 for (i, name) in enumerate(keys(best))
-    unit = name == :alpha ? "counts per keV" : "mBq"
+    unit = startswith(string(name), "alpha") ? "counts per keV" : "mBq"
     ax = CairoMakie.Axis(
         fig[fld1(i, 4), mod1(i, 4)];
         title = string(name),
