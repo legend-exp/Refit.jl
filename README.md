@@ -11,8 +11,9 @@ Tools to perform Bayesian fits of binned data with models based on Monte-Carlo s
 
 This includes:
 - Reading and manipulation of Monte-Carlo files,
-- Automatic handeling of priors and initial parameter ranges,
-- Dedicated methods to incorportate systematic uncertainties,
+- Automatic handling of priors and initial parameter ranges,
+- Models with activities that are functions of the fit parameters, and analytic
+  components that depend on the energy,
 - Plotting and saving outputs.
 
 
@@ -26,23 +27,24 @@ This includes:
 A minimal fit can be performed with:
 
 ```julia
-
 using Refit
+using BAT
+using IntervalSets
 
 # read the data as a Histogram
-data = read_hist("hist/spectrum",data_file)
+data = read_hist("hist/spectrum", data_file)
 
 # dictionary of MC pdfs to fit, the keys are Symbols and name the parameters
 mc_dict = Dict(
-    :Ar39_liquid_argon => read_pdf("hist/spectrum","$mc_files/Ar39_liquid_argon.lh5"),
-    :two_vbb_hpge_bulk => read_pdf("hist/spectrum","$mc_files/2vbb_hpge_bulk.lh5"),
+    :Ar39_liquid_argon => read_pdf("$mc_files/Ar39_liquid_argon.lh5"; groups = "hist/spectrum"),
+    :two_vbb_hpge_bulk => read_pdf("$mc_files/2vbb_hpge_bulk.lh5"; groups = "hist/spectrum"),
     # ...
 )
 
 # define priors (by hand, from input files or from the data), with the same keys
 priors = Dict()
-priors[:Ar39_liquid_argon] = 0.. 2000
-priors[:two_vbb_hpge_bulk] = 0.. 2
+priors[:Ar39_liquid_argon] = 0 .. 2000
+priors[:two_vbb_hpge_bulk] = 0 .. 2
 # ...
 
 # or guess ranges for the fit from the data
@@ -52,7 +54,7 @@ priors[:two_vbb_hpge_bulk] = 0.. 2
 prior_dist = build_prior_dist(priors)
 
 # get a model mapping parameters to data, and the edges of the bins it predicts
-model, bin_edges = build_forward_model(mc_dict; bin = 20, e_low = 500, e_high = 3200)
+model, bin_edges = build_forward_model(mc_dict; binning = 20, e_low = 500, e_high = 3200)
 
 # build a likelihood / posterior
 counts = get_counts(data, bin_edges)
@@ -60,14 +62,18 @@ likelihood = build_likelihood(counts, model)
 posterior = PosteriorMeasure(likelihood, prior_dist)
 
 # sample
-samples =  bat_sample(....)
+samples = bat_sample(posterior, ...)
 
 # plots saving etc
 ```
 
-The forward model is described in the [user manual](https://legend-exp.github.io/Refit.jl/dev/).
+The forward model is described in the [user manual](https://legend-exp.github.io/Refit.jl/dev/),
+with the other forms a component can take: an activity that is a function of the fit
+parameters, or an analytic function of the energy.
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
-- Variation of simulated Histograms based on systematic uncertainties
-- Simulataneous fits of multiple data spectra
+
+Planned:
+- Variation of simulated histograms based on systematic uncertainties ([#5](https://github.com/legend-exp/Refit.jl/issues/5))
+- Simultaneous fits of multiple data spectra
