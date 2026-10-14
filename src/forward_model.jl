@@ -15,8 +15,7 @@ Returns `(forward_model, bin_edges)`:
   spectrum, in any order. Each spectrum is scaled by `activity * norm`. Use `norm`
   for unit conversions and the livetime. Each call allocates one array.
 
-The loop over spectra is unrolled at compile time, which only works for about 30
-spectra or fewer. With more, each call makes extra small allocations and is slower.
+The time per call grows with the number of bins times the number of spectra.
 """
 function build_forward_model(
     pdfs::AbstractDict{Symbol,<:Histogram{<:Real,1}};
@@ -37,11 +36,18 @@ function build_forward_model(
     bin_low = edges[1:(end-1)][is_valid]
     bin_high = edges[2:end][is_valid]
     mc = NamedTuple{names}(map(h -> h.weights[is_valid] .* norm, hists))
+    # the same spectra as a vector, in the order of `names`. Julia unrolls a loop over
+    # a tuple only up to about 30 entries; past that it falls back to a dynamic call per
+    # spectrum, which costs more than adding the bins. A vector is looped over plainly.
+    spectra = collect(values(mc))
 
     function forward_model(params::NamedTuple)
+        # the activities in the order of the spectra. `keys(mc)` comes from the type of
+        # `mc`, so the compiler sorts them here instead of on every call
+        activities = NamedTuple{keys(mc)}(params)
         pred = zeros(length(bin_low))
-        foreach(values(NamedTuple{keys(mc)}(params)), values(mc)) do a, pdf
-            pred .+= a .* pdf
+        for j in eachindex(spectra)
+            pred .+= getfield(activities, j) .* spectra[j]
         end
         return pred
     end
