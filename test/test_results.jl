@@ -53,6 +53,16 @@ using Test
     parts = get_best_fit_histograms((s = 2.0,), shared, shared_edges)
     @test Set(keys(parts)) == Set([:total, :a, :b])
     @test parts[:total].weights ≈ parts[:a].weights .+ parts[:b].weights
+
+    # an analytic component is drawn like the others
+    with_flat, flat_edges = build_forward_model(
+        Dict(:a => pdfs[:a], :flat => (analytic = (E, p) -> p.rate,));
+        e_low = 100,
+        e_high = 900,
+    )
+    flat_parts = get_best_fit_histograms((a = 1.0, rate = 0.5), with_flat, flat_edges)
+    @test Set(keys(flat_parts)) == Set([:total, :a, :flat])
+    @test flat_parts[:total].weights ≈ flat_parts[:a].weights .+ flat_parts[:flat].weights
 end
 
 @testset "normalised_poisson_residual" begin

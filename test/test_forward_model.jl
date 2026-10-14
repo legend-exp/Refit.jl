@@ -104,4 +104,73 @@ using Test
         @test_throws ArgumentError build_forward_model(Dict(:a => (activity = p -> p.x,)))
         @test_throws ArgumentError build_forward_model(Dict(:a => NamedTuple()))
     end
+    @testset "analytic functions" begin
+        # a histogram, a histogram times a function of the energy, an analytic component
+        comps = Dict(
+            :a => h1,
+            :b => (pdf = h2, analytic = (E, p) -> p.eff * E / 1000),
+            :c => (analytic = (E, p) -> p.rate * exp(-E / 1000),),
+        )
+        fm, _ = build_forward_model(comps; e_low = 1000, e_high = 4000, norm = 2e-3)
+        centre = [1500.0, 2500.0, 3500.0]
+        p = (a = 1.0, b = 2.0, eff = 0.5, rate = 3.0)
+        expected_a = [2.0, 3.0, 4.0] .* 2e-3
+        # :b has the activity p.b, the global norm and the function of the energy
+        expected_b = 2.0 .* 2e-3 .* (0.5 .* centre ./ 1000) .* [20.0, 30.0, 40.0]
+        # the global norm does not apply to :c, its function is in counts per keV
+        expected_c = 3.0 .* exp.(-centre ./ 1000) .* 1000.0
+        @test fm(p) ≈ expected_a .+ expected_b .+ expected_c
+
+        parts = fm(p, Val(:by_component))
+        @test keys(parts) == (:a, :b, :c)
+        @test parts.a ≈ expected_a
+        @test parts.b ≈ expected_b
+        @test parts.c ≈ expected_c
+
+        # a function of the energy together with an activity function
+        fm_both, _ = build_forward_model(
+            Dict(:b =>
+                    (pdf = h2, activity = p -> 2 * p.x, analytic = (E, p) -> E / 1000));
+            e_low = 1000,
+            e_high = 4000,
+            norm = 2e-3,
+        )
+        @test fm_both((x = 1.0,)) ≈ 2.0 .* 2e-3 .* centre ./ 1000 .* [20.0, 30.0, 40.0]
+
+        # two arrays, plus a few bytes for each of the two functions, to pass them the
+        # parameters. Not more in every bin
+        @inferred fm(p)
+        fm(p)
+        @test (@allocated fm(p)) <= 2 * (@allocated zeros(3)) + 2 * 96
+
+        # analytic components only: the binning comes from `edges`, rebinned as well
+        only_g = Dict(:c => (analytic = (E, p) -> p.rate,))
+        fm_g, e_g = build_forward_model(
+            only_g;
+            e_low = 1000,
+            e_high = 4000,
+            edges = 0.0:1000.0:5000.0,
+        )
+        @test e_g.low == [1000.0, 2000.0, 3000.0]
+        @test fm_g((rate = 2.0,)) ≈ fill(2000.0, 3)
+        _, e_g2 = build_forward_model(
+            only_g;
+            e_low = 0,
+            e_high = 4000,
+            edges = 0.0:1000.0:5000.0,
+            binning = 2,
+        )
+        @test e_g2.low == [0.0, 2000.0]
+        @test_throws ArgumentError build_forward_model(only_g)
+        # `edges` must agree with the histograms
+        @test_throws ErrorException build_forward_model(
+            Dict(:a => h1);
+            edges = 0.0:500.0:5000.0,
+        )
+        # an analytic component with no pdf has no activity
+        @test_throws ArgumentError build_forward_model(
+            Dict(:c => (analytic = (E, p) -> p.rate, activity = p -> p.x));
+            edges = 0.0:1000.0:5000.0,
+        )
+    end
 end

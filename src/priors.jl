@@ -28,8 +28,8 @@ end
 
 Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
 `pdfs` (a `Dict(name => component)`, see [`build_forward_model`](@ref)), based on the
-measured spectrum `data`. Components with an `activity` function are skipped: the
-parameters of the function need priors by hand.
+measured spectrum `data`. Components with an `activity` or an `analytic` function are
+skipped: the parameters of the function need priors by hand.
 Returns `Dict(name => Interval)`. The entries can be replaced by any 1D distribution
 from Distributions.jl before calling [`build_prior_dist`](@ref).
 
@@ -62,8 +62,9 @@ function get_priors(
     priors = Dict{Symbol,Any}()
     for (name, component) in pdfs
         spec = _component_spec(component)
-        if !isnothing(spec.activity)
-            @info "get_priors: $name has an activity function, its parameters need priors by hand"
+        if !isnothing(spec.activity) || !isnothing(spec.analytic)
+            kind = isnothing(spec.activity) ? "an analytic" : "an activity"
+            @info "get_priors: $name has $kind function, its parameters need priors by hand"
             continue
         end
         pdf = spec.pdf
