@@ -82,6 +82,37 @@ priors[:K40_hpge_bulk] = truncated(Normal(50.0, 10.0), 0.0, 1000.0)
 priors
 ```
 
+## Components with an `activity` function
+
+`get_priors` can only estimate a range for an activity that is a fit parameter. It skips
+the components with an [`activity` function](components.md), with a message, and the
+parameters of their functions need a prior by hand. Here the half-life of the
+``2\nu\beta\beta`` decay replaces its activity (see
+[Activity functions](forward_model.md#Activity-functions)):
+
+```@example demo
+components = merge(
+    mc_dict,
+    Dict(
+        :two_vbb_hpge_bulk => (
+            pdf = mc_dict[:two_vbb_hpge_bulk],
+            # activity in mBq, with the half-life in units of 1e21 yr
+            activity = p -> 1e3 * log(2) * 1.0e28 / (p.T_half * 1e21 * 3.156e7),
+        ),
+    ),
+)
+priors_t = get_priors(
+    components,
+    data;
+    ref_ranges,
+    e_low = 500,
+    e_high = 3200,
+    norm = 1e-3 * livetime,
+)
+priors_t[:T_half] = 1.0 .. 5.0  # in units of 1e21 yr
+priors_t
+```
+
 ## The prior distribution
 
 `build_prior_dist` turns the entries into a prior. A range becomes a uniform distribution

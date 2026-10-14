@@ -89,8 +89,8 @@ activities does not matter. A missing activity raises an error.
 ## Activity functions
 
 The activity of a component does not have to be a fit parameter of its own. It can be a
-function of the fit parameters, given with the spectrum as `(pdf = histogram, activity
-= f)`. For example, to fit the half-life of the ``2\nu\beta\beta`` decay instead of its
+function of the fit parameters, given with the spectrum as `(pdf = histogram, activity = f)`.
+For example, to fit the half-life of the ``2\nu\beta\beta`` decay instead of its
 activity:
 
 ```@example demo
@@ -114,9 +114,10 @@ pred_t = model_t((K40_hpge_bulk = 40.0, Pb212_to_Pb208_hpge_bulk = 10.0, T_half 
 components[:two_vbb_hpge_bulk].activity((T_half = 2.2,))
 ```
 
-The global `norm` applies to this component as to the others, so the function returns
-an activity in mBq. [Model components](components.md) lists the forms a component can
-take and the rules for its parameters and priors.
+The global `norm` multiplies this component like any other: its predicted counts are
+`f(params) * norm * counts`, so the function returns an activity in mBq.
+[Model components](components.md) lists the forms a component can take and the rules
+for its parameters and priors.
 
 `model(params, Val(:by_component))` returns the predicted counts of each component
 separately, as a named tuple. [`get_best_fit_histograms`](@ref) uses this.

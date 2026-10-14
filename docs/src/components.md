@@ -16,25 +16,23 @@ that follow from them.
 
 ## The two forms
 
-| Value | Activity ``A_k`` of the component |
-|---|---|
-| `h` | `params[name]`, the fit parameter with the name of the component |
-| `(pdf = h, activity = f)` | `f(params)`, a function of the fit parameters |
+| Value | Activity of the component | Predicted counts in bin ``i`` |
+|---|---|---|
+| `h` | `params[name]` | `params[name] * norm * h[i]` |
+| `(pdf = h, activity = f)` | `f(params)` | `f(params) * norm * h[i]` |
 
-`h` is a `Histogram` of a simulated 1D energy spectrum in keV and `params` the named
-tuple of **all** fit parameters. `(pdf = h,)` is the same as `h`. Any other key, such
-as a misspelled `activty`, is an error.
+`h` is a `Histogram` of a simulated 1D energy spectrum in keV, `h[i]` its content in bin
+``i``, and `params` the named tuple of **all** fit parameters. `norm` is the keyword of
+[`build_forward_model`](@ref), usually the unit conversion times the livetime. The
+model is the sum over the components.
 
-The predicted counts in bin ``i`` are the sum over the components:
+!!! note "The global `norm` applies to every component"
+    The global `norm` multiplies every component, also those with an `activity`
+    function. So `f` returns an activity, in the same units as a fit parameter (for
+    example mBq), not counts. The unit conversion and the livetime stay in `norm`.
 
-```math
-\mu_i = \sum_k A_k \times N \times h_{k,i}
-```
-
-with ``h_{k,i}`` the content of bin ``i`` of spectrum ``k`` and ``N`` the global `norm`
-of [`build_forward_model`](@ref), usually the unit conversion times the livetime. It
-applies to every component, so an `activity` function returns an activity in the same
-units as a fit parameter, not counts.
+`(pdf = h,)` is the same as `h`. Any other key, such as a misspelled `activty`, is an
+error.
 
 ## Parameters
 

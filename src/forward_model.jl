@@ -14,6 +14,10 @@ spectrum in keV per component. Each component is one of:
 component is `activity * norm * counts` in every bin, and the model is the sum over the
 components. Use the global `norm` for unit conversions and the livetime.
 
+The global `norm` multiplies every component, also those with an `activity` function:
+their prediction is `f(params) * norm * counts`. So `f` returns an activity, in the same
+units as a fit parameter.
+
 All histograms must share the same binning. Only bins fully inside `[e_low, e_high]` and
 outside the `blind = (min, max)` region are kept. `binning` merges that many consecutive
 bins first.

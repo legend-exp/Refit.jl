@@ -114,6 +114,27 @@ mc_dict[:alpha] = Histogram(data.edges, fill(1 / norm, length(data.weights)))
 nothing # hide
 ```
 
+## Tying two activities
+
+The activity of a component can also be a function of the fit parameters (see
+[Model components](components.md)). As an example, assume that the cables and the fibers
+are made of the same material, with the same ``^{40}``K content per kg, and that the
+fibers have half the mass of the cables. Then the ``^{40}``K activity of the fibers is
+half that of the cables, and needs no fit parameter of its own:
+
+```@example tutorial
+mass_ratio = 0.5  # fibers / cables
+
+components = merge(
+    mc_dict,
+    Dict(:fibers_K40 => (pdf = mc_dict[:fibers_K40], activity = p -> mass_ratio * p.cables_K40)),
+)
+nothing # hide
+```
+
+The global `norm` multiplies this component like the others, so the function returns an
+activity in mBq.
+
 ## Forward model and likelihood
 
 The [forward model](forward_model.md) maps the activities to the expected counts in
@@ -121,7 +142,7 @@ each energy bin. The [likelihood](likelihood.md) compares these with the measure
 counts, which are taken from the data in the same bins.
 
 ```@example tutorial
-model, bin_edges = build_forward_model(mc_dict; e_low, e_high, blind, binning, norm)
+model, bin_edges = build_forward_model(components; e_low, e_high, blind, binning, norm)
 counts = get_counts(data, bin_edges)
 likelihood = build_likelihood(counts, model)
 nothing # hide
@@ -132,12 +153,13 @@ nothing # hide
 The fit needs a range for each activity. `get_priors` estimates it from the data
 (see [Priors](priors.md)). The reference ranges give the energy window of a
 peak of each isotope in keV. The 1461 keV line of ``^{40}``K and the 2615 keV line of
-``^{208}``Tl limit the activities of these sources.
+``^{208}``Tl limit the activities of these sources. `get_priors` skips `fibers_K40`,
+which has no parameter of its own.
 
 ```@example tutorial
 ref_ranges = Dict(:K40 => (1456, 1466), :Pb212_to_Pb208 => (2610, 2620))
 
-ranges = get_priors(mc_dict, data; ref_ranges, e_low, e_high, blind, norm)
+ranges = get_priors(components, data; ref_ranges, e_low, e_high, blind, norm)
 ```
 
 A range can be changed by hand where the guess is poor, for example
@@ -178,7 +200,8 @@ nothing # hide
 
 ## Result
 
-The activities used to make the fake data are:
+The activities used to make the fake data are below. The ``^{40}``K activity of the fibers
+is half that of the cables, as assumed above.
 
 ```@example tutorial
 true_activities = (  # mBq
@@ -243,7 +266,7 @@ best fit divided by the true value. A good fit is consistent with 1.
 ```@example tutorial
 intervals = map(first, BAT.smallest_credible_intervals(samples; p = 0.68, mode = :connected))
 
-names = collect(keys(truth))
+names = filter(in(keys(best)), collect(keys(truth)))  # the fit parameters
 x = 1:length(names)
 fit = [best[n] / truth[n] for n in names]
 lower = [intervals[n].left / truth[n] for n in names]
