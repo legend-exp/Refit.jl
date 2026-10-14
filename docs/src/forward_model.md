@@ -19,7 +19,7 @@ activity of component ``k``:
 - by default it is a fit parameter of its own, ``A_k = a_k``,
 - or it is a function of the fit parameters, ``A_k = f_k(\vec{a})``, for example to tie
   the activities of two components together or to fit a half-life instead of an
-  activity (see [Activity functions](#Activity-functions) below).
+  activity (see [Activity functions](@ref) below).
 
 ``N`` multiplies every component, also those whose activity is a function. If `norm`
 holds the unit conversions and the livetime, ``A_k`` is the activity of source ``k``,
@@ -65,7 +65,7 @@ include("example_data.jl")
 ```
 
 ```@example demo
-# the names of the simulated spectra, these name the parameters
+# the names of the components, here each also names a fit parameter
 keys(mc_dict)
 ```
 
@@ -152,7 +152,7 @@ an activity in mBq.
 
 [`get_priors`](@ref) only estimates a range for activities that are fit parameters. It
 skips the components with an activity function, and the parameters of their functions
-need a prior by hand, see [Priors](priors.md#Components-with-an-activity-function).
+need a prior by hand, see [Priors](priors.md).
 
 ## Each component separately
 
