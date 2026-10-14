@@ -73,7 +73,7 @@ parameters, or an analytic function of the energy.
 
 More advanced functionality includes:
 - Extraction of reasonable uniform priors from the data
+- Simultaneous fits of multiple data spectra, by adding their log-likelihoods
 
 Planned:
 - Variation of simulated histograms based on systematic uncertainties ([#5](https://github.com/legend-exp/Refit.jl/issues/5))
-- Simultaneous fits of multiple data spectra

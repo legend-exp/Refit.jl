@@ -23,6 +23,8 @@ sampling the posterior, which combines the likelihood of the data with priors.
 - [Fitting a background spectrum](tutorial.md): a complete fit on made-up data, from reading the files to sampling the posterior
 - [Fitting a peak](tutorial_peak.md): a fit with analytic components only, a Gaussian peak
   on a linear background
+- [Simultaneous fits](tutorial_simultaneous.md): two detectors fitted together,
+  which separates two sources that one detector alone cannot tell apart
 
 ## Reference
 
