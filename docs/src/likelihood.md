@@ -81,10 +81,42 @@ other = merge(params, (K40_hpge_bulk = 50.0,))
 logdensityof(likelihood, other)
 ```
 
-`build_likelihood` handles one measured spectrum and one model. To fit several
-spectra together, add the log-likelihoods of each one.
-
 `poisson_likelihood(counts, pred)` is the underlying function. It raises a
 `DimensionMismatch` if the two vectors differ in length. A bin with a predicted
 count of zero is allowed: a tiny number (`eps()`) is added to the prediction inside
 the logarithm, so the result stays finite.
+
+## Simultaneous fits
+
+`build_likelihood` handles one measured spectrum and one model. Spectra measured
+independently, for example by two detectors or two detector types, can still be fitted
+together. Their counts are independent, so the log-likelihood of all of them is the sum
+of the log-likelihoods of each spectrum ``s``:
+
+```math
+\ln L = \sum_s \ln L_s
+```
+
+Build a model and a likelihood for each spectrum, and add them:
+
+```julia
+using DensityInterface
+
+likelihood_a = build_likelihood(get_counts(data_a, bin_edges_a), model_a)
+likelihood_b = build_likelihood(get_counts(data_b, bin_edges_b), model_b)
+
+likelihood = logfuncdensity(p -> logdensityof(likelihood_a, p) + logdensityof(likelihood_b, p))
+```
+
+`likelihood` is used like any other, for example in a `PosteriorMeasure` of BAT.jl. All
+the models get the same named tuple of parameters, and each reads only those it needs:
+- a component with the same name in two models has one activity, shared by both
+  spectra. Components with different names, for example a flat background for each
+  detector, have their own parameters
+- each model has its own binning, energy range, blinded region and `norm`, for example
+  the livetime of each detector
+- `get_priors` estimates ranges from one spectrum at a time. A parameter of several
+  spectra needs one range, for example the widest of them
+
+The tutorial [Simultaneous fits](tutorial_simultaneous.md) shows a complete
+example.

@@ -21,6 +21,7 @@ makedocs(;
         "Tutorials" => [
             "Fitting a background spectrum" => "tutorial.md",
             "Fitting a peak" => "tutorial_peak.md",
+            "Simultaneous fits" => "tutorial_simultaneous.md",
         ],
         "API" => "api.md",
     ],
