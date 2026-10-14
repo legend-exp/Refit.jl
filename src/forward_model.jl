@@ -15,8 +15,8 @@ Returns `(forward_model, bin_edges)`:
   spectrum, in any order. Each spectrum is scaled by `activity * norm`. Use `norm`
   for unit conversions and the livetime. Each call allocates one array.
 
-The loop over spectra is unrolled at compile time, which only works for about 30
-spectra or fewer. With more, each call makes extra small allocations and is slower.
+The spectra are stored in one table, one column per spectrum, and added in a plain
+loop. The time per call grows with the number of bins times the number of spectra.
 """
 function build_forward_model(
     pdfs::AbstractDict{Symbol,<:Histogram{<:Real,1}};
@@ -36,14 +36,33 @@ function build_forward_model(
     is_valid = get_valid_bins(edges, (e_low, e_high), blind)
     bin_low = edges[1:(end-1)][is_valid]
     bin_high = edges[2:end][is_valid]
-    mc = NamedTuple{names}(map(h -> h.weights[is_valid] .* norm, hists))
-
-    function forward_model(params::NamedTuple)
-        pred = zeros(length(bin_low))
-        foreach(values(NamedTuple{keys(mc)}(params)), values(mc)) do a, pdf
-            pred .+= a .* pdf
-        end
-        return pred
+    # one column per spectrum, already multiplied by norm
+    table = zeros(length(bin_low), length(names))
+    for (j, h) in enumerate(hists)
+        table[:, j] .= h.weights[is_valid] .* norm
     end
+    column_of = Dict{Symbol,Int}(name => j for (j, name) in enumerate(names))
+
+    forward_model(params::NamedTuple) =
+        add_spectra!(zeros(length(bin_low)), table, column_of, params)
     return forward_model, (low = bin_low, high = bin_high)
+end
+
+# Adds `params[name] * column` for each column of the table. Looking up a parameter by
+# name is slow when there are many, so the parameters are visited by position instead.
+function add_spectra!(pred, table, column_of::Dict{Symbol,Int}, params::NamedTuple)
+    found = 0
+    for (pos, name) in enumerate(keys(params))
+        j = get(column_of, name, 0)
+        j == 0 && continue
+        found += 1
+        a = getfield(params, pos)
+        @inbounds @simd for i in eachindex(pred)
+            pred[i] += a * table[i, j]
+        end
+    end
+    if found < length(column_of)  # raises the error for the missing parameter
+        foreach(name -> params[name], keys(column_of))
+    end
+    return pred
 end

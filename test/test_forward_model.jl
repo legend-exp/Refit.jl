@@ -34,4 +34,18 @@ using Test
     @test_throws MethodError build_forward_model(Dict("a" => h1))
     @test_throws MethodError build_forward_model(Dict(:a => [1.0, 2.0]))
     @test_throws ArgumentError build_forward_model(Dict{Symbol,typeof(h1)}())
+
+    @testset "many spectra" begin
+        # more than 30 spectra: still one allocation per call, parameters in any order
+        names = [Symbol("s$i") for i = 1:60]
+        many = Dict(name => h1 for name in names)
+        fm, _ = build_forward_model(many; e_low = 0, e_high = 5000)
+        p = NamedTuple{Tuple(names)}(ntuple(i -> Float64(i), 60))
+        shuffled = NamedTuple{Tuple(reverse(names))}(Tuple(reverse(values(p))))
+        @test fm(p) ≈ sum(1:60) .* h1.weights
+        @test fm(shuffled) ≈ fm(p)
+        @test_throws FieldError fm(Base.structdiff(p, (s1 = 0,)))
+        fm(p)
+        @test (@allocated fm(p)) <= @allocated zeros(5)
+    end
 end
