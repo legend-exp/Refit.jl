@@ -85,10 +85,9 @@ priors
 ## Components with an `activity` function
 
 `get_priors` can only estimate a range for an activity that is a fit parameter. It skips
-the components with an [`activity` function](components.md), with a message, and the
-parameters of their functions need a prior by hand. Here the half-life of the
-``2\nu\beta\beta`` decay replaces its activity (see
-[Activity functions](forward_model.md#Activity-functions)):
+the components with an `activity` function, with a message, and the parameters of their
+functions need a prior by hand. Here the half-life of the ``2\nu\beta\beta`` decay
+replaces its activity (see [Activity functions](forward_model.md#Activity-functions)):
 
 ```@example demo
 components = merge(

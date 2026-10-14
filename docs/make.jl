@@ -13,7 +13,6 @@ makedocs(;
         "User manual" => [
             "Reading spectra" => "reading.md",
             "Forward model" => "forward_model.md",
-            "Model components" => "components.md",
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",
             "Plotting" => "plotting.md",
