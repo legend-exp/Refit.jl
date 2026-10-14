@@ -117,7 +117,7 @@ nothing # hide
 ## Tying two activities
 
 The activity of a component can also be a function of the fit parameters (see
-[Activity functions](forward_model.md#Activity-functions)). As an example, assume that
+[Activity functions](@ref)). As an example, assume that
 the cables and the fibers are made of the same material, with the same ``^{40}``K
 content per kg, and that the fibers have half the mass of the cables. Then the ``^{40}``K activity of the fibers is
 half that of the cables, and needs no fit parameter of its own:

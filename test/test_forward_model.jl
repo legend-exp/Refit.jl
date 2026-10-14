@@ -90,6 +90,16 @@ using Test
         )
         @test fm_pdf((a = 1.0,)) ≈ expected_a
 
+        # histograms with integer counts work as well
+        h_int = Histogram(edges, [1, 2, 3, 4, 5])
+        fm_int, _ = build_forward_model(
+            Dict(:a => h_int, :b => (pdf = h_int, activity = p -> 2 * p.a));
+            e_low = 1000,
+            e_high = 4000,
+            norm = 2e-3,
+        )
+        @test fm_int((a = 1.0,)) ≈ 3 .* expected_a
+
         @test_throws ArgumentError build_forward_model(Dict(:a => (pdf = h1, nrm = 1)))
         @test_throws ArgumentError build_forward_model(Dict(:a => (activity = p -> p.x,)))
         @test_throws ArgumentError build_forward_model(Dict(:a => NamedTuple()))
