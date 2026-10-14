@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Likelihood · Refit.jl</title><meta name="title" content="Likelihood · Refit.jl"/><meta property="og:title" content="Likelihood · Refit.jl"/><meta property="twitter:title" content="Likelihood · Refit.jl"/><meta name="description" content="Documentation for Refit.jl."/><meta property="og:description" content="Documentation for Refit.jl."/><meta property="twitter:description" content="Documentation for Refit.jl."/><meta property="og:url" content="https://legend-exp.github.io/Refit.jl/likelihood/"/><meta property="twitter:url" content="https://legend-exp.github.io/Refit.jl/likelihood/"/><link rel="canonical" href="https://legend-exp.github.io/Refit.jl/likelihood/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Refit.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">User manual</span><ul><li><a class="tocitem" href="../reading/">Reading spectra</a></li><li><a class="tocitem" href="../forward_model/">Forward model</a></li><li><a class="tocitem" href="../components/">Model components</a></li><li class="is-active"><a class="tocitem" href>Likelihood</a><ul class="internal"><li><a class="tocitem" href="#Measured-counts"><span>Measured counts</span></a></li><li><a class="tocitem" href="#Building-the-likelihood"><span>Building the likelihood</span></a></li></ul></li><li><a class="tocitem" href="../priors/">Priors</a></li><li><a class="tocitem" href="../plotting/">Plotting</a></li><li><a class="tocitem" href="../saving/">Saving the results</a></li></ul></li><li><a class="tocitem" href="../tutorial/">Tutorial</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">User manual</a></li><li class="is-active"><a href>Likelihood</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Likelihood</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl/blob/main/docs/src/likelihood.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Likelihood"><a class="docs-heading-anchor" href="#Likelihood">Likelihood</a><a id="Likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Likelihood" title="Permalink"></a></h1><p><code>poisson_likelihood</code> compares measured and predicted counts in each bin. The counts in a bin follow a Poisson distribution with the predicted counts <span>$\lambda_i$</span> as mean, so for measured counts <span>$k_i$</span> the log-likelihood is</p><p class="math-container">\[\ln L = \sum_i \left( k_i \ln \lambda_i - \lambda_i \right).\]</p><p>The constant term <span>$-\ln k_i!$</span> is left out. It does not depend on the parameters, so it does not change the position of the maximum or the shape of the posterior.</p><h2 id="Measured-counts"><a class="docs-heading-anchor" href="#Measured-counts">Measured counts</a><a id="Measured-counts-1"></a><a class="docs-heading-anchor-permalink" href="#Measured-counts" title="Permalink"></a></h2><p>The likelihood compares two flat vectors of the same length: the measured counts and the prediction of the <a href="../forward_model/">forward model</a>. Entry <code>i</code> of both is the number of counts in the same energy bin. The measured counts are <strong>not</strong> a histogram.</p><p><code>get_counts</code> extracts them from the data histogram <code>data</code>. It takes the lower and upper edge of each bin, in keV:</p><pre><code class="language-julia hljs"># 100 keV bins between 500 and 3200 keV
+low = collect(500.0:100.0:3100.0)  # lower edge of each bin
+bin_edges = (low = low, high = low .+ 100.0);  # upper edge = lower edge + 100 keV
+
+# measured counts in each bin, as a Vector{Float64}
+counts = get_counts(data, bin_edges)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">27-element Vector{Float64}:
+ 15601.0
+ 14478.0
+ 13478.0
+ 12387.0
+ 11268.0
+ 10164.0
+  9107.0
+  8114.0
+  7196.0
+  9573.0
+     ⋮
+  1878.0
+  1631.0
+  1419.0
+  1837.0
+  1069.0
+   928.0
+   808.0
+   705.0
+   611.0</code></pre><p>The bins can be any bins whose edges are also edges of <code>data</code>, otherwise an error is raised. A bin can span several bins of <code>data</code>, which are then summed.</p><p>The bin edges can also come from the forward model. <code>build_forward_model</code> returns the edges of the bins it predicts, whatever energy range, blinding and binning it uses. Using them guarantees that the measured and predicted bins match:</p><pre><code class="language-julia hljs"># merge pairs of bins (20 keV bins) and keep 500 to 3200 keV
+model, bin_edges = build_forward_model(
+    mc_dict;
+    e_low = 500,
+    e_high = 3200,
+    binning = 2,
+    norm = 1e-3 * livetime,
+);
+
+# the measured counts in exactly the bins of the model
+counts = get_counts(data, bin_edges)
+counts</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">135-element Vector{Float64}:
+ 3112.0
+ 3088.0
+ 3062.0
+ 3119.0
+ 3220.0
+ 2969.0
+ 2933.0
+ 2897.0
+ 2859.0
+ 2820.0
+    ⋮
+  145.0
+  141.0
+  137.0
+  133.0
+  129.0
+  125.0
+  123.0
+  119.0
+  115.0</code></pre><h2 id="Building-the-likelihood"><a class="docs-heading-anchor" href="#Building-the-likelihood">Building the likelihood</a><a id="Building-the-likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Building-the-likelihood" title="Permalink"></a></h2><pre><code class="language-julia hljs">using DensityInterface
+
+# the likelihood of the measured counts as a function of the parameters
+likelihood = build_likelihood(counts, model);
+
+params = (
+    K40_hpge_bulk = 40.0,
+    Pb212_to_Pb208_hpge_bulk = 10.0,
+    two_vbb_hpge_bulk = 100.0,
+)
+
+# log-likelihood for these parameters
+logdensityof(likelihood, params)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">966590.9215598684</code></pre><p>The value is largest when the prediction matches the data. Here the data were made with these activities, so changing one of them lowers the value:</p><pre><code class="language-julia hljs">other = merge(params, (K40_hpge_bulk = 50.0,))
+logdensityof(likelihood, other)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">966346.9409654519</code></pre><p><code>build_likelihood</code> handles one measured spectrum and one model. To fit several spectra together, add the log-likelihoods of each one.</p><p><code>poisson_likelihood(counts, pred)</code> is the underlying function. It raises a <code>DimensionMismatch</code> if the two vectors differ in length. A bin with a predicted count of zero is allowed: a tiny number (<code>eps()</code>) is added to the prediction inside the logarithm, so the result stays finite.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../components/">« Model components</a><a class="docs-footer-nextpage" href="../priors/">Priors »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Wednesday 14 October 2026 21:57">Wednesday 14 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
