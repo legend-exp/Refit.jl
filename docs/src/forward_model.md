@@ -4,26 +4,54 @@ The forward model is a function mapping the parameters of interest onto the pred
 observables (in our case the counts in each bin).
 
 ## Definition
-In `Refit.jl` a linear template fit model is implemented,
-the predicted counts in energy bin ``i`` are a sum over the simulated spectra:
+
+In `Refit.jl` a linear template fit model is implemented. The model is a sum of
+components, each a simulated spectrum scaled by an activity. The predicted counts in
+energy bin ``i`` are
 
 ```math
-\mu_i(\vec{a}) = \sum_k a_k \times h_{k,i} \times N
+\mu_i(\vec{a}) = \sum_k A_k(\vec{a}) \times h_{k,i} \times N
 ```
 
-Here ``h_{k,i}`` is the content of bin ``i`` in simulated spectrum ``k``, ``N`` is the
-factor `norm`, and ``a_k`` is the parameter of spectrum ``k``. Each simulated spectrum
-is scaled by its parameter and by `norm`, and the scaled spectra are added.
+Here ``h_{k,i}`` is the content of bin ``i`` in the simulated spectrum of component ``k``,
+``N`` is the factor `norm`, and ``\vec{a}`` are the fit parameters. ``A_k`` is the
+activity of component ``k``:
+- by default it is a fit parameter of its own, ``A_k = a_k``,
+- or it is a function of the fit parameters, ``A_k = f_k(\vec{a})``, for example to tie
+  the activities of two components together or to fit a half-life instead of an
+  activity (see [Activity functions](#Activity-functions) below).
 
-If `norm` holds the unit conversions and the livetime, ``a_k`` is the activity of
-source ``k``. Usually the parameters are activities, and the model is written for
-that case. Any other choice of `norm` changes the meaning of ``a_k`` in the same way.
+``N`` multiplies every component, also those whose activity is a function. If `norm`
+holds the unit conversions and the livetime, ``A_k`` is the activity of source ``k``,
+and an activity function returns an activity in the same units as a fit parameter.
+Usually the parameters are activities, and the model is written for that case. Any other
+choice of `norm` changes the meaning of ``A_k`` in the same way.
 
 `build_forward_model` turns a set of simulated energy spectra into such a function.
-This maps the activities to the predicted counts in each energy bin.
+This maps the parameters to the predicted counts in each energy bin.
 
-The activity of a component can also be a function of the fit parameters, see
-[Activity functions](#Activity-functions) below.
+## Model components
+
+The model is given as a dictionary with one entry per component. The key is a `Symbol`
+and names the component. The value gives its simulated spectrum and says where its
+activity comes from:
+
+| Value | Activity ``A_k`` | Predicted counts in bin ``i`` |
+|---|---|---|
+| `h` | `params[name]` | `params[name] * norm * h[i]` |
+| `(pdf = h, activity = f)` | `f(params)` | `f(params) * norm * h[i]` |
+
+`h` is a `Histogram` of a simulated 1D energy spectrum in keV, `h[i]` its content in bin
+``i``, and `params` the named tuple of **all** fit parameters. All histograms must have
+the same binning. `(pdf = h,)` is the same as `h`. Any other key, such as a misspelled
+`activty`, is an error.
+
+A component of the first form takes its parameter from its own name: the entry
+`:K40_hpge_bulk` needs `params.K40_hpge_bulk`. An activity function takes whatever it
+reads out of `params`, under any name, and several components can read the same
+parameter. A parameter missing from `params` raises an error at the first call of the
+model, naming the field it did not find. Parameters not used by any component are
+ignored.
 
 ## Building the model
 
@@ -55,20 +83,18 @@ nothing # hide
 `model` is the function mapping parameters to predicted counts, `bin_edges` describes
 its bins (see below).
 
-The keys of `mc_dict` must be `Symbol`s. They name the fit parameters.
-All histograms must have the same binning.
-
 | Keyword | Default | Meaning |
 |---|---|---|
 | `e_low`, `e_high` | 500, 4000 | Energy range in keV. Only bins fully inside are kept |
 | `blind` | `nothing` | `(min, max)` in keV. Bins overlapping this range are removed |
 | `binning` | 1 | Number of consecutive bins merged before the range is applied |
-| `norm` | 1 | Factor multiplying every spectrum, see below |
+| `norm` | 1 | Factor ``N`` multiplying every component |
 
 ## Calling the model
 
-The parameters are a flat named tuple with one activity per spectrum, named after the
-dictionary keys. Here the activities are in mBq, which `norm` converts to counts:
+Here every component is of the first form, so the parameters are a flat named tuple with
+one activity per spectrum, named after the dictionary keys. The activities are in mBq,
+which `norm` converts to counts:
 
 ```@example demo
 params = (
@@ -88,10 +114,16 @@ activities does not matter. A missing activity raises an error.
 
 ## Activity functions
 
-The activity of a component does not have to be a fit parameter of its own. It can be a
-function of the fit parameters, given with the spectrum as `(pdf = histogram, activity = f)`.
-For example, to fit the half-life of the ``2\nu\beta\beta`` decay instead of its
-activity:
+The activity of a component does not have to be a fit parameter of its own. For example,
+the activity of ``^{208}``Tl is tied to that of ``^{212}``Bi by the branching ratio of
+35.94 %, so this component adds no parameter of its own:
+
+```julia
+:Tl208_cables => (pdf = h_Tl208, activity = p -> 0.3594 * p.Bi212_cables)
+```
+
+A function can also replace the activity by the quantity of interest. To fit the
+half-life of the ``2\nu\beta\beta`` decay instead of its activity:
 
 ```@example demo
 n_ge76 = 1.0e28  # made-up number of Ge-76 nuclei
@@ -114,13 +146,20 @@ pred_t = model_t((K40_hpge_bulk = 40.0, Pb212_to_Pb208_hpge_bulk = 10.0, T_half 
 components[:two_vbb_hpge_bulk].activity((T_half = 2.2,))
 ```
 
-The global `norm` multiplies this component like any other: its predicted counts are
-`f(params) * norm * counts`, so the function returns an activity in mBq.
-[Model components](components.md) lists the forms a component can take and the rules
-for its parameters and priors.
+The parameters of this model are `K40_hpge_bulk`, `Pb212_to_Pb208_hpge_bulk` and
+`T_half`. `norm` multiplies the 2νββ component like the others, so the function returns
+an activity in mBq.
 
-`model(params, Val(:by_component))` returns the predicted counts of each component
-separately, as a named tuple. [`get_best_fit_histograms`](@ref) uses this.
+[`get_priors`](@ref) only estimates a range for activities that are fit parameters. It
+skips the components with an activity function, and the parameters of their functions
+need a prior by hand, see [Priors](priors.md#Components-with-an-activity-function).
+
+## Each component separately
+
+`model(params, Val(:by_component))` returns a named tuple with the predicted counts of
+each component on its own, under the keys of the dictionary and in sorted order,
+whichever form the component has. [`get_best_fit_histograms`](@ref) uses this to draw
+the fit.
 
 ## Bin edges
 
