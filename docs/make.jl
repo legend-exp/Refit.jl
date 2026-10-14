@@ -18,7 +18,10 @@ makedocs(;
             "Plotting" => "plotting.md",
             "Saving the results" => "saving.md",
         ],
-        "Tutorial" => "tutorial.md",
+        "Tutorials" => [
+            "Fitting a background spectrum" => "tutorial.md",
+            "Fitting a peak" => "tutorial_peak.md",
+        ],
         "API" => "api.md",
     ],
 )

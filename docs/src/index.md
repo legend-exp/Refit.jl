@@ -18,9 +18,11 @@ sampling the posterior, which combines the likelihood of the data with priors.
 - [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
 - [Saving the results](saving.md): save the samples, the best fit spectra and the activities
 
-## Tutorial
+## Tutorials
 
 - [Fitting a background spectrum](tutorial.md): a complete fit on made-up data, from reading the files to sampling the posterior
+- [Fitting a peak](tutorial_peak.md): a fit with analytic components only, a Gaussian peak
+  on a linear background
 
 ## Reference
 

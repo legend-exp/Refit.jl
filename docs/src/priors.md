@@ -82,11 +82,12 @@ priors[:K40_hpge_bulk] = truncated(Normal(50.0, 10.0), 0.0, 1000.0)
 priors
 ```
 
-## Components with an `activity` function
+## Components with an activity or analytic function
 
-`get_priors` can only estimate a range for an activity that is a fit parameter. It skips
-the components with an `activity` function, with a message, and the parameters of their
-functions need a prior by hand. Here the half-life of the ``2\nu\beta\beta`` decay
+`get_priors` can only estimate a range for an activity that is a fit parameter, of a
+simulated spectrum that is not changed by an energy dependent function. It skips the
+components with an `activity` or an `analytic` function, with a message, and the
+parameters of their functions need a prior by hand. Here the half-life of the ``2\nu\beta\beta`` decay
 replaces its activity (see [Activity functions](@ref)):
 
 ```@example demo

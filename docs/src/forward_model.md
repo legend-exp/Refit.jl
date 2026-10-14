@@ -5,53 +5,73 @@ observables (in our case the counts in each bin).
 
 ## Definition
 
-In `Refit.jl` a linear template fit model is implemented. The model is a sum of
-components, each a simulated spectrum scaled by an activity. The predicted counts in
-energy bin ``i`` are
+In `Refit.jl` the model is a sum of components. The predicted counts in energy bin ``i``
+are
 
 ```math
-\mu_i(\vec{a}) = \sum_k A_k(\vec{a}) \times h_{k,i} \times N
+\mu_i(\vec{a}) = \sum_k \mu_{k,i}(\vec{a}),
+```
+
+with ``\vec{a}`` the fit parameters. Most components are simulated spectra scaled by an
+activity, a linear template fit:
+
+```math
+\mu_{k,i}(\vec{a}) = A_k(\vec{a}) \times N \times g_k(E_i, \vec{a}) \times h_{k,i}
 ```
 
 Here ``h_{k,i}`` is the content of bin ``i`` in the simulated spectrum of component ``k``,
-``N`` is the factor `norm`, and ``\vec{a}`` are the fit parameters. ``A_k`` is the
-activity of component ``k``:
-- by default it is a fit parameter of its own, ``A_k = a_k``,
-- or it is a function of the fit parameters, ``A_k = f_k(\vec{a})``, for example to tie
-  the activities of two components together or to fit a half-life instead of an
-  activity (see [Activity functions](@ref) below).
+``N`` is the factor `norm` and ``E_i`` the energy at the centre of bin ``i`` in keV.
+- ``A_k`` is the activity of the component. By default it is a fit parameter of its own,
+  ``A_k = a_k``. It can also be a function of the fit parameters, ``A_k = f_k(\vec{a})``,
+  for example to tie the activities of two components together or to fit a half-life
+  instead of an activity (see [Activity functions](@ref) below).
+- ``g_k`` is a function of the energy, ``g_k = 1`` by default. It multiplies the
+  simulated spectrum bin by bin, for example an efficiency curve (see
+  [Analytic functions](@ref) below).
 
-``N`` multiplies every component, also those whose activity is a function. If `norm`
-holds the unit conversions and the livetime, ``A_k`` is the activity of source ``k``,
-and an activity function returns an activity in the same units as a fit parameter.
-Usually the parameters are activities, and the model is written for that case. Any other
-choice of `norm` changes the meaning of ``A_k`` in the same way.
+A component can also be analytic, with no simulated spectrum at all. Then
+``g_k(E, \vec{a})`` is the expected number of counts per keV, and
 
-`build_forward_model` turns a set of simulated energy spectra into such a function.
-This maps the parameters to the predicted counts in each energy bin.
+```math
+\mu_{k,i}(\vec{a}) = g_k(E_i, \vec{a}) \times w_i,
+```
+
+with ``w_i`` the width of bin ``i`` in keV.
+
+``N`` multiplies every component with a simulated spectrum, also those whose activity is
+a function, but not an analytic component with no simulation. If `norm` holds the unit
+conversions and the livetime, ``A_k`` is the activity of source ``k``, and an activity
+function returns an activity in the same units as a fit parameter. Usually the
+parameters are activities, and the model is written for that case. Any other choice of
+`norm` changes the meaning of ``A_k`` in the same way.
+
+`build_forward_model` turns a set of components into such a function. This maps the
+parameters to the predicted counts in each energy bin.
 
 ## Model components
 
 The model is given as a dictionary with one entry per component. The key is a `Symbol`
-and names the component. The value gives its simulated spectrum and says where its
-activity comes from:
+and names the component. The value says how its predicted counts are built:
 
-| Value | Activity ``A_k`` | Predicted counts in bin ``i`` |
-|---|---|---|
-| `h` | `params[name]` | `params[name] * norm * h[i]` |
-| `(pdf = h, activity = f)` | `f(params)` | `f(params) * norm * h[i]` |
+| Value | Predicted counts in bin ``i`` |
+|---|---|
+| `h` | `params[name] * norm * h[i]` |
+| `(pdf = h, activity = f)` | `f(params) * norm * h[i]` |
+| `(pdf = h, analytic = g)` | `params[name] * norm * g(E_i, params) * h[i]` |
+| `(pdf = h, activity = f, analytic = g)` | `f(params) * norm * g(E_i, params) * h[i]` |
+| `(analytic = g,)` | `g(E_i, params) * w_i` |
 
 `h` is a `Histogram` of a simulated 1D energy spectrum in keV, `h[i]` its content in bin
 ``i``, and `params` the named tuple of **all** fit parameters. All histograms must have
-the same binning. `(pdf = h,)` is the same as `h`. Any other key, such as a misspelled
-`activty`, is an error.
+the same binning. `(pdf = h,)` is the same as `h`. An analytic component with no `pdf`
+has no activity. Any other key, such as a misspelled `activty`, is an error.
 
-A component of the first form takes its parameter from its own name: the entry
-`:K40_hpge_bulk` needs `params.K40_hpge_bulk`. An activity function takes whatever it
-reads out of `params`, under any name, and several components can read the same
-parameter. A parameter missing from `params` raises an error at the first call of the
-model, naming the field it did not find. Parameters not used by any component are
-ignored.
+A component with a `pdf` and no `activity` function takes its parameter from its own
+name: the entry `:K40_hpge_bulk` needs `params.K40_hpge_bulk`. An activity or analytic
+function takes whatever it reads out of `params`, under any name, and several
+components can read the same parameter. A parameter missing from `params` raises an
+error at the first call of the model, naming the field it did not find. Parameters not
+used by any component are ignored.
 
 ## Building the model
 
@@ -88,7 +108,8 @@ its bins (see below).
 | `e_low`, `e_high` | 500, 4000 | Energy range in keV. Only bins fully inside are kept |
 | `blind` | `nothing` | `(min, max)` in keV. Bins overlapping this range are removed |
 | `binning` | 1 | Number of consecutive bins merged before the range is applied |
-| `norm` | 1 | Factor ``N`` multiplying every component |
+| `norm` | 1 | Factor ``N`` multiplying every component with a simulated spectrum |
+| `edges` | `nothing` | Bin edges in keV, needed only for a model with no histogram |
 
 ## Calling the model
 
@@ -153,6 +174,51 @@ an activity in mBq.
 [`get_priors`](@ref) only estimates a range for activities that are fit parameters. It
 skips the components with an activity function, and the parameters of their functions
 need a prior by hand, see [Priors](priors.md).
+
+## Analytic functions
+
+An analytic function `g(E, params)` depends on the energy `E` in keV and on the fit
+parameters. On its own, with no simulated spectrum, it is a spectrum: the expected
+number of counts per keV, which is multiplied by the width of each bin. `norm` does not
+apply to it. For example a flat background of 0.5 counts per keV:
+
+```@example demo
+components_g = merge(mc_dict, Dict(:flat => (analytic = (E, p) -> p.b,)))
+model_g, _ = build_forward_model(components_g; e_low = 500, e_high = 3200, norm = 1e-3 * livetime)
+
+# 0.5 counts per keV in bins of 10 keV
+model_g(merge(params, (b = 0.5,)), Val(:by_component)).flat[1:3]
+```
+
+Together with a simulated spectrum, the function multiplies it bin by bin, on top of the
+activity and `norm`. For example the spectrum of a beta decay
+``S(E) = F(E) \, (Q - E)^2``, with ``F(E)`` from a simulation and the endpoint ``Q`` a fit
+parameter, or an efficiency curve:
+
+```julia
+:beta => (pdf = h_F, analytic = (E, p) -> max(p.Q - E, 0)^2)
+:K40_hpge_bulk => (pdf = h_K40, analytic = (E, p) -> 1 - exp(-E / p.E0))
+```
+
+A model can be made of analytic components only. There is then no histogram to take the
+binning from, so the bin edges in keV are given with `edges`, see the tutorial
+[Fitting a peak](tutorial_peak.md).
+
+!!! warning
+    An analytic function is evaluated at the centre of each bin only, never integrated
+    over it. A feature narrower than about one bin, such as a peak, comes out wrong:
+    use bins narrow compared with it.
+
+An analytic function with no simulated spectrum must not be negative for any value of
+the parameters inside their prior ranges: a negative prediction has no Poisson
+probability, and the fit stops with an error. Write it so that it cannot be, for example
+a straight line by its values at the two ends of the fit range.
+
+The function is called in every bin, on every call of the model, so keep it short. A
+constant used inside it, such as a livetime, should be a `const` or a global with a
+fixed type (`livetime::Float64 = 1e6`). An ordinary global variable makes each call of
+the model about ten times slower. Like for activity functions, `get_priors` skips the
+analytic components, and their parameters need a prior by hand.
 
 ## Each component separately
 

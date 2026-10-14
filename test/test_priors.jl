@@ -105,15 +105,20 @@ end
     likelihood = build_likelihood(counts, model)
     ranges = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 1e-3)
 
-    # components with an activity function are skipped, the others are as without them
-    mixed = merge(pdfs, Dict(:c => (pdf = pdfs[:a], activity = p -> p.s)))
-    mixed_ranges = @test_logs (:info, r"c has an activity function") get_priors(
-        mixed,
-        data;
-        e_low = 100,
-        e_high = 900,
-        norm = 1e-3,
+    # components with an activity or analytic function are skipped, the others are as
+    # without them
+    mixed = merge(
+        pdfs,
+        Dict(
+            :c => (pdf = pdfs[:a], activity = p -> p.s),
+            :d => (analytic = (E, p) -> p.r,),
+        ),
     )
+    # in any order, the dictionary has none
+    mixed_ranges = @test_logs (:info, r"c has an activity function") (
+        :info,
+        r"d has an analytic function",
+    ) match_mode = :any get_priors(mixed, data; e_low = 100, e_high = 900, norm = 1e-3)
     @test mixed_ranges == ranges
 
     # a uniform distribution on each range

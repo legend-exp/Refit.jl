@@ -105,15 +105,6 @@ mc_dict[:Ar39_liquid_argon] = read_pdf(joinpath(dir, "liquid_argon_Ar39.lh5"); g
 nothing # hide
 ```
 
-Alpha events have no simulation. As a simple model they are a constant spectrum. Its
-activity is the number of counts in each 1 keV bin, so the spectrum is
-`1 / norm` in every bin.
-
-```@example tutorial
-mc_dict[:alpha] = Histogram(data.edges, fill(1 / norm, length(data.weights)))
-nothing # hide
-```
-
 ## Tying two activities
 
 The activity of a component can also be a function of the fit parameters (see
@@ -135,6 +126,17 @@ nothing # hide
 The global `norm` multiplies this component like the others, so the function returns an
 activity in mBq.
 
+## Alpha events
+
+Alpha events have no simulation. As a simple model they are a constant spectrum, an
+analytic component (see [Analytic functions](@ref)). Its parameter is the number of
+counts per keV, and `norm` does not apply to it:
+
+```@example tutorial
+components[:alpha] = (analytic = (E, p) -> p.alpha,)
+nothing # hide
+```
+
 ## Forward model and likelihood
 
 The [forward model](forward_model.md) maps the activities to the expected counts in
@@ -154,16 +156,20 @@ The fit needs a range for each activity. `get_priors` estimates it from the data
 (see [Priors](priors.md)). The reference ranges give the energy window of a
 peak of each isotope in keV. The 1461 keV line of ``^{40}``K and the 2615 keV line of
 ``^{208}``Tl limit the activities of these sources. `get_priors` skips `fibers_K40`,
-which has no parameter of its own.
+which has no parameter of its own, and the analytic `alpha` component, whose range is
+given by hand.
 
 ```@example tutorial
+using IntervalSets
+
 ref_ranges = Dict(:K40 => (1456, 1466), :Pb212_to_Pb208 => (2610, 2620))
 
 ranges = get_priors(components, data; ref_ranges, e_low, e_high, blind, norm)
+ranges[:alpha] = 0.0 .. 10.0  # counts per keV
+ranges
 ```
 
-A range can be changed by hand where the guess is poor, for example
-`ranges[:two_vbb_hpge_bulk] = 0.0 .. 20.0` (with `using IntervalSets`).
+Any other range can be changed by hand in the same way, where the guess is poor.
 
 `build_prior_dist` makes the prior: a uniform distribution on the range of each activity.
 `rand(prior)` draws one random value for each activity, a named tuple that goes
@@ -212,7 +218,7 @@ true_activities = (  # mBq
     two_vbb_hpge_bulk = 3500.0,
     Ar39_liquid_argon = 1000.0,
 )
-true_alpha = 2.0  # counts per 1 keV bin
+true_alpha = 2.0  # counts per keV
 nothing # hide
 ```
 
