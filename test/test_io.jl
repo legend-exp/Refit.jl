@@ -154,7 +154,10 @@ end
         f["nr_sim_events"] = 50
     end
     avg = read_generalised_pdf(Dict(small => 3.0, other => 1.0); groups = "g")
-    @test avg.counts ≈ [0.75 .* [0.1, 0.2] .+ 0.25 .* [0.2, 0.4], 0.75 .* [0.3, 0.4] .+ 0.25 .* [0.6, 0.8]]
+    @test avg.counts ≈ [
+        0.75 .* [0.1, 0.2] .+ 0.25 .* [0.2, 0.4],
+        0.75 .* [0.3, 0.4] .+ 0.25 .* [0.6, 0.8],
+    ]
 
     # a missing grid point
     lh5open(small, "w") do f
