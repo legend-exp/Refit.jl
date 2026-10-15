@@ -189,11 +189,13 @@ function build_forward_model(
 end
 
 # The number type of the fit parameters, for the activities and the prediction:
-# Float64, or the number type of ForwardDiff when it computes derivatives
-_number_type(params::NamedTuple) = _promote_real(Float64, values(params)...)
-_promote_real(T) = T
-_promote_real(T, x::Real, rest...) = _promote_real(promote_type(T, typeof(x)), rest...)
-_promote_real(T, x, rest...) = _promote_real(T, rest...)
+# Float64, or the number type of ForwardDiff when it computes derivatives. It comes from
+# the type of `params`, so Julia knows it when it compiles the model, also for many
+# parameters. Parameters that are not numbers fall back to Float64
+function _number_type(params::NamedTuple)
+    T = promote_type(Float64, eltype(params))
+    return T <: Real ? T : Float64
+end
 
 # add `a` times the counts of the generalised histogram `gh` at the parameters. This is
 # a function of its own so that Julia knows the type of `gh` inside it
