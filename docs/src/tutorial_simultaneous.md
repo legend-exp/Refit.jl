@@ -73,15 +73,15 @@ nothing # hide
 
 ## The likelihood of both spectra
 
-The likelihood of each detector is built as usual. The likelihood of both is the sum of
-their logarithms:
+The likelihood of each detector is built as usual. `joint_likelihood` of BAT.jl
+combines them: the log-likelihood of both is the sum of their log-likelihoods.
 
 ```@example two
-using DensityInterface
+using BAT
 
 likelihood_a = build_likelihood(counts_a, model_a)
 likelihood_b = build_likelihood(counts_b, model_b)
-likelihood_ab = logfuncdensity(p -> logdensityof(likelihood_a, p) + logdensityof(likelihood_b, p))
+likelihood_ab = joint_likelihood(likelihood_a, likelihood_b)
 nothing # hide
 ```
 

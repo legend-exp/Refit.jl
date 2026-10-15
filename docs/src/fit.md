@@ -2,8 +2,8 @@
 
 `Refit.jl` builds the [likelihood](likelihood.md) and the [prior](priors.md).
 [BAT.jl](https://bat.github.io/BAT.jl/stable/) samples the posterior, which combines
-the two. The main commands are below, with the model, data and priors of the other
-examples in this manual:
+the two. The examples in this manual use BAT.jl version 5. The main commands are below,
+with the model, data and priors of the other examples in this manual:
 
 ```@setup fit
 include("example_data.jl")
@@ -46,13 +46,22 @@ best = mode(samples)
 ```
 
 The mode can also be found without sampling, by maximising the posterior with an
-optimiser. `bat_findmode` needs the package `Optim` for this:
+optimiser. `bat_findmode` needs the package `Optim` for this. The models and likelihoods
+of `Refit.jl` work with automatic differentiation by `ForwardDiff`, so an optimiser that
+uses the gradient, such as LBFGS, can be used:
 
 ```julia
-using Optim
+using Optim, ForwardDiff
 
-best = bat_findmode(posterior, OptimAlg(optalg = Optim.NelderMead())).result
+context = BATContext(ad = ForwardDiff)
+best = bat_findmode(posterior, OptimAlg(optalg = Optim.LBFGS()), context).result
 ```
+
+!!! note "Maximum likelihood"
+    `bat_bgml(likelihood, prior, OptimAlg(optalg = Optim.LBFGS()), context)` finds the
+    maximum of the likelihood instead of the posterior. The prior only chooses the
+    parameter space of the search, so the result does not depend on it as long as it is
+    not zero where the likelihood is large.
 
 The uncertainty of each parameter, the smallest interval that contains 68% of its
 posterior, comes from the samples (see [Saving the results](saving.md)).

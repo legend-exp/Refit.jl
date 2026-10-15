@@ -225,8 +225,9 @@ as many calls of the function, and the error of the integral over the bin falls 
 
 An analytic function with no simulated spectrum must not be negative for any value of
 the parameters inside their prior ranges: a negative prediction has no Poisson
-probability, and the fit stops with an error. Write it so that it cannot be, for example
-a straight line by its values at the two ends of the fit range.
+probability, the log-likelihood is `-Inf` and these parameters are rejected, which
+wastes part of the prior range. Write it so that it cannot be negative, for example a
+straight line by its values at the two ends of the fit range.
 
 !!! warning "Constants in an analytic function"
     An analytic function is called in every bin, on every call of the model. A constant
