@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Fitting a peak · Refit.jl</title><meta name="title" content="Fitting a peak · Refit.jl"/><meta property="og:title" content="Fitting a peak · Refit.jl"/><meta property="twitter:title" content="Fitting a peak · Refit.jl"/><meta name="description" content="Documentation for Refit.jl."/><meta property="og:description" content="Documentation for Refit.jl."/><meta property="twitter:description" content="Documentation for Refit.jl."/><meta property="og:url" content="https://legend-exp.github.io/Refit.jl/tutorial_peak/"/><meta property="twitter:url" content="https://legend-exp.github.io/Refit.jl/tutorial_peak/"/><link rel="canonical" href="https://legend-exp.github.io/Refit.jl/tutorial_peak/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Refit.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">User manual</span><ul><li><a class="tocitem" href="../reading/">Reading spectra</a></li><li><a class="tocitem" href="../forward_model/">Forward model</a></li><li><a class="tocitem" href="../binning/">Binning</a></li><li><a class="tocitem" href="../likelihood/">Likelihood</a></li><li><a class="tocitem" href="../priors/">Priors</a></li><li><a class="tocitem" href="../plotting/">Plotting</a></li><li><a class="tocitem" href="../saving/">Saving the results</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../tutorial/">Fitting a background spectrum</a></li><li class="is-active"><a class="tocitem" href>Fitting a peak</a><ul class="internal"><li><a class="tocitem" href="#The-model"><span>The model</span></a></li><li><a class="tocitem" href="#Fake-data"><span>Fake data</span></a></li><li><a class="tocitem" href="#Priors-and-sampling"><span>Priors and sampling</span></a></li><li><a class="tocitem" href="#Result"><span>Result</span></a></li></ul></li><li><a class="tocitem" href="../tutorial_simultaneous/">Simultaneous fits</a></li></ul></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Fitting a peak</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Fitting a peak</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/legend-exp/Refit.jl/blob/main/docs/src/tutorial_peak.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial:-fitting-a-peak"><a class="docs-heading-anchor" href="#Tutorial:-fitting-a-peak">Tutorial: fitting a peak</a><a id="Tutorial:-fitting-a-peak-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial:-fitting-a-peak" title="Permalink"></a></h1><p>This tutorial fits a γ line on a linear background with <a href="../forward_model/#Analytic-functions">analytic functions</a> only, without any simulated spectrum. The peak and the background are two separate components, so the result has the prediction of each. The data are made from the same model with known parameters, so the result can be compared with the truth at the end.</p><h2 id="The-model"><a class="docs-heading-anchor" href="#The-model">The model</a><a id="The-model-1"></a><a class="docs-heading-anchor-permalink" href="#The-model" title="Permalink"></a></h2><p>The peak is a Gaussian with <code>n_peak</code> counts in total, its position <code>mu</code> and width <code>sigma</code> in keV. The background is a straight line from <code>b_low</code> counts per keV at 2580 keV to <code>b_high</code> at 2650 keV, the ends of the fit range. Each function of the energy <code>E</code> in keV gives the expected number of counts per keV.</p><p>Written with its two end points, the line cannot become negative for any value of the parameters in the ranges below. This matters: a negative prediction has no Poisson probability, and the fit stops with an error.</p><pre><code class="language-julia hljs">using Refit
+using StatsBase
+
+peak(E, p) = p.n_peak * exp(-(E - p.mu)^2 / (2 * p.sigma^2)) / (sqrt(2π) * p.sigma)
+background(E, p) = p.b_low + (p.b_high - p.b_low) * (E - 2580) / 70
+
+components = Dict(:peak =&gt; (analytic = peak,), :background =&gt; (analytic = background,))</code></pre><p>There is no histogram to take the binning from, so the bin edges in keV are given with <code>edges</code>. The functions are evaluated at the centre of each bin, so the bins of 0.5 keV are narrow compared with the width of the peak. With wider bins, <code>points_per_bin</code> evaluates them at several points in each bin and takes the average.</p><pre><code class="language-julia hljs">model, bin_edges = build_forward_model(
+    components;
+    e_low = 2580,
+    e_high = 2650,
+    edges = 2580.0:0.5:2650.0,
+)</code></pre><h2 id="Fake-data"><a class="docs-heading-anchor" href="#Fake-data">Fake data</a><a id="Fake-data-1"></a><a class="docs-heading-anchor-permalink" href="#Fake-data" title="Permalink"></a></h2><p>The measured counts are drawn from a Poisson distribution around the prediction of the model for known parameters:</p><pre><code class="language-julia hljs">using Distributions
+using Random
+
+truth = (n_peak = 500.0, mu = 2614.5, sigma = 1.2, b_low = 12.0, b_high = 8.0)
+
+Random.seed!(1)
+counts = rand.(Poisson.(model(truth)))
+likelihood = build_likelihood(counts, model)</code></pre><h2 id="Priors-and-sampling"><a class="docs-heading-anchor" href="#Priors-and-sampling">Priors and sampling</a><a id="Priors-and-sampling-1"></a><a class="docs-heading-anchor-permalink" href="#Priors-and-sampling" title="Permalink"></a></h2><p><code>get_priors</code> only estimates ranges for the activities of simulated spectra, so here every range is given by hand. <code>build_prior_dist</code> makes a uniform prior on each.</p><pre><code class="language-julia hljs">using IntervalSets
+using BAT
+
+prior = build_prior_dist(
+    Dict(
+        :n_peak =&gt; 0.0 .. 2000.0,
+        :mu =&gt; 2605.0 .. 2625.0,
+        :sigma =&gt; 0.3 .. 5.0,
+        :b_low =&gt; 0.0 .. 50.0,
+        :b_high =&gt; 0.0 .. 50.0,
+    ),
+)
+
+samples = bat_sample(
+    PosteriorMeasure(likelihood, prior),
+    TransformedMCMC(
+        proposal = RandomWalk(),
+        strict = false,
+        burnin = MCMCMultiCycleBurnin(nsteps_per_cycle = 20_000, max_ncycles = 50),
+        nsteps = 10^5,
+        nchains = 4,
+    ),
+).result</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: MCMCChainPoolInit: trying to generate 4 viable MCMC chain state(s).
+[ Info: Selected 4 MCMC chain state(s).
+[ Info: Begin tuning of 4 MCMC chain(s).
+[ Info: MCMC Tuning cycle 1 finished, 4 chains, 4 tuned, 4 converged.
+[ Info: MCMC tuning of 4 chains successful after 1 cycle(s).
+[ Info: Running post-tuning stabilization steps for 4 MCMC chain(s).
+[ Info: Generate main samples using 4 MCMC chain(s).</code></pre><h2 id="Result"><a class="docs-heading-anchor" href="#Result">Result</a><a id="Result-1"></a><a class="docs-heading-anchor-permalink" href="#Result" title="Permalink"></a></h2><p>The marginal posterior of each parameter, with the best fit and the true value:</p><pre><code class="language-julia hljs">using LegendMakie
+import Format
+import CairoMakie
+
+best = mode(samples)
+# the title and the axis label of each panel
+labels = (
+    n_peak = (&quot;Counts in the peak&quot;, &quot;Counts&quot;),
+    mu = (&quot;Position&quot;, &quot;Energy [keV]&quot;),
+    sigma = (&quot;Width σ&quot;, &quot;Energy [keV]&quot;),
+    b_low = (&quot;Background at 2580 keV&quot;, &quot;Counts per keV&quot;),
+    b_high = (&quot;Background at 2650 keV&quot;, &quot;Counts per keV&quot;),
+)
+
+fig = CairoMakie.Figure(size = (1300, 700))
+for (i, name) in enumerate(keys(labels))
+    ax = CairoMakie.Axis(
+        fig[fld1(i, 3), mod1(i, 3)];
+        title = labels[name][1],
+        xlabel = labels[name][2],
+        ylabel = &quot;Probability density&quot;,
+        xticks = CairoMakie.LinearTicks(3),
+    )
+    plot_posterior!(
+        ax,
+        samples,
+        name;
+        best = best[name],
+        truth = truth[name],
+        bandcolor = :lightblue,
+    )
+end
+
+# the legend of the first panel, in the empty place of the grid
+CairoMakie.Legend(fig[2, 3], fig.content[1]; framevisible = false)
+fig</code></pre><img src="683bb96e.png" alt="Example block output"/><p>The prediction of the best fit, and of each component, compared with the data:</p><pre><code class="language-julia hljs">data_hist = counts_to_histogram(counts, bin_edges)
+hists = get_best_fit_histograms(best, model, bin_edges)
+
+fig, ax, ax_res = fit_axes(; scale = :linear, ylabel = &quot;Counts per 0.5 keV&quot;)
+plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = &quot;Data&quot;)
+plot_hist!(ax, hists[:background]; label = &quot;Background&quot;)
+plot_hist!(ax, hists[:peak]; label = &quot;Peak&quot;)
+plot_hist!(ax, hists[:total]; color = :black, linewidth = 3, label = &quot;Best fit&quot;)
+plot_residuals!(ax_res, hists[:total], data_hist)
+
+CairoMakie.xlims!(ax, 2580, 2650)
+CairoMakie.ylims!(ax_res, -6, 6)
+CairoMakie.axislegend(ax)
+fig</code></pre><img src="daaa0e39.png" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tutorial/">« Fitting a background spectrum</a><a class="docs-footer-nextpage" href="../tutorial_simultaneous/">Simultaneous fits »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Thursday 15 October 2026 11:13">Thursday 15 October 2026</span>. Using Julia version 1.13.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
