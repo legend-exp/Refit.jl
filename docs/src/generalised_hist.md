@@ -19,26 +19,33 @@ Inside, it holds the histogram simulated at every point of a grid in the paramet
 each bin it interpolates linearly in each parameter between the grid points around the
 given values.
 
-For example, the [FCCD tutorial](tutorial_fccd.md) uses the spectra of a 60 keV γ line,
-simulated on a grid of FCCD and transition layer thickness (TL), in mm.
-[`read_generalised_pdf`](@ref) reads them from a file and divides them by the number of
-simulated γs:
+As an example, a spectrum with a peak on a falling continuum, where a parameter `x`
+moves counts from the peak into the continuum. Its histogram is known at three grid
+points, `x` = 0, 0.5 and 1:
 
 ```@example systematics
 using Refit
 using StatsBase
 
-file = "../../test/test_files/fccd/templates.lh5"  # relative to docs/src
-ghist = read_generalised_pdf(file; groups = "pdf/geds")
-ghist.grid
+energy = 0.5:1.0:99.5  # bin centres in keV
+
+function spectrum(x)
+    peak = exp.(-(energy .- 60) .^ 2 ./ 8)
+    continuum = exp.(-energy ./ 30)
+    counts = 1000 .* ((1 - x) .* peak ./ sum(peak) .+ x .* continuum ./ sum(continuum))
+    return Histogram((0.0:1.0:100.0,), counts)
+end
+
+x_grid = 0.0:0.5:1.0
+ghist = GeneralisedHistogram([spectrum(x) for x in x_grid], :x => x_grid)
+nothing # hide
 ```
 
 For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram` and
 [`get_weights`](@ref) its counts per bin. The values are given as a named tuple, in any
 order. Other entries, such as the activities of a fit, are ignored. A value outside the
-grid is an error. The spectra for three thicknesses of the transition layer, which sets
-the level of the continuum below the peak, are below. The thickness of 0.25 mm lies
-between two grid points:
+grid is an error. The spectra at the three grid points and at `x` = 0.25, between two of
+them:
 
 ```@example systematics
 using LegendMakie
@@ -46,18 +53,17 @@ import Format
 import CairoMakie
 
 fig = CairoMakie.Figure(size = (1100, 450))
-ax = CairoMakie.Axis(
-    fig[1, 1];
-    yscale = log10,
-    xlabel = "Energy [keV]",
-    ylabel = "Counts per γ and keV",
-)
-for tl in (0.1, 0.25, 0.4)  # mm
-    h = get_histogram(ghist, (fccd = 1.0, tl = tl))
-    plot_hist!(ax, h; label = "FCCD = 1.0 mm, TL = $tl mm")
+ax = CairoMakie.Axis(fig[1, 1]; xlabel = "Energy [keV]", ylabel = "Counts per keV")
+for x in (0.0, 0.5, 1.0)
+    plot_hist!(ax, get_histogram(ghist, (x = x,)); label = "x = $x, grid point")
 end
-CairoMakie.xlims!(ax, 0, 100)
-CairoMakie.ylims!(ax, 1e-4, 1)
+plot_hist!(
+    ax,
+    get_histogram(ghist, (x = 0.25,));
+    color = :black,
+    linestyle = :dash,
+    label = "x = 0.25, interpolated",
+)
 CairoMakie.Legend(fig[1, 2], ax; framevisible = false)
 fig
 ```
@@ -73,57 +79,50 @@ The histograms usually come from a simulation that writes them to an LH5 file, i
 format described [below](@ref "File format of a generalised histogram").
 [`read_generalised_hist`](@ref) reads one. [`read_generalised_pdf`](@ref) also divides
 by the number of simulated primaries and averages several files with weights, like
-[`read_pdf`](@ref).
+[`read_pdf`](@ref):
 
-For custom cases, a generalised histogram can also be built in Julia from an array of
-histograms, with one dimension per parameter. Each further argument is a pair
-`name => values` for one dimension, in the order of the dimensions. For example, the
-spectrum of a 60 keV γ line for a dead layer of thickness `d` in mm, without a
-transition layer, if the γs interact uniformly in the first 2 mm of the detector: a
-fraction (2 − d) / 2 is in the peak, the rest is lost.
-
-```@example systematics
-function line_spectrum(d)
-    weights = zeros(100)  # 1 keV bins from 0 to 100 keV
-    weights[61] = (2 - d) / 2  # the bin from 60 to 61 keV
-    return Histogram((0.0:1.0:100.0,), weights)
-end
-
-dead_layer = 0.5:0.25:1.5  # mm
-custom = GeneralisedHistogram([line_spectrum(d) for d in dead_layer], :d => dead_layer)
-get_weights(custom, (d = 0.6,))[61]
+```julia
+ghist = read_generalised_pdf("simulation.lh5"; groups = "pdf/mul1/all")
 ```
+
+For custom cases, as in the example above, a generalised histogram is built in Julia
+from an array of histograms, with one dimension per parameter. Each further argument is
+a pair `name => values` for one dimension, in the order of the dimensions.
 
 ## File format of a generalised histogram
 
 A generalised histogram is stored in an LH5 group with two parts: the description of
 the grid in `grid_info`, and the histogram of every grid point in `grid`. In a file of
-simulated spectra it takes the place of a histogram, for example at `pdf/geds`, next to
-the number of simulated primaries:
+simulated spectra it takes the place of a histogram, for example at `pdf/mul1/all`,
+next to the number of simulated primaries. For two parameters, whose names stand here
+as `<name0>` and `<name1>`:
 
 ```text
 /
 ├── nr_sim_events      number of simulated primaries
 └── pdf
-    └── geds
-        ├── grid_info
-        │   ├── axis_0
-        │   │   ├── name      "fccd"
-        │   │   └── values
-        │   │       ├── first     0.6
-        │   │       ├── last      1.4
-        │   │       └── step      0.2
-        │   └── axis_1
-        │       ├── name      "tl"
-        │       └── values    first, last, step
-        └── grid
-            ├── fccd_0
-            │   ├── tl_0      histogram
-            │   ├── tl_1      histogram
-            │   :
-            ├── fccd_1
-            :
+    └── mul1
+        └── all
+            ├── grid_info
+            │   ├── axis_0
+            │   │   ├── name      "<name0>"
+            │   │   └── values
+            │   │       ├── first
+            │   │       ├── last
+            │   │       └── step
+            │   └── axis_1
+            │       ├── name      "<name1>"
+            │       └── values    first, last, step
+            └── grid
+                ├── <name0>_0
+                │   ├── <name1>_0     histogram
+                │   ├── <name1>_1     histogram
+                │   :
+                ├── <name0>_1
+                :
 ```
+
+The names are free, for example `fccd` and `tl` in the [FCCD tutorial](tutorial_fccd.md).
 
 The conventions are:
 
@@ -146,8 +145,8 @@ keeps the bins fully inside `e_low` to `e_high`, at every grid point. It works t
 for a `Histogram`, such as the measured spectrum, so both get the same bins:
 
 ```@example systematics
-ghist_fit, bin_edges = select_bins(ghist; binning = 5, e_low = 5, e_high = 100)
-get_weights(ghist_fit, (fccd = 1.05, tl = 0.27))
+ghist_fit, bin_edges = select_bins(ghist; binning = 5, e_low = 20, e_high = 100)
+get_weights(ghist_fit, (x = 0.3,))
 ```
 
 Selecting bins and interpolating both sum counts, so the order does not matter. Select
