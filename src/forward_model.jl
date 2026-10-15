@@ -15,6 +15,11 @@ Build a function that maps fit parameters to the predicted counts per energy bin
 - `(analytic = g,)`: an analytic spectrum with no simulation, for example a flat
   background. `g(E, params)` is the expected number of counts per keV at the energy `E`
 
+In place of a `Histogram`, a component can have a [`GeneralisedHistogram`](@ref), a
+simulated spectrum that depends on fit parameters, for example the thickness of a dead
+layer. At each evaluation it is interpolated at the values of these parameters in
+`params`, then treated like a `Histogram`.
+
 `params` is the named tuple of all fit parameters, in any order. The prediction of a
 component in bin `i` is `activity * norm * g(E_i, params) * counts[i]`, with `g = 1`
 without `analytic`, and `g(E_i, params) * width_i` for an analytic component with no
@@ -76,15 +81,13 @@ function build_forward_model(
             makes every call of the model much slower: declare them `const`, or with a \
             type such as `x::Float64 = 1.0`"
     end
-    # the simulated spectra, rebinned. An analytic component with no simulation has none
-    rebin_to, ranges = _binning(binning)
-    hists = [isnothing(s.pdf) ? nothing : rebin_hist(s.pdf, rebin_to) for s in specs]
-    model_edges = _model_edges(hists, edges, rebin_to)
-
-    is_valid =
-        get_valid_bins(model_edges, (e_low, e_high)) .& _in_ranges(model_edges, ranges)
-    bin_low = model_edges[1:(end-1)][is_valid]
-    bin_high = model_edges[2:end][is_valid]
+    # the counts of the simulated spectra in the bins of the fit, and the edges of these
+    # bins. An analytic component with no simulation has none
+    selected = [
+        isnothing(s.pdf) ? nothing : select_bins(s.pdf; binning, e_low, e_high) for
+        s in specs
+    ]
+    bin_low, bin_high = _model_bin_edges(selected, edges; binning, e_low, e_high)
     width = bin_high .- bin_low
     # the energies in keV at which analytic functions are evaluated, `points_per_bin` of
     # them in every bin: the centres of that many equal parts of the bin
@@ -95,9 +98,16 @@ function build_forward_model(
 
     # counts per kept bin of every component, in the order of `names`: the simulated
     # spectrum times `norm`, or the bin widths for an analytic component with no
-    # simulation, whose function is a number of counts per keV
-    counts =
-        Vector{Float64}[isnothing(h) ? width : h.weights[is_valid] .* norm for h in hists]
+    # simulation, whose function is a number of counts per keV. A generalised histogram
+    # is kept in `ghists` instead, and interpolated at every evaluation
+    is_ghist = [!isnothing(sel) && first(sel) isa GeneralisedHistogram for sel in selected]
+    counts = Vector{Float64}[
+        isnothing(sel) ? width : is_ghist[k] ? Float64[] : first(sel) .* norm for
+        (k, sel) in enumerate(selected)
+    ]
+    ghists = Dict{Int,GeneralisedHistogram}(
+        k => _times(first(selected[k]), norm) for k in findall(is_ghist)
+    )
 
     # the positions in `names` of the components whose activity is a fit parameter, of
     # those with an activity function, and of those with an analytic function
@@ -145,10 +155,18 @@ function build_forward_model(
         a = activities(params)
         pred = zeros(length(bin_low))
         for k in no_analytic
-            pred .+= a[k] .* counts[k]
+            if is_ghist[k]
+                _add_interpolated!(pred, a[k], ghists[k], params)
+            else
+                pred .+= a[k] .* counts[k]
+            end
         end
         for (g, k) in zip(analytic_funcs, with_analytic)
-            add_analytic!(pred, a[k], g, counts[k], params)
+            if is_ghist[k]
+                add_analytic!(pred, a[k], g, get_weights(ghists[k], params), params)
+            else
+                add_analytic!(pred, a[k], g, counts[k], params)
+            end
         end
         return pred
     end
@@ -157,19 +175,32 @@ function build_forward_model(
         a = activities(params)
         parts = Vector{Vector{Float64}}(undef, length(names))
         for k in no_analytic
-            parts[k] = a[k] .* counts[k]
+            c = is_ghist[k] ? get_weights(ghists[k], params) : counts[k]
+            parts[k] = a[k] .* c
         end
         for (g, k) in zip(analytic_funcs, with_analytic)
-            parts[k] = add_analytic!(zeros(length(bin_low)), a[k], g, counts[k], params)
+            c = is_ghist[k] ? get_weights(ghists[k], params) : counts[k]
+            parts[k] = add_analytic!(zeros(length(bin_low)), a[k], g, c, params)
         end
         return NamedTuple{names}(Tuple(parts))
     end
     return forward_model, (low = bin_low, high = bin_high)
 end
 
-# a component is a Histogram, or a named tuple with a `pdf` and/or an `analytic`
-# function, and an `activity` function if it has a `pdf`
-_component_spec(pdf::Histogram{<:Real,1}) =
+# add `a` times the counts of the generalised histogram `gh` at the parameters. This is
+# a function of its own so that Julia knows the type of `gh` inside it
+function _add_interpolated!(pred, a, gh::GeneralisedHistogram, params)
+    pred .+= a .* get_weights(gh, params)
+    return pred
+end
+
+# the generalised histogram `gh` with its counts times `norm`
+_times(gh::GeneralisedHistogram, norm) =
+    GeneralisedHistogram(gh.bin_edges, gh.grid, map(c -> c .* norm, gh.counts))
+
+# a component is a Histogram or a GeneralisedHistogram, or a named tuple with a `pdf`
+# and/or an `analytic` function, and an `activity` function if it has a `pdf`
+_component_spec(pdf::Union{Histogram{<:Real,1},GeneralisedHistogram}) =
     (pdf = pdf, activity = nothing, analytic = nothing)
 function _component_spec(c::NamedTuple)
     extra = setdiff(keys(c), (:pdf, :activity, :analytic))
@@ -233,16 +264,22 @@ _in_ranges(edges, ranges) = [
     (low, high) in zip(edges[1:(end-1)], edges[2:end])
 ]
 
-# Bin edges of the model in keV. All the simulated spectra must share them. `edges` is
-# treated like a spectrum without counts: it is rebinned and checked in the same way.
-function _model_edges(hists, edges, binning)
-    binnings = AbstractVector[h.edges[1] for h in hists if !isnothing(h)]
-    isnothing(edges) || push!(binnings, rebin_hist(Histogram(edges), binning).edges[1])
-    isempty(binnings) && throw(
+# The lower and upper edges in keV of the bins of the model. All the simulated spectra
+# must have the same bins. `edges` is treated like a spectrum without counts: its bins
+# are selected and checked in the same way.
+function _model_bin_edges(selected, edges; binning, e_low, e_high)
+    all_bin_edges = @NamedTuple{low::Vector{Float64}, high::Vector{Float64}}[
+        last(sel) for sel in selected if !isnothing(sel)
+    ]
+    if !isnothing(edges)
+        empty = Histogram((collect(Float64, edges),), zeros(length(edges) - 1))
+        push!(all_bin_edges, last(select_bins(empty; binning, e_low, e_high)))
+    end
+    isempty(all_bin_edges) && throw(
         ArgumentError("a model with only analytic components needs the bin edges `edges`"),
     )
-    allequal(binnings) || error("Histogram binning mismatch")
-    return first(binnings)
+    allequal(all_bin_edges) || error("Histogram binning mismatch")
+    return first(all_bin_edges)
 end
 
 # The global variables that `f` reads directly and that are neither `const` nor of a

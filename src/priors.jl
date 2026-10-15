@@ -51,6 +51,10 @@ around a peak. A spectrum uses the range of the longest key that its name starts
 with, for example `:K40_hpge_bulk` uses `:K40`. Spectra without a range only use
 the fit range. `e_low`, `e_high`, `binning` and `norm` are as in
 [`build_forward_model`](@ref).
+
+For a [`GeneralisedHistogram`](@ref), `a_max` is computed for the spectrum at every grid
+point, and the largest is used, so the range holds the activity for any values of the
+parameters of the grid.
 """
 function get_priors(
     pdfs::AbstractDict{Symbol},
@@ -71,18 +75,27 @@ function get_priors(
             @info "get_priors: $name has $kind function, its parameters need priors by hand"
             continue
         end
-        pdf = spec.pdf
-        a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; binning) / norm
-        isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
-
         matching =
             filter(k -> startswith(string(name), string(k)), collect(keys(ref_ranges)))
-        if !isempty(matching)
-            low, high = ref_ranges[argmax(k -> length(string(k)), matching)]
-            a_ref = peak_factor * get_max_norm(low, high, data, pdf; binning) / norm
-            a_max = min(a_max, a_ref)
+        ref =
+            isempty(matching) ? nothing :
+            ref_ranges[argmax(k -> length(string(k)), matching)]
+
+        # the largest activity for one simulated spectrum
+        function largest_activity(pdf)
+            a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; binning) / norm
+            isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
+            if !isnothing(ref)
+                a_ref = peak_factor * get_max_norm(ref..., data, pdf; binning) / norm
+                a_max = min(a_max, a_ref)
+            end
+            return a_max
         end
-        priors[name] = 0.0 .. a_max
+
+        # a generalised histogram has a spectrum at every grid point, the widest range is
+        # used
+        pdfs = spec.pdf isa GeneralisedHistogram ? _grid_histograms(spec.pdf) : [spec.pdf]
+        priors[name] = 0.0 .. maximum(largest_activity, pdfs)
     end
     return priors
 end
@@ -101,3 +114,7 @@ end
 
 _to_distribution(r::Interval) = Uniform(r.left, r.right)
 _to_distribution(d::UnivariateDistribution) = d
+
+# the histogram at every grid point of a generalised histogram
+_grid_histograms(gh::GeneralisedHistogram) =
+    [Histogram((_contiguous_edges(gh.bin_edges),), c) for c in vec(gh.counts)]
