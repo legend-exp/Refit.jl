@@ -101,6 +101,57 @@ end
     @test pdf.weights ≈ 1.5 .* weights
 end
 
+@testset "read_generalised_hist" begin
+    # written in Python with lgdo, the grid values with units of mm
+    file = joinpath(@__DIR__, "test_files", "fccd", "templates.lh5")
+    gh = read_generalised_hist("pdf/geds", file)
+    @test gh isa GeneralisedHistogram
+    @test keys(gh.grid) == (:fccd, :tl)
+    @test gh.grid.fccd ≈ 0.6:0.2:1.4
+    @test gh.grid.tl ≈ 0.0:0.1:0.5
+    @test gh.edges == 0:1:70
+    # the groups count from 0, the array from 1
+    @test gh.counts[3, 5] == read_hist("pdf/geds/grid/fccd_2/tl_4", file).weights
+    @test get_weights(gh, (fccd = 1.0, tl = 0.4)) == gh.counts[3, 5]
+
+    # one parameter, written in Julia without units
+    small = tempname() * ".lh5"
+    binning = (binedges = (first = 0.0, last = 2.0, step = 1.0), closedleft = true)
+    lh5open(small, "w") do f
+        f["g/grid_info/axis_0/name"] = "z"
+        f["g/grid_info/axis_0/values"] = (first = -1.0, last = 1.0, step = 2.0)
+        for (i, w) in enumerate(([1.0, 2.0], [3.0, 4.0]))
+            f["g/grid/z_$(i - 1)/binning/axis_0"] = binning
+            f["g/grid/z_$(i - 1)/weights"] = w
+        end
+        f["nr_sim_events"] = 10
+    end
+    gh = read_generalised_hist("g", small)
+    @test gh.grid == (z = -1.0:2.0:1.0,)
+    @test get_weights(gh, (z = 0.0,)) ≈ [2, 3]
+
+    # read_generalised_pdf divides by the number of primaries and sums weighted groups
+    @test get_weights(read_generalised_pdf(small; groups = "g"), (z = 0.0,)) ≈ [0.2, 0.3]
+    pdf = read_generalised_pdf(small; groups = ["g", "g"], weights = [0.5, 2.0])
+    @test pdf.counts ≈ [[0.25, 0.5], [0.75, 1.0]]
+    @test read_generalised_pdf(small; groups = "g", n_prim_field = nothing).counts ==
+          [[1, 2], [3, 4]]
+    @test_throws DimensionMismatch read_generalised_pdf(
+        small;
+        groups = "g",
+        weights = [1, 2],
+    )
+
+    # a missing grid point
+    lh5open(small, "w") do f
+        f["g/grid_info/axis_0/name"] = "z"
+        f["g/grid_info/axis_0/values"] = (first = -1.0, last = 1.0, step = 1.0)
+        f["g/grid/z_0/binning/axis_0"] = binning
+        f["g/grid/z_0/weights"] = [1.0, 2.0]
+    end
+    @test_throws ArgumentError read_generalised_hist("g", small)
+end
+
 @testset "write best fit" begin
     edges = 0.0:100.0:1000.0
     pdfs =
