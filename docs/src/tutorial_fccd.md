@@ -7,7 +7,7 @@ the result can be compared with the truth at the end.
 
 ## Model of the detector surface
 
-A γ of 60 keV deposits its energy at a depth that is uniform from 0 to 2 mm below the
+As a toy model we assume a γ of 60 keV deposits its energy at a depth that is uniform from 0 to 2 mm below the
 surface of the detector. The fraction of the charge that is collected from a depth ``d``
 depends on two parameters, in mm:
 

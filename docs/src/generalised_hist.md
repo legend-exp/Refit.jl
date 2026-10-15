@@ -3,18 +3,14 @@
 `Refit.jl` contains functionality for handling the effect of systematic uncertainties in
 simulated spectra.
 
-In a fit of simulated spectra, the activity of each source scales a spectrum of fixed
-shape. Some properties of the setup are only known within an uncertainty and change the
-shape itself, for example the thickness of the dead layer of a detector (FCCD, full
-charge collection depth), the width of its transition layer, or the position of a
-source. A scale factor cannot describe them. Instead, the spectrum is simulated on a
-grid of values of these properties and interpolated between the grid points, also
-called template morphing. The properties then become parameters of the fit, and their
-uncertainty is part of the result.
+In a standard template fit of simulated spectra, the activity of each source scales a spectrum of fixed
+shape. `Refit.jl` can incorportate systematic uncertainities in the Monte-Carlo templates directly
+into the model allowing them to become fit parameters and the uncertainity averaged over.
 
 ## Generalised histograms
+This is done with a [`GeneralisedHistogram`](@ref) object. This is like a `Histogram` but one
+where the counts depend on parameters values.
 
-A [`GeneralisedHistogram`](@ref) is like a `Histogram` whose counts depend on parameters.
 Inside, it holds the histogram simulated at every point of a grid in the parameters. In
 each bin it interpolates linearly in each parameter between the grid points around the
 given values.

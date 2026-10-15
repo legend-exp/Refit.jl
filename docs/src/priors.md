@@ -28,6 +28,14 @@ Two windows are used and the smaller `a_max` is kept:
 - a reference range of the source, for example around a peak, with the safety factor
   `peak_factor` (default 1.5).
 
+!!! note "Generalised histograms"
+    For a [generalised histogram](generalised_hist.md), whose spectrum depends on
+    parameters, `a_max` is computed for the spectrum at every grid point, and the largest
+    is used. The range then holds the activity for any values of the parameters in the
+    grid, usually set by the grid point with the fewest simulated counts. When both
+    windows are used, the widest range can lie slightly between grid points, so it is
+    an estimate, like the other ranges.
+
 ## Usage
 
 ```@setup demo
