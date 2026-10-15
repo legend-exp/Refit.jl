@@ -142,6 +142,20 @@ end
         weights = [1, 2],
     )
 
+    # the weighted average of two files, each divided by its own number of primaries
+    other = tempname() * ".lh5"
+    lh5open(other, "w") do f
+        f["g/grid_info/axis_0/name"] = "z"
+        f["g/grid_info/axis_0/values"] = (first = -1.0, last = 1.0, step = 2.0)
+        for (i, w) in enumerate(([10.0, 20.0], [30.0, 40.0]))
+            f["g/grid/z_$(i - 1)/binning/axis_0"] = binning
+            f["g/grid/z_$(i - 1)/weights"] = w
+        end
+        f["nr_sim_events"] = 50
+    end
+    avg = read_generalised_pdf(Dict(small => 3.0, other => 1.0); groups = "g")
+    @test avg.counts ≈ [0.75 .* [0.1, 0.2] .+ 0.25 .* [0.2, 0.4], 0.75 .* [0.3, 0.4] .+ 0.25 .* [0.6, 0.8]]
+
     # a missing grid point
     lh5open(small, "w") do f
         f["g/grid_info/axis_0/name"] = "z"
