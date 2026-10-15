@@ -2,13 +2,18 @@
     poisson_likelihood(obs, pred)
 
 Poisson log-likelihood of observed counts `obs` given predicted counts `pred`,
-dropping the constant `-log(k!)` term. `pred` must be positive; a tiny `eps()` is
-added to avoid `log(0)`.
+dropping the constant `-log(k!)` term. A tiny `eps()` is added to the prediction inside
+the logarithm, so that a bin predicted empty gives a finite value. A negative prediction
+has no Poisson probability and gives `-Inf`, so that a sampler or an optimiser rejects
+these parameters.
 """
 function poisson_likelihood(obs::AbstractVector, pred::AbstractVector)
     length(obs) == length(pred) || throw(DimensionMismatch("obs and pred differ in length"))
-    return sum(k * log(λ + eps()) - λ for (k, λ) in zip(obs, pred))
+    return sum(_poisson_term(k, λ) for (k, λ) in zip(obs, pred))
 end
+
+# the log-likelihood of `k` counts for the prediction `λ`, -Inf for a negative one
+_poisson_term(k, λ) = λ < 0 ? oftype(k * log(one(λ)) - λ, -Inf) : k * log(λ + eps()) - λ
 
 """
     build_likelihood(counts, model)
