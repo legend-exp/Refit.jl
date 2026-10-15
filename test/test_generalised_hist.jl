@@ -64,10 +64,37 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
         for binning in (3, [0.0, 2.0, 7.0, 12.0])
             r = rebin_hist(gh, binning)
             @test r.grid == gh.grid
-            @test r.edges == rebin_hist(get_histogram(gh, params), binning).edges[1]
+            expected = rebin_hist(get_histogram(gh, params), binning)
+            @test [r.bin_edges.low; r.bin_edges.high[end]] == expected.edges[1]
             @test get_weights(r, params) ≈
                   rebin_hist(get_histogram(gh, params), binning).weights
         end
+    end
+
+    @testset "select_bins" begin
+        rng = MersenneTwister(2)
+        hists = [hist_with(rand(rng, 12)) for _ = 1:3]
+        gh = GeneralisedHistogram(hists, :z => 0.0:1.0:2.0)
+        params = (z = 1.3,)
+
+        # the same bins and counts as selecting the bins of the interpolated histogram
+        for kw in (
+            (binning = 3,),
+            (binning = 2, e_low = 1, e_high = 11),
+            (binning = [0:2:4, 8:2:12],),
+        )
+            selected, bin_edges = select_bins(gh; kw...)
+            counts, expected_edges = select_bins(get_histogram(gh, params); kw...)
+            @test bin_edges == expected_edges == selected.bin_edges
+            @test get_weights(selected, params) ≈ counts
+        end
+
+        # a gap becomes an empty bin of the histogram, and cannot be rebinned
+        selected, _ = select_bins(gh; binning = [0:2:4, 8:2:12])
+        h = get_histogram(selected, params)
+        @test h.edges[1] == [0, 2, 4, 8, 10, 12]
+        @test h.weights[3] == 0
+        @test_throws ArgumentError rebin_hist(selected, 2)
     end
 
     @testset "add_histograms" begin

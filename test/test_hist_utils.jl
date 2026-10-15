@@ -30,6 +30,28 @@ using StatsBase
         @test_throws ArgumentError rebin_hist(h, [0.0])
     end
 
+    @testset "select_bins" begin
+        h1 = Histogram(0.0:1.0:10.0, collect(1.0:10.0))
+        # by default all bins
+        counts, bin_edges = select_bins(h1)
+        @test counts == 1:10
+        @test bin_edges.low == 0:9 && bin_edges.high == 1:10
+        # rebinned, then only the bins fully inside the range
+        counts, bin_edges = select_bins(h1; binning = 2, e_low = 1, e_high = 9)
+        @test counts == [3 + 4, 5 + 6, 7 + 8]
+        @test bin_edges.low == [2, 4, 6] && bin_edges.high == [4, 6, 8]
+        # a region left out between two ranges
+        counts, bin_edges = select_bins(h1; binning = [0:2:4, 6:2:10])
+        @test counts == [1 + 2, 3 + 4, 7 + 8, 9 + 10]
+        @test bin_edges.low == [0, 2, 6, 8]
+        # the same bins and counts as a forward model
+        model, model_edges =
+            build_forward_model(Dict(:a => h1); e_low = 1, e_high = 9, binning = 2)
+        counts, bin_edges = select_bins(h1; binning = 2, e_low = 1, e_high = 9)
+        @test bin_edges == model_edges
+        @test counts == get_counts(h1, model_edges) == model((a = 1.0,))
+    end
+
     @testset "uniform_binning_with_peaks" begin
         h1 = Histogram(0.0:1.0:100.0, ones(100))
         # no peaks: uniform bins, the last one narrower
