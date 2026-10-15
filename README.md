@@ -28,7 +28,7 @@ A minimal fit can be performed with:
 
 ```julia
 using Refit
-using BAT
+using BAT  # version 5
 using IntervalSets
 
 # read the data as a Histogram

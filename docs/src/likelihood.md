@@ -92,7 +92,9 @@ logdensityof(likelihood, other)
 `poisson_likelihood(counts, pred)` is the underlying function. It raises a
 `DimensionMismatch` if the two vectors differ in length. A bin with a predicted
 count of zero is allowed: a tiny number (`eps()`) is added to the prediction inside
-the logarithm, so the result stays finite.
+the logarithm, so the result stays finite. A negative prediction has no Poisson
+probability, and the log-likelihood is then `-Inf`, so that a sampler or an optimiser
+rejects these parameters.
 
 !!! warning "The statistical uncertainty of the simulation is not included"
     The likelihood treats the simulated spectra as exact. Their statistical
@@ -111,15 +113,16 @@ of the log-likelihoods of each spectrum ``s``:
 \ln L = \sum_s \ln L_s
 ```
 
-Build a model and a likelihood for each spectrum, and add them:
+Build a model and a likelihood for each spectrum, and combine them with
+`joint_likelihood` of BAT.jl, which adds their log-likelihoods:
 
 ```julia
-using DensityInterface
+using BAT
 
 likelihood_a = build_likelihood(get_counts(data_a, bin_edges_a), model_a)
 likelihood_b = build_likelihood(get_counts(data_b, bin_edges_b), model_b)
 
-likelihood = logfuncdensity(p -> logdensityof(likelihood_a, p) + logdensityof(likelihood_b, p))
+likelihood = joint_likelihood(likelihood_a, likelihood_b)
 ```
 
 `likelihood` is used like any other, for example in a `PosteriorMeasure` of BAT.jl. All

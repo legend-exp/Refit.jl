@@ -15,7 +15,7 @@ The peak is a Gaussian with `n_peak` counts in total, its position `mu` and widt
 
 Written with its two end points, the line cannot become negative for any value of the
 parameters in the ranges below. This matters: a negative prediction has no Poisson
-probability, and the fit stops with an error.
+probability, so these parameters would be rejected and part of the ranges wasted.
 
 ```@example peak
 using Refit
