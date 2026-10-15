@@ -126,6 +126,41 @@ function get_valid_bins(edges::AbstractVector{<:Real}, range::Tuple)
 end
 
 """
+    select_bins(h::Histogram; binning = 1, e_low = -Inf, e_high = Inf)
+
+Rebin the 1D histogram `h` and keep the bins of the fit, in the same way as
+[`build_forward_model`](@ref): `binning` rebins it (see [Binning](binning.md)), then only
+the bins fully inside `[e_low, e_high]` (keV) are kept, and with several ranges in
+`binning` only those inside one of them. By default the whole range of `h` is kept.
+
+Returns `(counts, bin_edges)`: the counts in the kept bins as a flat
+`Vector{Float64}`, and `bin_edges = (low = ..., high = ...)`, their lower and upper
+edges in keV. The kept bins can have gaps between them, for example a blinded region.
+Use it for the measured spectrum and the simulated ones of a forward model written by
+hand, with the same keywords, so that they have the same bins.
+"""
+function select_bins(
+    h::Histogram{<:Real,1};
+    binning::Union{Int,AbstractVector} = 1,
+    e_low::Real = -Inf,
+    e_high::Real = Inf,
+)
+    rebin_to, ranges = _binning(binning)
+    rebinned = rebin_hist(h, rebin_to)
+    edges = rebinned.edges[1]
+    kept = _kept_bins(edges, e_low, e_high, ranges)
+    bin_edges = (
+        low = collect(Float64, edges[1:(end-1)][kept]),
+        high = collect(Float64, edges[2:end][kept]),
+    )
+    return collect(Float64, rebinned.weights[kept]), bin_edges
+end
+
+# true for the bins fully inside [e_low, e_high] and, with ranges, inside one of them
+_kept_bins(edges, e_low, e_high, ranges) =
+    get_valid_bins(edges, (e_low, e_high)) .& _in_ranges(edges, ranges)
+
+"""
     get_counts(data::Histogram, bin_edges)
 
 Measured counts in the bins of the forward model, as a flat `Vector{Float64}`.

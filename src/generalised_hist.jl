@@ -29,13 +29,15 @@ parameter values, so its time doubles with each parameter.
     Check that the grid is fine enough for each use.
 
 # Fields
-* `edges`: the bin edges, in the units of the histograms (keV for a spectrum)
+* `bin_edges`: `(low = ..., high = ...)`, the lower and upper edges of the bins, in the
+  units of the histograms (keV for a spectrum). After [`select_bins`](@ref) the bins
+  can have gaps between them
 * `grid`: a named tuple with the grid values of each parameter
 * `counts`: an array with the counts per bin at each grid point, `counts[i, j]`
   belongs to the `i`-th value of the first parameter and the `j`-th of the second
 """
 struct GeneralisedHistogram{N,G<:NamedTuple}
-    edges::Vector{Float64}
+    bin_edges::@NamedTuple{low::Vector{Float64}, high::Vector{Float64}}
     grid::G
     counts::Array{Vector{Float64},N}
 end
@@ -65,7 +67,19 @@ function GeneralisedHistogram(
     all(h -> h.edges[1] == edges, hists) ||
         throw(ArgumentError("all histograms must have the same binning"))
     counts = map(h -> collect(Float64, h.weights), hists)
-    return GeneralisedHistogram(edges, grid, counts)
+    return GeneralisedHistogram(_bin_edges(edges), grid, counts)
+end
+
+# the lower and upper edges of the bins of a vector of edges
+_bin_edges(edges) =
+    (low = collect(Float64, edges[1:(end-1)]), high = collect(Float64, edges[2:end]))
+
+# the edges of bins without gaps between them, or an error
+function _contiguous_edges(bin_edges)
+    bin_edges.low[2:end] == bin_edges.high[1:(end-1)] || throw(
+        ArgumentError("the bins have gaps: rebin before selecting bins with select_bins"),
+    )
+    return [bin_edges.low; bin_edges.high[end]]
 end
 
 # The cell of the grid `values` that contains `value`: the index of its lower grid
@@ -100,7 +114,7 @@ function get_weights(gh::GeneralisedHistogram{N}, params::NamedTuple) where {N}
     t = map(last, cells)     # position inside the cell, from 0 to 1
 
     # the element type of the parameters, so that derivatives (ForwardDiff) work
-    weights = zeros(promote_type(Float64, map(typeof, t)...), length(gh.edges) - 1)
+    weights = zeros(promote_type(Float64, map(typeof, t)...), length(gh.bin_edges.low))
     # add the spectrum of each corner of the cell: 0 is the lower and 1 the upper grid
     # value along a parameter
     for corner in Iterators.product(ntuple(_ -> (0, 1), Val(N))...)
@@ -117,9 +131,11 @@ end
     get_histogram(gh::GeneralisedHistogram, params::NamedTuple)
 
 The histogram of `gh` at the parameter values in `params`, see [`get_weights`](@ref).
+A gap between the bins, left by [`select_bins`](@ref), becomes one bin with 0 counts
+(see [`counts_to_histogram`](@ref)).
 """
 get_histogram(gh::GeneralisedHistogram, params::NamedTuple) =
-    Histogram((gh.edges,), get_weights(gh, params))
+    counts_to_histogram(get_weights(gh, params), gh.bin_edges)
 
 """
     rebin_hist(gh::GeneralisedHistogram, binning)
@@ -127,11 +143,34 @@ get_histogram(gh::GeneralisedHistogram, params::NamedTuple) =
 Rebin the spectrum at every grid point of `gh`, with an integer number of bins to
 merge or a vector of new bin edges, as for a `Histogram`. Rebinning and interpolation
 are both sums of counts, so rebinning before interpolating gives the same result as
-interpolating before rebinning.
+interpolating before rebinning. The bins of `gh` must not have gaps.
 """
 function rebin_hist(gh::GeneralisedHistogram, binning::Union{Int,AbstractVector{<:Real}})
-    hists = map(c -> rebin_hist(Histogram((gh.edges,), c), binning), gh.counts)
+    edges = _contiguous_edges(gh.bin_edges)
+    hists = map(c -> rebin_hist(Histogram((edges,), c), binning), gh.counts)
     return GeneralisedHistogram(hists, pairs(gh.grid)...)
+end
+
+"""
+    select_bins(gh::GeneralisedHistogram; binning = 1, e_low = -Inf, e_high = Inf)
+
+The same as [`select_bins`](@ref) for a `Histogram`, at every grid point of `gh`.
+Returns `(gh_selected, bin_edges)`: a generalised histogram with only the selected bins,
+and their lower and upper edges in keV.
+"""
+function select_bins(
+    gh::GeneralisedHistogram;
+    binning::Union{Int,AbstractVector} = 1,
+    e_low::Real = -Inf,
+    e_high::Real = Inf,
+)
+    rebin_to, ranges = _binning(binning)
+    rebinned = rebin_hist(gh, rebin_to)
+    edges = _contiguous_edges(rebinned.bin_edges)
+    kept = _kept_bins(edges, e_low, e_high, ranges)
+    bin_edges = (low = edges[1:(end-1)][kept], high = edges[2:end][kept])
+    selected = GeneralisedHistogram(bin_edges, gh.grid, map(c -> c[kept], rebinned.counts))
+    return selected, bin_edges
 end
 
 """
@@ -141,7 +180,7 @@ Sum the counts of generalised histograms with the same binning and the same grid
 grid point by grid point.
 """
 function add_histograms(ghs::Vector{<:GeneralisedHistogram})
-    all(gh -> gh.edges == ghs[1].edges, ghs) || error("Histogram binning mismatch")
+    all(gh -> gh.bin_edges == ghs[1].bin_edges, ghs) || error("Histogram binning mismatch")
     all(gh -> gh.grid == ghs[1].grid, ghs) || error("Grid mismatch")
-    return GeneralisedHistogram(ghs[1].edges, ghs[1].grid, sum(gh.counts for gh in ghs))
+    return GeneralisedHistogram(ghs[1].bin_edges, ghs[1].grid, sum(gh.counts for gh in ghs))
 end

@@ -109,7 +109,7 @@ end
     @test keys(gh.grid) == (:fccd, :tl)
     @test gh.grid.fccd ≈ 0.6:0.2:1.4
     @test gh.grid.tl ≈ 0.0:0.1:0.5
-    @test gh.edges == 0:1:100
+    @test gh.bin_edges.low == 0:1:99 && gh.bin_edges.high == 1:1:100
     # the groups count from 0, the array from 1
     @test gh.counts[3, 5] == read_hist("pdf/geds/grid/fccd_2/tl_4", file).weights
     @test get_weights(gh, (fccd = 1.0, tl = 0.4)) == gh.counts[3, 5]

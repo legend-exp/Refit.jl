@@ -18,6 +18,7 @@ include("results.jl")
 include("plots.jl")
 
 export rebin_hist, add_histograms, integrate_hist, get_counts, counts_to_histogram
+export select_bins
 export uniform_binning_with_peaks
 export GeneralisedHistogram, get_weights, get_histogram
 export build_forward_model
