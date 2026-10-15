@@ -2,10 +2,10 @@
 
 This tutorial fits the dead layer of a detector to the spectrum of a 60 keV γ line, with
 spectra simulated on a grid of dead layer models (see
-[Generalised histograms](generalised_hist.md)). The data are made with known values, so
+[Accounting for systematic uncertainties](generalised_hist.md)). The data are made with known values, so
 the result can be compared with the truth at the end.
 
-## The model of the detector surface
+## Model of the detector surface
 
 A γ of 60 keV deposits its energy at a depth that is uniform from 0 to 2 mm below the
 surface of the detector. The fraction of the charge that is collected from a depth ``d``
@@ -27,7 +27,7 @@ Events from the dead layer have no energy and are not recorded. The counts in ea
 are linear in the FCCD and in the TL, so here the interpolation between grid points is
 exact, apart from the statistical fluctuations of the simulation.
 
-## The templates
+## Simulated templates
 
 The input files are in `test/test_files/fccd` of the repository. The Python script
 `make_files.py` in the same directory makes them, with the same tools that legend-simflow
@@ -93,7 +93,7 @@ counts = data.weights
 nothing # hide
 ```
 
-## Forward model and likelihood
+## Model and likelihood
 
 The source emitted 20000 γs during the measurement. This number must be known, for
 example from the activity of the source and the livetime. If it were a free

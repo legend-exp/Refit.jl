@@ -12,6 +12,8 @@ sampling the posterior, which combines the likelihood of the data with priors.
 `Refit.jl` can also do a lot more than this, for details see the following pages!
 
 - [Reading histograms](reading.md): read the data and the simulated spectra and normalise them
+- [Accounting for systematic uncertainties](generalised_hist.md): spectra simulated on a
+  grid of detector or source properties, interpolated between the grid points
 - [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
 - [Binning](binning.md): bins of any width, regions left out such as a blinded one, and
   a binning read from a YAML file
@@ -27,6 +29,8 @@ sampling the posterior, which combines the likelihood of the data with priors.
   on a linear background
 - [Simultaneous fits](tutorial_simultaneous.md): two detectors fitted together,
   which separates two sources that one detector alone cannot tell apart
+- [Fitting the FCCD with template morphing](tutorial_fccd.md): the dead layer of a
+  detector fitted to a 60 keV γ line, with spectra simulated on a grid
 
 ## Reference
 

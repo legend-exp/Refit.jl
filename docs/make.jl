@@ -12,9 +12,9 @@ makedocs(;
         "Home" => "index.md",
         "User manual" => [
             "Reading spectra" => "reading.md",
+            "Systematic uncertainties" => "generalised_hist.md",
             "Forward model" => "forward_model.md",
             "Binning" => "binning.md",
-            "Generalised histograms" => "generalised_hist.md",
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",
             "Plotting" => "plotting.md",
