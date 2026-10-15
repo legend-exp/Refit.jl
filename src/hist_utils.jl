@@ -34,6 +34,59 @@ function rebin_hist(h::Histogram{<:Real,1}, edges::AbstractVector{<:Real})
 end
 
 """
+    uniform_binning_with_peaks(h::Histogram, bin_width; peaks = [], low, high)
+
+Bin edges in keV for the keyword `binning` of [`build_forward_model`](@ref): bins of
+`bin_width` keV from `low` to `high`, by default the range of `h`, except that each peak
+region `(min, max)` in `peaks` becomes a single bin. A uniform edge inside a peak region,
+or less than `bin_width` from it, is dropped, so the continuum bins on both sides of a
+peak are between one and two bin widths wide instead of leaving narrow bins. If
+`bin_width` does not fit into the range, the last bin is narrower.
+
+Every edge is moved to the nearest edge of `h`, so that the histograms can be rebinned to
+them. The peak regions must lie inside the range and must not overlap. For example, with
+the ``^{40}``K and ``^{208}``Tl lines each as one bin:
+
+```julia
+binning = uniform_binning_with_peaks(h, 20; peaks = [(1455, 1467), (2605, 2625)])
+```
+
+The same as `rebin_uniform_with_peaks` of pygama, except that the peaks are given, not
+searched for.
+"""
+function uniform_binning_with_peaks(
+    h::Histogram{<:Real,1},
+    bin_width::Real;
+    peaks = Tuple{Float64,Float64}[],
+    low::Real = first(h.edges[1]),
+    high::Real = last(h.edges[1]),
+)
+    bin_width > 0 || throw(ArgumentError("bin_width must be positive"))
+    high > low || throw(ArgumentError("high must be above low"))
+    regions = sort([(Float64(a), Float64(b)) for (a, b) in peaks])
+    for (a, b) in regions
+        low <= a < b <= high ||
+            throw(ArgumentError("the peak region ($a, $b) is not inside ($low, $high)"))
+    end
+    for (r, next) in zip(regions, regions[2:end])
+        r[2] <= next[1] || throw(ArgumentError("the peak regions $r and $next overlap"))
+    end
+
+    edges = collect(Float64, low:bin_width:high)
+    last(edges) < high && push!(edges, high)
+    for (a, b) in regions
+        # the uniform edges inside the peak region or less than one bin width from it go,
+        # its own two edges come in
+        filter!(e -> e <= a - bin_width || e >= b + bin_width || e == a || e == b, edges)
+        append!(edges, (a, b))
+    end
+
+    # the nearest edge of `h` to each edge
+    fine = h.edges[1]
+    return unique([fine[argmin(abs.(fine .- e))] for e in sort!(edges)])
+end
+
+"""
     add_histograms(hs::Vector{<:Histogram})
 
 Sum the weights of histograms that share the same binning.

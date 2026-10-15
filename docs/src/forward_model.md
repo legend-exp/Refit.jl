@@ -163,6 +163,17 @@ follows the rule of Julia instead and stops at its last step: `500:200:2015` is
 `500:200:1900`, and the region from 1900 to 2015 keV is then not in the range, so it is
 skipped.
 
+`uniform_binning_with_peaks` builds a common kind of binning: uniform bins, except that
+each peak region is a single bin. The bins next to a peak are between one and two bin
+widths wide, and every edge is an edge of the histogram given:
+
+```@example demo
+# 50 keV bins, with the lines of K-40 and Tl-208 each as one bin
+peaks = [(1450, 1470), (2600, 2630)]  # keV, on edges of the 10 keV bins
+binning_p = uniform_binning_with_peaks(mc_dict[:K40_hpge_bulk], 50; peaks, low = 500, high = 3200)
+binning_p[18:22]
+```
+
 A region is blinded the same way, by leaving it out between two ranges. For example
 `[100:20:2000, 2080:20:4000]` does not fit 2000 to 2080 keV, around the Q-value of
 ``^{76}``Ge at 2039 keV. `get_priors` takes the same `binning`, so it does not look at the
