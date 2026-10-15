@@ -15,17 +15,52 @@ uncertainty is part of the result.
 ## Generalised histograms
 
 A [`GeneralisedHistogram`](@ref) is like a `Histogram` whose counts depend on parameters.
-For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram` and
-[`get_weights`](@ref) its counts per bin:
-
-```julia
-get_histogram(ghist, (fccd = 1.05, tl = 0.27))  # a Histogram
-get_weights(ghist, (fccd = 1.05, tl = 0.27))    # its counts per bin
-```
-
 Inside, it holds the histogram simulated at every point of a grid in the parameters. In
 each bin it interpolates linearly in each parameter between the grid points around the
 given values.
+
+For example, the [FCCD tutorial](tutorial_fccd.md) uses the spectra of a 60 keV γ line,
+simulated on a grid of FCCD and transition layer thickness (TL), in mm.
+[`read_generalised_pdf`](@ref) reads them from a file and divides them by the number of
+simulated γs:
+
+```@example systematics
+using Refit
+using StatsBase
+
+file = "../../test/test_files/fccd/templates.lh5"  # relative to docs/src
+ghist = read_generalised_pdf(file; groups = "pdf/geds")
+ghist.grid
+```
+
+For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram` and
+[`get_weights`](@ref) its counts per bin. The values are given as a named tuple, in any
+order. Other entries, such as the activities of a fit, are ignored. A value outside the
+grid is an error. The spectra for three thicknesses of the transition layer, which sets
+the level of the continuum below the peak, are below. The thickness of 0.25 mm lies
+between two grid points:
+
+```@example systematics
+using LegendMakie
+import Format
+import CairoMakie
+
+fig = CairoMakie.Figure(size = (1100, 450))
+ax = CairoMakie.Axis(
+    fig[1, 1];
+    yscale = log10,
+    xlabel = "Energy [keV]",
+    ylabel = "Counts per γ and keV",
+)
+for tl in (0.1, 0.25, 0.4)  # mm
+    h = get_histogram(ghist, (fccd = 1.0, tl = tl))
+    plot_hist!(ax, h; label = "FCCD = 1.0 mm, TL = $tl mm")
+end
+CairoMakie.xlims!(ax, 0, 100)
+CairoMakie.ylims!(ax, 1e-4, 1)
+CairoMakie.Legend(fig[1, 2], ax; framevisible = false)
+fig
+```
 
 ## Building a generalised histogram
 
@@ -38,18 +73,7 @@ The histograms usually come from a simulation that writes them to an LH5 file, i
 format described [below](@ref "File format of a generalised histogram").
 [`read_generalised_hist`](@ref) reads one. [`read_generalised_pdf`](@ref) also divides
 by the number of simulated primaries and averages several files with weights, like
-[`read_pdf`](@ref). For example, the simulated spectra of the
-[FCCD tutorial](tutorial_fccd.md) are the spectra of a 60 keV γ line on a grid of FCCD
-and transition layer thickness (TL), in mm:
-
-```@example systematics
-using Refit
-using StatsBase
-
-file = "../../test/test_files/fccd/templates.lh5"  # relative to docs/src
-ghist = read_generalised_pdf(file; groups = "pdf/geds")
-ghist.grid
-```
+[`read_pdf`](@ref).
 
 For custom cases, a generalised histogram can also be built in Julia from an array of
 histograms, with one dimension per parameter. Each further argument is a pair
@@ -113,36 +137,6 @@ The conventions are:
   raw counts of the simulation.
 - Every grid point is simulated with the same number of primaries, `nr_sim_events`.
   This is required: a single number normalises all the grid points.
-
-## Spectrum at given parameter values
-
-The values of the parameters are given as a named tuple, in any order. Other entries,
-such as the activities of a fit, are ignored. A value outside the grid is an error. The
-spectra of the FCCD tutorial for three thicknesses of the transition layer, which sets
-the level of the continuum below the peak. The thickness of 0.25 mm lies between two
-grid points:
-
-```@example systematics
-using LegendMakie
-import Format
-import CairoMakie
-
-fig = CairoMakie.Figure(size = (1100, 450))
-ax = CairoMakie.Axis(
-    fig[1, 1];
-    yscale = log10,
-    xlabel = "Energy [keV]",
-    ylabel = "Counts per γ and keV",
-)
-for tl in (0.1, 0.25, 0.4)  # mm
-    h = get_histogram(ghist, (fccd = 1.0, tl = tl))
-    plot_hist!(ax, h; label = "FCCD = 1.0 mm, TL = $tl mm")
-end
-CairoMakie.xlims!(ax, 0, 100)
-CairoMakie.ylims!(ax, 1e-4, 1)
-CairoMakie.Legend(fig[1, 2], ax; framevisible = false)
-fig
-```
 
 ## Selecting the fit range
 
