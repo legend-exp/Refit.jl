@@ -32,8 +32,8 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
 
     # multilinear interpolation reproduces a function that is linear in each parameter
     # exactly, also between grid points
-    @testset "$N parameters" for N = 1:5
-        names = (:a, :b, :c, :d, :e)[1:N]
+    @testset "$N parameters" for N = 1:6
+        names = (:a, :b, :c, :d, :e, :f)[1:N]
         grid = NamedTuple{names}(ntuple(d -> range(0.0, step = 0.5 * d, length = 3), N))
         f(x) = 1 + sum(d * x[d] for d = 1:N) + (N > 1 ? x[1] * x[2] : 0.0)
         hists = map(CartesianIndices(map(length, Tuple(grid)))) do idx
@@ -41,6 +41,9 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
             hist_with([f(x), 2 * f(x)])
         end
         gh = GeneralisedHistogram(hists; grid...)
+        # the same from a function of the parameter values
+        spectrum(p) = (x = Tuple(p); hist_with([f(x), 2 * f(x)]))
+        @test GeneralisedHistogram(spectrum; grid...).counts == gh.counts
 
         rng = MersenneTwister(N)
         for _ = 1:20
@@ -92,9 +95,10 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
         # the grid is not an evenly spaced range of at least two values
         @test_throws ArgumentError GeneralisedHistogram(two; x = [0.0, 1.0])
         @test_throws ArgumentError GeneralisedHistogram(two[1:1]; x = 0.0:1.0:0.0)
-        # more than 5 parameters
-        six = fill(hist_with([1, 2]), ntuple(_ -> 2, 6))
-        grid = NamedTuple{(:a, :b, :c, :d, :e, :f)}(ntuple(_ -> 0:1, 6))
-        @test_throws ArgumentError GeneralisedHistogram(six; grid...)
+        # no parameter
+        @test_throws ArgumentError GeneralisedHistogram(two)
+        # an array with its dimensions in the wrong order, when the grids differ in length
+        hists = [hist_with([x, y]) for y = 0:2, x = 0:1]
+        @test_throws DimensionMismatch GeneralisedHistogram(hists; x = 0:1, y = 0:2)
     end
 end
