@@ -46,7 +46,10 @@ parameters are activities, and the model is written for that case. Any other cho
 `norm` changes the meaning of ``A_k`` in the same way.
 
 `build_forward_model` turns a set of components into such a function. This maps the
-parameters to the predicted counts in each energy bin.
+parameters to the predicted counts in each energy bin. It is one way to make a forward
+model: any function of the parameters that returns the predicted counts in the bins of
+the measured counts can be used in the [likelihood](likelihood.md), also one written by
+hand.
 
 ## Model components
 
@@ -65,6 +68,11 @@ and names the component. The value says how its predicted counts are built:
 ``i``, and `params` the named tuple of **all** fit parameters. All histograms must have
 the same binning. `(pdf = h,)` is the same as `h`. An analytic component with no `pdf`
 has no activity. Any other key, such as a misspelled `activty`, is an error.
+
+`h` can also be a [`GeneralisedHistogram`](@ref), a simulated spectrum that depends on
+fit parameters, such as the thickness of a dead layer (see
+[Accounting for systematic uncertainties](generalised_hist.md)). Then `h[i]` is
+interpolated at the values of these parameters in `params` at every evaluation.
 
 A component with a `pdf` and no `activity` function takes its parameter from its own
 name: the entry `:K40_hpge_bulk` needs `params.K40_hpge_bulk`. An activity or analytic

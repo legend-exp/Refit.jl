@@ -51,21 +51,23 @@ ghist = read_generalised_pdf(file; groups = "pdf/geds")
 ghist.grid
 ```
 
-For custom cases, such as a toy model, a generalised histogram can also be built in Julia
-from an array of histograms, with one dimension per parameter. Each further argument is
-a pair `name => values` for one dimension, in the order of the dimensions:
+For custom cases, a generalised histogram can also be built in Julia from an array of
+histograms, with one dimension per parameter. Each further argument is a pair
+`name => values` for one dimension, in the order of the dimensions. For example, the
+spectrum of a 60 keV γ line for a dead layer of thickness `d` in mm, without a
+transition layer, if the γs interact uniformly in the first 2 mm of the detector: a
+fraction (2 − d) / 2 is in the peak, the rest is lost.
 
 ```@example systematics
-# a flat spectrum with a peak whose height falls with the FCCD
-function toy_spectrum(fccd)
-    weights = fill(10.0, 100)  # 1 keV bins from 0 to 100 keV
-    weights[50] += 1000 / fccd
+function line_spectrum(d)
+    weights = zeros(100)  # 1 keV bins from 0 to 100 keV
+    weights[61] = (2 - d) / 2  # the bin from 60 to 61 keV
     return Histogram((0.0:1.0:100.0,), weights)
 end
 
-hists = [toy_spectrum(fccd) for fccd in 0.5:0.5:2.0]
-toy = GeneralisedHistogram(hists, :fccd => 0.5:0.5:2.0)
-nothing # hide
+dead_layer = 0.5:0.25:1.5  # mm
+custom = GeneralisedHistogram([line_spectrum(d) for d in dead_layer], :d => dead_layer)
+get_weights(custom, (d = 0.6,))[61]
 ```
 
 ## File format of a generalised histogram
@@ -115,41 +117,67 @@ The conventions are:
 ## Spectrum at given parameter values
 
 The values of the parameters are given as a named tuple, in any order. Other entries,
-such as the activities of a fit, are ignored. A value outside the grid is an error.
+such as the activities of a fit, are ignored. A value outside the grid is an error. The
+spectra of the FCCD tutorial for three thicknesses of the transition layer, which sets
+the level of the continuum below the peak. The thickness of 0.25 mm lies between two
+grid points:
 
 ```@example systematics
-w = get_weights(ghist, (tl = 0.27, fccd = 1.05, activity = 3.0))
-w[58:62]
+using LegendMakie
+import Format
+import CairoMakie
+
+fig = CairoMakie.Figure(size = (1100, 450))
+ax = CairoMakie.Axis(
+    fig[1, 1];
+    yscale = log10,
+    xlabel = "Energy [keV]",
+    ylabel = "Counts per γ and keV",
+)
+for tl in (0.1, 0.25, 0.4)  # mm
+    h = get_histogram(ghist, (fccd = 1.0, tl = tl))
+    plot_hist!(ax, h; label = "FCCD = 1.0 mm, TL = $tl mm")
+end
+CairoMakie.xlims!(ax, 0, 100)
+CairoMakie.ylims!(ax, 1e-4, 1)
+CairoMakie.Legend(fig[1, 2], ax; framevisible = false)
+fig
 ```
 
-## Rebinning and the fit range
+## Selecting the fit range
 
-[`rebin_hist`](@ref) rebins the histogram at every grid point, in the same ways as a
-`Histogram` (see [Binning](binning.md)). Rebinning to bin edges keeps only the range of
-the edges, so it also selects the fit range:
+[`select_bins`](@ref) selects the bins of a fit in the same way as
+[`build_forward_model`](@ref): it rebins with `binning` (see [Binning](binning.md)) and
+keeps the bins fully inside `e_low` to `e_high`, at every grid point. It works the same
+for a `Histogram`, such as the measured spectrum, so both get the same bins:
 
 ```@example systematics
-ghist_fit = rebin_hist(ghist, collect(5.0:5.0:100.0))  # 5 to 100 keV in 5 keV bins
+ghist_fit, bin_edges = select_bins(ghist; binning = 5, e_low = 5, e_high = 100)
 get_weights(ghist_fit, (fccd = 1.05, tl = 0.27))
 ```
 
-Rebinning and interpolation both sum counts, so the order does not matter. Rebin once,
-before the fit, so that each evaluation only touches the fitted bins.
+Selecting bins and interpolating both sum counts, so the order does not matter. Select
+the bins once, before the fit, so that each evaluation only touches the fitted bins.
+[`rebin_hist`](@ref) rebins every grid point without selecting a range.
 
 ## Fits with a generalised histogram
 
-The model of a fit is a function of the parameters that returns the expected counts in
-each bin. With a generalised histogram it interpolates at the parameter values of each
-evaluation, for example for a known number of γs:
+[`build_forward_model`](@ref) takes a generalised histogram in place of a `Histogram` in
+any component (see [Model components](@ref)). At each evaluation it interpolates the
+spectrum at the values of the parameters, then scales it by the activity:
 
 ```julia
-model(p) = n_gamma .* get_weights(ghist_fit, p)
-likelihood = build_likelihood(counts, model)
+components = Dict(:source => ghist, :background => (analytic = (E, p) -> p.bkg,))
+model, bin_edges = build_forward_model(components; e_low = 5, e_high = 100, binning = 5)
 ```
 
-[`build_likelihood`](@ref) takes any such function (see [Likelihood](likelihood.md)).
-The prior range of each parameter must lie inside its grid. The
-[FCCD tutorial](tutorial_fccd.md) is a complete example.
+[`get_priors`](@ref) estimates the range of the activity at every grid point and uses
+the widest. The prior range of each parameter of the grid must lie inside its grid.
+
+For a simple fit, the model can also be written by hand with the bins of
+[`select_bins`](@ref), as in the [FCCD tutorial](tutorial_fccd.md). Any function of the
+parameters that returns the expected counts in the bins of the measured counts is a
+valid forward model for [`build_likelihood`](@ref).
 
 !!! warning "The interpolation is an approximation"
     Between grid points, linear interpolation is exact only if the counts in each bin are
@@ -160,9 +188,3 @@ The prior range of each parameter must lie inside its grid. The
     [analytic part](@ref "Analytic functions") of the model. It is up to the user to
     check that the grid is fine enough, for example by comparing with a simulation
     halfway between two grid points.
-
-!!! warning "The statistical uncertainty of the simulation is not included"
-    The likelihood treats the simulated spectra as exact. Their statistical
-    fluctuations, which differ from one grid point to the next, are not part of the
-    uncertainty of the result. Simulate enough primaries at every grid point that these
-    fluctuations are small compared with those of the data.
