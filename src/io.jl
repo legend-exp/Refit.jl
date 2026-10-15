@@ -104,6 +104,108 @@ function read_pdf(
 end
 
 """
+    read_generalised_hist(group, file)
+
+Read the [`GeneralisedHistogram`](@ref) in `group` of the LH5 file `file`.
+
+The group holds the description of the grid in `grid_info` and the histogram of every
+grid point in `grid`, for example for a grid of FCCD and transition layer thickness:
+
+```text
+group
+├── grid_info
+│   ├── axis_0
+│   │   ├── name      "fccd"
+│   │   └── values    first, last, step (with the units as an attribute)
+│   └── axis_1
+│       ├── name      "tl"
+│       └── values    first, last, step
+└── grid
+    ├── fccd_0
+    │   ├── tl_0      histogram
+    │   ├── tl_1      histogram
+    │   :
+    ├── fccd_1
+    :
+```
+
+Each `axis_d` is one parameter of the grid: its name and evenly spaced values from
+`first` to `last` in steps of `step`. The groups in `grid` are nested in the order of
+the axes, and `<name>_<i>` holds the `i`-th value of that parameter, counted from 0.
+Every combination must be present, with the same binning. The values are read in the
+units of the file, which are not kept.
+"""
+function read_generalised_hist(group::String, file::String)
+    names, values = lh5open(file, "r") do f
+        n_axes = length(keys(f["$group/grid_info"]))
+        names = Symbol[]
+        values = AbstractRange[]
+        for d = 0:(n_axes-1)
+            axis = "$group/grid_info/axis_$d"
+            haskey(f, axis) || throw(ArgumentError("$file has no $axis"))
+            push!(names, Symbol(f["$axis/name"]))
+            # strip the units, if any: a quantity divided by its unit is a number
+            first, last, step = (
+                (x = f["$axis/values/$k"]; x / oneunit(x)) for
+                k in ("first", "last", "step")
+            )
+            n = round(Int, (last - first) / step) + 1
+            r = range(first; step, length = n)
+            Base.last(r) ≈ last || throw(
+                ArgumentError("$axis does not go from $first to $last in steps of $step"),
+            )
+            push!(values, r)
+        end
+        return names, values
+    end
+
+    # the path of the histogram at each grid point, for example "fccd_2/tl_0"
+    paths = map(CartesianIndices(Tuple(length.(values)))) do idx
+        join(("$(names[d])_$(idx[d] - 1)" for d in eachindex(names)), "/")
+    end
+    lh5open(file, "r") do f
+        for p in paths
+            haskey(f, "$group/grid/$p") ||
+                throw(ArgumentError("$file has no $group/grid/$p"))
+        end
+    end
+    hists = map(p -> read_hist("$group/grid/$p", file), paths)
+    return GeneralisedHistogram(hists; NamedTuple{Tuple(names)}(Tuple(values))...)
+end
+
+"""
+    read_generalised_pdf(file; groups = "pdf/mul_surv", weights = nothing, n_prim_field = "nr_sim_events")
+
+Read a simulated spectrum on a grid of parameters from `file`, by default as counts per
+simulated primary. The same as [`read_pdf`](@ref), for a [`GeneralisedHistogram`](@ref):
+the generalised histograms in `groups` are multiplied by `weights` and summed, grid point
+by grid point, then divided by the number of simulated primaries in the field
+`n_prim_field`. All grid points must have the same number of simulated primaries.
+"""
+function read_generalised_pdf(
+    file::String;
+    groups::Union{String,AbstractVector{String}} = "pdf/mul_surv",
+    weights::Union{Nothing,AbstractVector{<:Real}} = nothing,
+    n_prim_field::Union{String,Nothing} = "nr_sim_events",
+)
+    groups = vcat(groups)
+    weights = isnothing(weights) ? ones(length(groups)) : weights
+    length(weights) == length(groups) ||
+        throw(DimensionMismatch("groups and weights differ in length"))
+
+    ghs = [read_generalised_hist(g, file) for g in groups]
+    for (gh, w) in zip(ghs, weights)
+        foreach(c -> c .*= w, gh.counts)
+    end
+    total = add_histograms(ghs)
+    if !isnothing(n_prim_field)
+        n_primaries = read_scalar(n_prim_field, file)
+        foreach(c -> c ./= n_primaries, total.counts)
+    end
+    return total
+end
+
+"""
     write_best_fit(file, hists; data = nothing)
 
 Write the histograms of [`get_best_fit_histograms`](@ref) to the lh5 file `file`: the
