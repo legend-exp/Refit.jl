@@ -19,16 +19,16 @@ Inside, it holds the histogram simulated at every point of a grid in the paramet
 each bin it interpolates linearly in each parameter between the grid points around the
 given values.
 
-As an example, a spectrum with a peak on a falling continuum, where a parameter `x`
-moves counts from the peak into the continuum. Its histogram is known at three grid
-points, `x` = 0, 0.5 and 1:
-
-```@example systematics
+```@setup systematics
 using Refit
 using StatsBase
+using LegendMakie
+import Format
+import CairoMakie
 
 energy = 0.5:1.0:99.5  # bin centres in keV
 
+# a peak on a falling continuum, x moves counts from the peak into the continuum
 function spectrum(x)
     peak = exp.(-(energy .- 60) .^ 2 ./ 8)
     continuum = exp.(-energy ./ 30)
@@ -38,19 +38,6 @@ end
 
 x_grid = 0.0:0.5:1.0
 ghist = GeneralisedHistogram([spectrum(x) for x in x_grid], :x => x_grid)
-nothing # hide
-```
-
-For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram` and
-[`get_weights`](@ref) its counts per bin. The values are given as a named tuple, in any
-order. Other entries, such as the activities of a fit, are ignored. A value outside the
-grid is an error. The spectra at the three grid points and at `x` = 0.25, between two of
-them:
-
-```@example systematics
-using LegendMakie
-import Format
-import CairoMakie
 
 fig = CairoMakie.Figure(size = (1100, 450))
 ax = CairoMakie.Axis(fig[1, 1]; xlabel = "Energy [keV]", ylabel = "Counts per keV")
@@ -65,10 +52,23 @@ plot_hist!(
     label = "x = 0.25, interpolated",
 )
 CairoMakie.Legend(fig[1, 2], ax; framevisible = false)
-fig
 ```
 
-## Building a generalised histogram
+As an example, take a spectrum with a peak on a falling continuum, where a parameter `x`
+moves counts from the peak into the continuum. Its histogram is simulated at three grid
+points, `x` = 0, 0.5 and 1. The generalised histogram `ghist` gives it at any `x` in
+between: `get_histogram(ghist, (x = 0.25,))` is the dashed line.
+
+```@example systematics
+fig # hide
+```
+
+For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram` and
+[`get_weights`](@ref) its counts per bin. The values are given as a named tuple, in any
+order. Other entries, such as the activities of a fit, are ignored. A value outside the
+grid is an error.
+
+## Reading a generalised histogram
 
 A generalised histogram needs:
 
@@ -85,9 +85,15 @@ by the number of simulated primaries and averages several files with weights, li
 ghist = read_generalised_pdf("simulation.lh5"; groups = "pdf/mul1/all")
 ```
 
-For custom cases, as in the example above, a generalised histogram is built in Julia
-from an array of histograms, with one dimension per parameter. Each further argument is
-a pair `name => values` for one dimension, in the order of the dimensions.
+!!! note "Building a generalised histogram from histograms"
+    A generalised histogram can also be built directly from histograms in Julia, as in
+    the example above. `hists` is an array with one dimension per parameter, and each
+    further argument is a pair `name => values` for one dimension, in the order of the
+    dimensions:
+
+    ```julia
+    ghist = GeneralisedHistogram(hists, :x => 0.0:0.5:1.0)
+    ```
 
 ## File format of a generalised histogram
 
