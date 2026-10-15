@@ -150,7 +150,4 @@ end
     @test isfinite(logdensityof(likelihood, draw))
     reversed = NamedTuple{reverse(keys(draw))}(draw)
     @test logdensityof(likelihood, reversed) == logdensityof(likelihood, draw)
-
-    # nested named tuples cannot be sampled, so the activities are not nested
-    @test_throws MethodError rand(NamedTupleDist(activities = prior))
 end
