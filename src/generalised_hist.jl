@@ -1,4 +1,4 @@
-@doc raw"""
+"""
     GeneralisedHistogram(hists; grid...)
 
 A simulated energy spectrum that depends on 1 to 5 parameters, for example the
@@ -24,17 +24,12 @@ the grid. In every bin the counts are interpolated linearly in each parameter
 (multilinear interpolation, the extension of linear interpolation to several
 parameters). With ``N`` parameters the point lies in a cell of the grid with
 ``2^N`` corners. Along parameter ``d`` it lies a fraction ``t_d`` (from 0 to 1) of
-the way from the lower to the upper grid value of the cell. The counts in bin
-``i`` are
-
-```math
-    \mu_i(\theta) = \sum_{c} \left( \prod_{d=1}^{N} w_{c,d} \right) \mu_i(c),
-```
-
-where the sum runs over the corners ``c`` of the cell, ``\mu_i(c)`` are the counts
-simulated at that corner, and ``w_{c,d} = t_d`` if the corner is at the upper grid
-value of parameter ``d`` and ``1 - t_d`` if it is at the lower one. With one
-parameter this is ``(1 - t) \mu_i(\theta_k) + t \mu_i(\theta_{k+1})``.
+the way from the lower to the upper grid value of the cell. The counts in a bin are
+the sum over the corners of the counts simulated at the corner times a weight. The
+weight is the product over the parameters of ``t_d`` if the corner is at the upper
+grid value of parameter ``d``, and of ``1 - t_d`` if it is at the lower one. With one
+parameter this is ``(1 - t) n_k + t n_{k+1}``, where ``n_k`` and ``n_{k+1}`` are the
+counts at the two grid values around the point.
 
 This works when a parameter changes the counts in each bin smoothly, such as a
 dead layer or a source position. It does not work for a parameter that moves a
