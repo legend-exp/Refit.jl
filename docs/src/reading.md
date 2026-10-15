@@ -1,6 +1,6 @@
 # Reading simulated spectra
 
-The simulated spectra are stored in LH5 files. `read_hist(group, file)` reads one
+The simulated and data spectra are read from LH5 files (see the [LH5 spec](https://legend-exp.github.io/legend-data-format-specs/dev/hdf5/)). `read_hist(group, file)` reads one
 histogram from the group `group` of `file`.
 
 The examples below use a small file with two histograms and the number of simulated

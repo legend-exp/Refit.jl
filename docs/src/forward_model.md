@@ -1,7 +1,8 @@
 # Forward model
 
 The forward model is a function mapping the parameters of interest onto the predicted
-observables (in our case the counts in each bin).
+observables, in our case the counts in each bin. This defines the model, is
+used in the likelihood, plotting etc.
 
 ## Definition
 
@@ -84,7 +85,7 @@ used by any component are ignored.
 ## Building the model
 
 The examples in this manual use simplified spectra with three simulated sources, defined
-in `example_data.jl`. A real fit has many more sources.
+in `example_data.jl`.
 The simulated spectra are a dictionary of `Histogram`s with the energy
 in keV, and all have the same binning:
 

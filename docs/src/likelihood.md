@@ -13,7 +13,7 @@ so it does not change the position of the maximum or the shape of the posterior.
 
 ## Measured counts
 
-The likelihood compares two flat vectors of the same length: the measured counts and
+The likelihood compares two vectors of the same length: the measured counts and
 the prediction of the [forward model](forward_model.md). Entry `i` of both is the
 number of counts in the same energy bin. The measured counts are **not** a histogram.
 
