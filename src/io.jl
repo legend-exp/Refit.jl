@@ -144,7 +144,7 @@ function read_generalised_hist(group::String, file::String)
         end
     end
     hists = map(p -> read_hist("$group/grid/$p", file), paths)
-    return GeneralisedHistogram(hists; NamedTuple{Tuple(names)}(Tuple(values))...)
+    return GeneralisedHistogram(hists, (names .=> values)...)
 end
 
 """
