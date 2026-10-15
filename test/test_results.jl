@@ -198,6 +198,11 @@ end
     @test plot_hist!(ax, total; linewidth = 5).linewidth[] == 5
     @test plot_hist!(ax_log, data; filled = true) isa CairoMakie.Makie.AbstractPlot
 
+    # the step line goes up at the first edge and down at the last one
+    x, y = Refit._steps(Histogram((0.0:1.0:2.0,), [3.0, 4.0]), 0.0)
+    @test x == [0, 0, 1, 1, 2, 2]
+    @test y == [0, 3, 3, 4, 4, 0]
+
     # the empty bins of the prediction are not drawn as residuals
     @test mark_blinded!(ax, total; color = :red) === nothing
     scatter = plot_residuals!(ax_res, total, data; markersize = 10)

@@ -1,10 +1,16 @@
 import CairoMakie
 
-# step coordinates of a histogram: the weight of each bin is repeated at both edges
+# step coordinates of a histogram: the weight of each bin is repeated at both edges,
+# and the line starts and ends at `floor_value`, so that the first and the last bin
+# are closed
 function _steps(h::Histogram{<:Real,1}, floor_value)
     edges = collect(h.edges[1])
-    x = repeat(edges; inner = 2)[2:(end-1)]
-    y = repeat(max.(Float64.(h.weights), floor_value); inner = 2)
+    x = repeat(edges; inner = 2)
+    y = [
+        floor_value;
+        repeat(max.(Float64.(h.weights), floor_value); inner = 2);
+        floor_value
+    ]
     return x, y
 end
 
