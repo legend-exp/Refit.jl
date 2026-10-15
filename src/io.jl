@@ -106,34 +106,8 @@ end
 """
     read_generalised_hist(group, file)
 
-Read the [`GeneralisedHistogram`](@ref) in `group` of the LH5 file `file`.
-
-The group holds the description of the grid in `grid_info` and the histogram of every
-grid point in `grid`, for example for a grid of FCCD and transition layer thickness:
-
-```text
-group
-├── grid_info
-│   ├── axis_0
-│   │   ├── name      "fccd"
-│   │   └── values    first, last, step (with the units as an attribute)
-│   └── axis_1
-│       ├── name      "tl"
-│       └── values    first, last, step
-└── grid
-    ├── fccd_0
-    │   ├── tl_0      histogram
-    │   ├── tl_1      histogram
-    │   :
-    ├── fccd_1
-    :
-```
-
-Each `axis_d` is one parameter of the grid: its name and evenly spaced values from
-`first` to `last` in steps of `step`. The groups in `grid` are nested in the order of
-the axes, and `<name>_<i>` holds the `i`-th value of that parameter, counted from 0.
-Every combination must be present, with the same binning. The values are read in the
-units of the file, which are not kept.
+Read the [`GeneralisedHistogram`](@ref) in `group` of the LH5 file `file`. The group
+must follow the conventions of [File format of a generalised histogram](@ref).
 """
 function read_generalised_hist(group::String, file::String)
     names, values = lh5open(file, "r") do f
@@ -203,6 +177,31 @@ function read_generalised_pdf(
         foreach(c -> c ./= n_primaries, total.counts)
     end
     return total
+end
+
+"""
+    read_generalised_pdf(files::AbstractDict; groups = "pdf/mul_surv", n_prim_field = "nr_sim_events")
+
+Read the same source simulated in several files, for example once per detector type,
+and return the weighted average of the generalised histograms. The same as the
+method of [`read_pdf`](@ref) for several files.
+
+`files` maps each file name to its weight, for example the mass of the detector type.
+The weights are divided by their sum. Each file is read with the single-file method,
+so it is divided by its own number of primaries. All files must have the same grid.
+"""
+function read_generalised_pdf(
+    files::AbstractDict{String,<:Real};
+    groups::Union{String,AbstractVector{String}} = "pdf/mul_surv",
+    n_prim_field::Union{String,Nothing} = "nr_sim_events",
+)
+    total = sum(values(files))
+    ghs = map(collect(files)) do (file, w)
+        gh = read_generalised_pdf(file; groups, n_prim_field)
+        foreach(c -> c .*= w / total, gh.counts)
+        gh
+    end
+    return add_histograms(ghs)
 end
 
 """

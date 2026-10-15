@@ -34,10 +34,11 @@ A generalised histogram needs:
 - a grid of evenly spaced values for each parameter, with any number of parameters,
 - the histogram simulated at every point of the grid, all with the same binning.
 
-The histograms usually come from a simulation that writes them to an LH5 file.
-[`read_generalised_hist`](@ref) reads one, and its docstring describes the format of the
-file. [`read_generalised_pdf`](@ref) also divides by the number of simulated primaries,
-like [`read_pdf`](@ref). For example, the simulated spectra of the
+The histograms usually come from a simulation that writes them to an LH5 file, in the
+format described [below](@ref "File format of a generalised histogram").
+[`read_generalised_hist`](@ref) reads one. [`read_generalised_pdf`](@ref) also divides
+by the number of simulated primaries and averages several files with weights, like
+[`read_pdf`](@ref). For example, the simulated spectra of the
 [FCCD tutorial](tutorial_fccd.md) are the spectra of a 60 keV γ line on a grid of FCCD
 and transition layer thickness (TL), in mm:
 
@@ -65,6 +66,50 @@ end
 toy = GeneralisedHistogram(toy_spectrum; fccd = 0.5:0.5:2.0)
 nothing # hide
 ```
+
+## File format of a generalised histogram
+
+A generalised histogram is stored in an LH5 group with two parts: the description of
+the grid in `grid_info`, and the histogram of every grid point in `grid`. In a file of
+simulated spectra it takes the place of a histogram, for example at `pdf/geds`, next to
+the number of simulated primaries:
+
+```text
+/
+├── nr_sim_events      number of simulated primaries
+└── pdf
+    └── geds
+        ├── grid_info
+        │   ├── axis_0
+        │   │   ├── name      "fccd"
+        │   │   └── values
+        │   │       ├── first     0.6
+        │   │       ├── last      1.4
+        │   │       └── step      0.2
+        │   └── axis_1
+        │       ├── name      "tl"
+        │       └── values    first, last, step
+        └── grid
+            ├── fccd_0
+            │   ├── tl_0      histogram
+            │   ├── tl_1      histogram
+            │   :
+            ├── fccd_1
+            :
+```
+
+The conventions are:
+
+- Each `axis_d` of `grid_info`, counted from 0, is one parameter: its `name` and evenly
+  spaced `values` from `first` to `last` in steps of `step`. The values may carry their
+  units as an attribute, which is not read.
+- The groups in `grid` are nested in the order of the axes. The group `<name>_<i>` holds
+  the `i`-th value of that parameter, counted from 0. Every combination of values must
+  be present.
+- Each grid point is an LH5 histogram. All of them have the same binning and hold the
+  raw counts of the simulation.
+- Every grid point is simulated with the same number of primaries, `nr_sim_events`.
+  This is required: a single number normalises all the grid points.
 
 ## Spectrum at given parameter values
 
@@ -114,3 +159,9 @@ The prior range of each parameter must lie inside its grid. The
     [analytic part](@ref "Analytic functions") of the model. It is up to the user to
     check that the grid is fine enough, for example by comparing with a simulation
     halfway between two grid points.
+
+!!! warning "The statistical uncertainty of the simulation is not included"
+    The likelihood treats the simulated spectra as exact. Their statistical
+    fluctuations, which differ from one grid point to the next, are not part of the
+    uncertainty of the result. Simulate enough primaries at every grid point that these
+    fluctuations are small compared with those of the data.
