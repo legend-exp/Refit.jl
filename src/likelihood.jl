@@ -9,11 +9,14 @@ these parameters.
 """
 function poisson_likelihood(obs::AbstractVector, pred::AbstractVector)
     length(obs) == length(pred) || throw(DimensionMismatch("obs and pred differ in length"))
-    return sum(_poisson_term(k, λ) for (k, λ) in zip(obs, pred))
+    # the number type of the prediction, so that derivatives (ForwardDiff) work
+    ll = zero(promote_type(eltype(obs), eltype(pred)))
+    for (k, λ) in zip(obs, pred)
+        λ < 0 && return oftype(ll, -Inf)
+        ll += k * log(λ + eps()) - λ
+    end
+    return ll
 end
-
-# the log-likelihood of `k` counts for the prediction `λ`, -Inf for a negative one
-_poisson_term(k, λ) = λ < 0 ? oftype(k * log(one(λ)) - λ, -Inf) : k * log(λ + eps()) - λ
 
 """
     build_likelihood(counts, model)
