@@ -24,6 +24,7 @@ makedocs(;
             "Fitting a background spectrum" => "tutorial.md",
             "Fitting a peak" => "tutorial_peak.md",
             "Simultaneous fits" => "tutorial_simultaneous.md",
+            "Fitting the FCCD with template morphing" => "tutorial_fccd.md",
         ],
         "API" => "api.md",
     ],
