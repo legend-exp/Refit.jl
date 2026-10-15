@@ -3,6 +3,7 @@ using Refit
 using Test
 
 include("test_hist_utils.jl")
+include("test_generalised_hist.jl")
 include("test_forward_model.jl")
 include("test_likelihood.jl")
 include("test_priors.jl")

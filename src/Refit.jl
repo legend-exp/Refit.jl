@@ -9,6 +9,7 @@ using StatsBase
 using ValueShapes: NamedTupleDist
 
 include("hist_utils.jl")
+include("generalised_hist.jl")
 include("forward_model.jl")
 include("likelihood.jl")
 include("priors.jl")
@@ -18,6 +19,7 @@ include("plots.jl")
 
 export rebin_hist, add_histograms, integrate_hist, get_counts, counts_to_histogram
 export uniform_binning_with_peaks
+export GeneralisedHistogram, get_weights, get_histogram
 export build_forward_model
 export poisson_likelihood, build_likelihood
 export get_max_norm, get_priors, build_prior_dist
