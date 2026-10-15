@@ -106,7 +106,6 @@ its bins (see below).
 | Keyword | Default | Meaning |
 |---|---|---|
 | `e_low`, `e_high` | 500, 4000 | Energy range in keV. Only bins fully inside are kept |
-| `blind` | `nothing` | `(min, max)` in keV. Bins overlapping this range are removed |
 | `binning` | 1 | Bins merged, or new bin edges in keV, applied before the range, see [Binning](@ref) |
 | `norm` | 1 | Factor ``N`` multiplying every component with a simulated spectrum |
 | `edges` | `nothing` | Bin edges in keV, needed only for a model with no histogram |
@@ -114,8 +113,8 @@ its bins (see below).
 
 ## Binning
 
-`binning` rebins the histograms before the energy range and the blinded region are
-applied. It takes three forms, for example read from a YAML file:
+`binning` rebins the histograms before the energy range is applied. It takes three
+forms, for example read from a YAML file:
 
 | `binning` | Bins |
 |---|---|
@@ -163,6 +162,11 @@ narrower: `"500:200:2015"` has the edges 500, 700, ..., 1900 and 2015 keV. A Jul
 follows the rule of Julia instead and stops at its last step: `500:200:2015` is
 `500:200:1900`, and the region from 1900 to 2015 keV is then not in the range, so it is
 skipped.
+
+A region is blinded the same way, by leaving it out between two ranges. For example
+`[100:20:2000, 2080:20:4000]` does not fit 2000 to 2080 keV, around the Q-value of
+``^{76}``Ge at 2039 keV. `get_priors` takes the same `binning`, so it does not look at the
+blinded data either.
 
 With bins of different widths, the counts per bin are not comparable from one bin to the
 next. Divide them by the width of the bin to compare or plot them as counts per keV.
@@ -301,8 +305,8 @@ bin_edges.low, bin_edges.high
 
 ```
 
-With `blind` the kept bins are not contiguous, so two vectors are returned instead of
-one edges vector.
+With skipped regions, such as a blinded one, the kept bins are not contiguous, so two
+vectors are returned instead of one edges vector.
 
 ## Back to a histogram
 
@@ -316,6 +320,6 @@ best_fit = counts_to_histogram(pred, bin_edges)
 ```
 
 The histogram covers the fit range, from `bin_edges.low[1]` to `bin_edges.high[end]`.
-A blinded region inside the range becomes one bin with 0 counts.
+A region skipped by the binning, such as a blinded one, becomes one bin with 0 counts.
 
 See the [API](api.md) for the full docstring.

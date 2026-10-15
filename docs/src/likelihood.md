@@ -37,7 +37,7 @@ The bins can be any bins whose edges are also edges of `data`, otherwise an erro
 raised. A bin can span several bins of `data`, which are then summed.
 
 The bin edges can also come from the forward model. `build_forward_model` returns the
-edges of the bins it predicts, whatever energy range, blinding and binning it uses.
+edges of the bins it predicts, whatever energy range and binning it uses.
 Using them guarantees that the measured and predicted bins match:
 
 ```@example demo
@@ -113,7 +113,7 @@ the models get the same named tuple of parameters, and each reads only those it 
 - a component with the same name in two models has one activity, shared by both
   spectra. Components with different names, for example a flat background for each
   detector, have their own parameters
-- each model has its own binning, energy range, blinded region and `norm`, for example
+- each model has its own binning, energy range and `norm`, for example
   the livetime of each detector
 - `get_priors` estimates ranges from one spectrum at a time. A parameter of several
   spectra needs one range, for example the widest of them

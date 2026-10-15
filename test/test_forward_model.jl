@@ -29,7 +29,13 @@ const const_rate = 2.0
     fm(p)
     @test (@allocated fm(p)) <= (@allocated zeros(2)) + (@allocated zeros(3))
 
-    _, e_blind = build_forward_model(pdfs; e_low = 0, e_high = 5000, blind = (2000, 3000))
+    # a blinded region, left out between two ranges
+    _, e_blind = build_forward_model(
+        pdfs;
+        e_low = 0,
+        e_high = 5000,
+        binning = [[0, 1000, 2000], [3000, 4000, 5000]],
+    )
     @test e_blind.low == [0.0, 1000.0, 3000.0, 4000.0]
     @test e_blind.high == [1000.0, 2000.0, 4000.0, 5000.0]
 

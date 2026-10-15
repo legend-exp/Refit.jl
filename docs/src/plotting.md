@@ -16,7 +16,8 @@ model, bin_edges = build_forward_model(
     mc_dict;
     e_low = 500,
     e_high = 3200,
-    blind = (2015.0, 2065.0),
+    # 2010 to 2070 keV is blinded: it is left out between the two ranges
+    binning = [500:10:2010, 2070:10:3200],
     norm,
 )
 best = true_activities
@@ -38,7 +39,7 @@ histograms in the bins of the fit. `counts_to_histogram` turns the measured coun
 histogram, and `get_best_fit_histograms` makes the histograms of the prediction for the
 parameters `best` (for example `mode(samples)`): the total in the key `:total`, followed
 by the contribution of each source. The bins outside of the fit range and in the
-blinded region are empty.
+blinded region, left out by the binning, are empty.
 
 The made-up data of this example has no statistical fluctuation, so each bin is drawn
 from a Poisson distribution around its value:

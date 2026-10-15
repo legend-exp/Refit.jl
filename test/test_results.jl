@@ -14,7 +14,8 @@ using Test
         pdfs;
         e_low = 100,
         e_high = 900,
-        blind = (450.0, 550.0),
+        # 400 to 600 keV left out, as a blinded region
+        binning = [100:100:400, 600:100:900],
         norm = 1e-3,
     )
     parameters = (a = 2.0, b = 4.0)
@@ -173,7 +174,8 @@ end
         pdfs;
         e_low = 100,
         e_high = 900,
-        blind = (450.0, 550.0),
+        # 400 to 600 keV left out, as a blinded region
+        binning = [100:100:400, 600:100:900],
         norm = 1e-3,
     )
     total = counts_to_histogram(model((a = 2e4,)), bin_edges)

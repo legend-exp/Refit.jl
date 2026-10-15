@@ -1,10 +1,12 @@
 """
-    get_max_norm(low, high, data, pdf; blind = nothing)
+    get_max_norm(low, high, data, pdf; binning = 1)
 
 Largest factor by which the simulated spectrum `pdf` can be scaled without exceeding
 the measured spectrum `data`: the ratio of the counts of `data` and `pdf` between
-`low` and `high` (keV). Only bins fully inside that range and outside the `blind`
-range `(min, max)` are used. `data` and `pdf` must have the same binning.
+`low` and `high` (keV). Only bins fully inside that range are used, and, if `binning`
+has several ranges as in [`build_forward_model`](@ref), only those inside one of them:
+a region the fit leaves out, such as a blinded one, is not looked at. `data` and `pdf`
+must have the same binning.
 
 Returns `Inf` if `pdf` has no counts in the range.
 """
@@ -13,17 +15,19 @@ function get_max_norm(
     high::Real,
     data::Histogram{<:Real,1},
     pdf::Histogram{<:Real,1};
-    blind::Union{Tuple{Real,Real},Nothing} = nothing,
+    binning::Union{Int,AbstractVector} = 1,
 )
     data.edges[1] == pdf.edges[1] || error("Histogram binning mismatch")
-    is_valid = get_valid_bins(data.edges[1], (low, high), blind)
+    edges = data.edges[1]
+    is_valid =
+        get_valid_bins(edges, (low, high)) .& _in_ranges(edges, last(_binning(binning)))
     n_pdf = sum(pdf.weights[is_valid])
     n_pdf > 0 || return Inf
     return sum(data.weights[is_valid]) / n_pdf
 end
 
 """
-    get_priors(pdfs, data; ref_ranges, e_low, e_high, blind, norm,
+    get_priors(pdfs, data; ref_ranges, e_low, e_high, binning, norm,
                range_factor, peak_factor)
 
 Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
@@ -45,7 +49,7 @@ smaller of two values:
 `ref_ranges` is a `Dict(key => (low, high))` with energy ranges in keV, for example
 around a peak. A spectrum uses the range of the longest key that its name starts
 with, for example `:K40_hpge_bulk` uses `:K40`. Spectra without a range only use
-the fit range. `e_low`, `e_high`, `blind` and `norm` are as in
+the fit range. `e_low`, `e_high`, `binning` and `norm` are as in
 [`build_forward_model`](@ref).
 """
 function get_priors(
@@ -54,7 +58,7 @@ function get_priors(
     ref_ranges::AbstractDict{Symbol,<:Tuple{Real,Real}} = Dict{Symbol,Tuple{Real,Real}}(),
     e_low::Real = 500,
     e_high::Real = 4000,
-    blind::Union{Tuple{Real,Real},Nothing} = nothing,
+    binning::Union{Int,AbstractVector} = 1,
     norm::Real = 1,
     range_factor::Real = 1.1,
     peak_factor::Real = 1.5,
@@ -68,14 +72,14 @@ function get_priors(
             continue
         end
         pdf = spec.pdf
-        a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; blind) / norm
+        a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; binning) / norm
         isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
 
         matching =
             filter(k -> startswith(string(name), string(k)), collect(keys(ref_ranges)))
         if !isempty(matching)
             low, high = ref_ranges[argmax(k -> length(string(k)), matching)]
-            a_ref = peak_factor * get_max_norm(low, high, data, pdf; blind) / norm
+            a_ref = peak_factor * get_max_norm(low, high, data, pdf; binning) / norm
             a_max = min(a_max, a_ref)
         end
         priors[name] = 0.0 .. a_max

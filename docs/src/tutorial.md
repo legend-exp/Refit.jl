@@ -40,8 +40,9 @@ using StatsBase
 
 livetime = 1.0e6  # s
 e_low, e_high = 100, 4000  # keV, the range of the fit
-binning = 20  # merge 20 bins of 1 keV into one
-blind = (2015.0, 2065.0)  # keV, a region around the 2039 keV Q-value that is not fitted
+# bins of 20 keV. 2000 to 2080 keV, around the 2039 keV Q-value, is blinded: it is not
+# fitted, being left out between the two ranges
+binning = [100:20:2000, 2080:20:4000]
 
 # expected counts = norm * activity * spectrum, see the note on units below
 norm = 1e-3 * livetime
@@ -152,7 +153,7 @@ each energy bin. The [likelihood](likelihood.md) compares these with the measure
 counts, which are taken from the data in the same bins.
 
 ```@example tutorial
-model, bin_edges = build_forward_model(components; e_low, e_high, blind, binning, norm)
+model, bin_edges = build_forward_model(components; e_low, e_high, binning, norm)
 counts = get_counts(data, bin_edges)
 likelihood = build_likelihood(counts, model)
 nothing # hide
@@ -172,7 +173,7 @@ using IntervalSets
 
 ref_ranges = Dict(:K40 => (1456, 1466), :Pb212_to_Pb208 => (2610, 2620))
 
-ranges = get_priors(components, data; ref_ranges, e_low, e_high, blind, norm)
+ranges = get_priors(components, data; ref_ranges, e_low, e_high, binning, norm)
 ranges[:alpha_low] = 0.0 .. 10.0  # counts per keV
 ranges[:alpha_high] = 0.0 .. 10.0
 ranges
@@ -321,7 +322,7 @@ grouped = group_histograms(
     ],
 )
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per $binning keV")
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per 20 keV")
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")

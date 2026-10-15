@@ -7,8 +7,8 @@ example the best fit). `model` and `bin_edges` come from
 
 Returns an ordered dictionary `name => Histogram` with the total prediction in `:total`,
 followed by the contribution of each component under its name in the model, sorted by
-name. The blinded region and
-the range outside of the fit are empty bins (see [`counts_to_histogram`](@ref)).
+name. A region skipped by the binning, such as a blinded one, and the range outside of
+the fit are empty bins (see [`counts_to_histogram`](@ref)).
 """
 function get_best_fit_histograms(
     parameters::NamedTuple,
