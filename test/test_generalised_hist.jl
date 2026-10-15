@@ -10,7 +10,7 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
 
     @testset "one parameter" begin
         hists = [hist_with([1, 2, 3]), hist_with([3, 2, 1])]
-        gh = GeneralisedHistogram(hists; fccd = 1.0:0.5:1.5)
+        gh = GeneralisedHistogram(hists, :fccd => 1.0:0.5:1.5)
         @test gh.grid == (fccd = 1.0:0.5:1.5,)
 
         # the grid points themselves, and halfway
@@ -40,10 +40,7 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
             x = ntuple(d -> grid[d][idx[d]], N)
             hist_with([f(x), 2 * f(x)])
         end
-        gh = GeneralisedHistogram(hists; grid...)
-        # the same from a function of the parameter values
-        spectrum(p) = (x = Tuple(p); hist_with([f(x), 2 * f(x)]))
-        @test GeneralisedHistogram(spectrum; grid...).counts == gh.counts
+        gh = GeneralisedHistogram(hists, pairs(grid)...)
 
         rng = MersenneTwister(N)
         for _ = 1:20
@@ -60,7 +57,7 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
     @testset "rebinning" begin
         rng = MersenneTwister(1)
         hists = [hist_with(rand(rng, 12)) for _ = 1:3, _ = 1:4]
-        gh = GeneralisedHistogram(hists; z = -1.0:1.0:1.0, phi = 0.0:2.0:6.0)
+        gh = GeneralisedHistogram(hists, :z => -1.0:1.0:1.0, :phi => 0.0:2.0:6.0)
         params = (z = 0.3, phi = 4.5)
 
         # rebinning before or after the interpolation gives the same counts
@@ -74,13 +71,16 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
     end
 
     @testset "add_histograms" begin
-        gh1 = GeneralisedHistogram([hist_with([1, 2]), hist_with([3, 4])]; x = 0.0:1.0:1.0)
-        gh2 = GeneralisedHistogram([hist_with([5, 6]), hist_with([7, 8])]; x = 0.0:1.0:1.0)
+        gh1 =
+            GeneralisedHistogram([hist_with([1, 2]), hist_with([3, 4])], :x => 0.0:1.0:1.0)
+        gh2 =
+            GeneralisedHistogram([hist_with([5, 6]), hist_with([7, 8])], :x => 0.0:1.0:1.0)
         total = add_histograms([gh1, gh2])
         @test total.counts == [[6, 8], [10, 12]]
         @test get_weights(total, (x = 0.5,)) ≈ [8, 10]
 
-        gh3 = GeneralisedHistogram([hist_with([5, 6]), hist_with([7, 8])]; x = 0.0:2.0:2.0)
+        gh3 =
+            GeneralisedHistogram([hist_with([5, 6]), hist_with([7, 8])], :x => 0.0:2.0:2.0)
         @test_throws ErrorException add_histograms([gh1, gh3])
     end
 
@@ -88,17 +88,17 @@ hist_with(weights) = Histogram((0.0:1.0:length(weights),), Float64.(weights))
         two = [hist_with([1, 2]), hist_with([3, 4])]
         # different binnings
         bad = [hist_with([1, 2]), hist_with([1, 2, 3])]
-        @test_throws ArgumentError GeneralisedHistogram(bad; x = 0.0:1.0:1.0)
+        @test_throws ArgumentError GeneralisedHistogram(bad, :x => 0.0:1.0:1.0)
         # the grid does not match the array of histograms
-        @test_throws DimensionMismatch GeneralisedHistogram(two; x = 0.0:1.0:2.0)
-        @test_throws ArgumentError GeneralisedHistogram(two; x = 0.0:1.0:1.0, y = 0:1)
+        @test_throws DimensionMismatch GeneralisedHistogram(two, :x => 0.0:1.0:2.0)
+        @test_throws ArgumentError GeneralisedHistogram(two, :x => 0.0:1.0:1.0, :y => 0:1)
         # the grid is not an evenly spaced range of at least two values
-        @test_throws ArgumentError GeneralisedHistogram(two; x = [0.0, 1.0])
-        @test_throws ArgumentError GeneralisedHistogram(two[1:1]; x = 0.0:1.0:0.0)
+        @test_throws ArgumentError GeneralisedHistogram(two, :x => [0.0, 1.0])
+        @test_throws ArgumentError GeneralisedHistogram(two[1:1], :x => 0.0:1.0:0.0)
         # no parameter
         @test_throws ArgumentError GeneralisedHistogram(two)
         # an array with its dimensions in the wrong order, when the grids differ in length
         hists = [hist_with([x, y]) for y = 0:2, x = 0:1]
-        @test_throws DimensionMismatch GeneralisedHistogram(hists; x = 0:1, y = 0:2)
+        @test_throws DimensionMismatch GeneralisedHistogram(hists, :x => 0:1, :y => 0:2)
     end
 end

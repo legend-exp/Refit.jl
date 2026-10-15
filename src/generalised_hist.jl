@@ -1,26 +1,23 @@
 """
-    GeneralisedHistogram(spectrum; grid...)
-    GeneralisedHistogram(hists; grid...)
+    GeneralisedHistogram(hists, grid...)
 
 A histogram whose counts depend on parameters. It holds the histogram simulated at
 every point of a grid in the parameters, and interpolates linearly between the grid
 points, in each parameter and separately in each bin. [`get_weights`](@ref) and
 [`get_histogram`](@ref) return the counts at given values of the parameters.
 
-The keyword arguments give the name and the grid of each parameter, an evenly spaced
-range of at least two values. All the histograms must have the same binning. They are
-given in one of two ways:
+`hists` is an array of histograms with one dimension per parameter, all with the same
+binning. Each argument of `grid` is a pair `name => values` that describes one dimension
+of `hists`, in order: the first pair the first dimension, the second pair the second,
+and so on. The values are an evenly spaced range of at least two values. For example
 
-- `spectrum` is a function that returns the histogram for the values of the parameters,
-  given as a named tuple:
-  ```julia
-  gh = GeneralisedHistogram(p -> simulate(p.fccd, p.tl); fccd = 0.6:0.2:1.4, tl = 0.0:0.1:0.5)
-  ```
-- `hists` is an array of histograms with one dimension per parameter, in the order of
-  the keyword arguments: `hists[i, j]` is the histogram at the `i`-th value of the first
-  parameter and the `j`-th value of the second. Only the size of the array is checked,
-  so two parameters with grids of the same length can be swapped by mistake. The
-  function form above avoids this.
+```julia
+hists = [simulate(fccd, tl) for fccd in 0.6:0.2:1.4, tl in 0.0:0.1:0.5]
+ghist = GeneralisedHistogram(hists, :fccd => 0.6:0.2:1.4, :tl => 0.0:0.1:0.5)
+```
+
+gives `hists[i, j]` the `i`-th FCCD value and the `j`-th TL value. If two grids have the
+same length, only the order of the pairs tells them apart.
 
 Each evaluation sums the histograms of the ``2^N`` corners of the grid cell around the
 parameter values, so its time doubles with each parameter.
@@ -43,30 +40,21 @@ struct GeneralisedHistogram{N,G<:NamedTuple}
     counts::Array{Vector{Float64},N}
 end
 
-function GeneralisedHistogram(spectrum::Function; grid...)
-    grid = NamedTuple(grid)
-    # the histogram at every combination of grid values, in the order of the keywords
-    hists = map(Iterators.product(Tuple(grid)...)) do values
-        spectrum(NamedTuple{keys(grid)}(values))
-    end
-    return GeneralisedHistogram(hists; grid...)
-end
-
 function GeneralisedHistogram(
-    hists::AbstractArray{<:Histogram{<:Real,1},N};
-    grid...,
+    hists::AbstractArray{<:Histogram{<:Real,1},N},
+    grid::Pair{Symbol}...,
 ) where {N}
-    grid = NamedTuple(grid)
     length(grid) >= 1 || throw(ArgumentError("a generalised histogram needs a parameter"))
     length(grid) == N || throw(
         ArgumentError("hists has $N dimensions but there are $(length(grid)) parameters"),
     )
-    for (name, values) in pairs(grid)
+    for (name, values) in grid
         values isa AbstractRange ||
             throw(ArgumentError("the grid of $name must be a range, such as 0.5:0.1:2.0"))
         length(values) >= 2 && step(values) > 0 ||
             throw(ArgumentError("the grid of $name needs at least two increasing values"))
     end
+    grid = NamedTuple(grid)
     size(hists) == map(length, Tuple(grid)) || throw(
         DimensionMismatch(
             "hists has size $(size(hists)), the grid $(map(length, Tuple(grid)))",
@@ -143,7 +131,7 @@ interpolating before rebinning.
 """
 function rebin_hist(gh::GeneralisedHistogram, binning::Union{Int,AbstractVector{<:Real}})
     hists = map(c -> rebin_hist(Histogram((gh.edges,), c), binning), gh.counts)
-    return GeneralisedHistogram(hists; gh.grid...)
+    return GeneralisedHistogram(hists, pairs(gh.grid)...)
 end
 
 """

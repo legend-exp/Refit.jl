@@ -51,19 +51,20 @@ ghist = read_generalised_pdf(file; groups = "pdf/geds")
 ghist.grid
 ```
 
-A generalised histogram can also be built in Julia, from a function that returns the
-histogram for given values of the parameters. The keyword arguments give the grid of
-each parameter. As a toy example, a flat spectrum with a peak whose height falls with
-the FCCD:
+For custom cases, such as a toy model, a generalised histogram can also be built in Julia
+from an array of histograms, with one dimension per parameter. Each further argument is
+a pair `name => values` for one dimension, in the order of the dimensions:
 
 ```@example systematics
-function toy_spectrum(p)
+# a flat spectrum with a peak whose height falls with the FCCD
+function toy_spectrum(fccd)
     weights = fill(10.0, 100)  # 1 keV bins from 0 to 100 keV
-    weights[50] += 1000 / p.fccd
+    weights[50] += 1000 / fccd
     return Histogram((0.0:1.0:100.0,), weights)
 end
 
-toy = GeneralisedHistogram(toy_spectrum; fccd = 0.5:0.5:2.0)
+hists = [toy_spectrum(fccd) for fccd in 0.5:0.5:2.0]
+toy = GeneralisedHistogram(hists, :fccd => 0.5:0.5:2.0)
 nothing # hide
 ```
 
