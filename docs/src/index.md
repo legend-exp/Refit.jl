@@ -1,35 +1,30 @@
 # Refit.jl
 
-Tools to perform Bayesian (with [BAT.jl](https://bat.github.io/) fits of binned data with models
+`Refit.jl` contains tools to perform Bayesian (with [BAT.jl](https://bat.github.io/) fits of binned data with models
 based on Monte-Carlo simulations, often generated with [remage](https://remage.readthedocs.io/en/stable/).
 
-`Refit.jl` is a toolkit, it does not provide an end-to-end fitting tool. A fit
-compares a measured energy spectrum with a sum of simulated spectra. Each simulated
-spectrum is scaled by the activity. The parameters are found by
-sampling the posterior, which combines the likelihood of the data with priors.
+`Refit.jl` is a toolkit, it does not provide an end-to-end fitting tool.
 
 ## User manual
 `Refit.jl` can also do a lot more than this, for details see the following pages!
 
 - [Reading histograms](reading.md): read the data and the simulated spectra and normalise them
-- [Accounting for systematic uncertainties](generalised_hist.md): spectra simulated on a
-  grid of detector or source properties, interpolated between the grid points
-- [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
-- [Binning](binning.md): bins of any width, regions left out such as a blinded one, and
-  a binning read from a YAML file
-- [Likelihood](likelihood.md): compare the predicted counts with the measured ones
-- [Priors](priors.md): estimate ranges for the activities from the data
+- [Accounting for systematic uncertainties](generalised_hist.md): interpolation of spectra to account for systematic uncertainities in models
+- [Forward model](forward_model.md): build models mapping the parameters to the predicted counts in each energy bin
+- [Binning](binning.md): tools to handle binning the spectra
+- [Likelihood](likelihood.md): functionality to build an optimised likelihood functions
+- [Priors](priors.md): including estimation of ranges for the activities from the data
 - [Running the fit](fit.md): sample the posterior with BAT.jl and get the best fit
 - [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
 - [Saving the results](saving.md): save the samples, the best fit spectra and the activities
 
 ## Tutorials
 
-- [Fitting a background spectrum](tutorial.md): a complete fit on made-up data, from reading the files to sampling the posterior
+- [Fitting a background spectrum](tutorial.md): a complete fit on fake data, from reading the files to sampling the posterior
 - [Fitting a peak](tutorial_peak.md): a fit with analytic components only, a Gaussian peak
   on a linear background
 - [Simultaneous fits](tutorial_simultaneous.md): two detectors fitted together,
-  which separates two sources that one detector alone cannot tell apart
+  which removes degeneracies
 - [Fitting the FCCD with template morphing](tutorial_fccd.md): the dead layer of a
   detector fitted to a 60 keV γ line, with spectra simulated on a grid
 

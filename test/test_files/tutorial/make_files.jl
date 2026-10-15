@@ -44,9 +44,9 @@ sources = Dict(
     "fibers_K40" => peak_shape(1461; slope = 1.0),
     "cables_Pb212_to_Pb208" => peak_shape(2615; slope = -0.5),
     "fibers_Pb212_to_Pb208" => peak_shape(2615; slope = 0.5),
-    "hpge_icpc_bulk_2vbb" => broad_shape(1000, 600),
-    "hpge_bege_bulk_2vbb" => broad_shape(950, 550),
-    "liquid_argon_Ar39" => exp_shape(300),
+    "hpge_icpc_bulk_2vbb" => broad_shape(700, 300),
+    "hpge_bege_bulk_2vbb" => broad_shape(700, 250),
+    "liquid_argon_Ar39" => exp_shape(200),
 )
 
 for (name, spectrum) in sources

@@ -1,5 +1,5 @@
 # Binning
-
+`Refit.jl` contains several options for the binning used in the binned likelihood.
 The keyword `binning` of [`build_forward_model`](@ref) rebins the histograms before the
 energy range is applied.
 

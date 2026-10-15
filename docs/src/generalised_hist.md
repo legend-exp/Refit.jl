@@ -4,12 +4,13 @@
 simulated spectra.
 
 In a standard template fit of simulated spectra, the activity of each source scales a spectrum of fixed
-shape. `Refit.jl` can incorportate systematic uncertainities in the Monte-Carlo templates directly
-into the model allowing them to become fit parameters and the uncertainity averaged over.
+shape but no systematic uncertainities on the MC shape are considered.
+`Refit.jl` can incorportate systematic uncertainities in the Monte-Carlo templates directly
+into the model allowing them to become fit parameters and the uncertainity accounted for.
 
 ## Generalised histograms
 This is done with a [`GeneralisedHistogram`](@ref) object. This is like a `Histogram` but one
-where the counts depend on parameters values.
+where the weights depend on parameters values.
 
 Inside, it holds the histogram simulated at every point of a grid in the parameters. In
 each bin it interpolates linearly in each parameter between the grid points around the
@@ -139,21 +140,6 @@ The conventions are:
 - Every grid point is simulated with the same number of primaries, `nr_sim_events`.
   This is required: a single number normalises all the grid points.
 
-## Selecting the fit range
-
-[`select_bins`](@ref) selects the bins of a fit in the same way as
-[`build_forward_model`](@ref): it rebins with `binning` (see [Binning](binning.md)) and
-keeps the bins fully inside `e_low` to `e_high`, at every grid point. It works the same
-for a `Histogram`, such as the measured spectrum, so both get the same bins:
-
-```@example systematics
-ghist_fit, bin_edges = select_bins(ghist; binning = 5, e_low = 20, e_high = 100)
-get_weights(ghist_fit, (x = 0.3,))
-```
-
-Selecting bins and interpolating both sum counts, so the order does not matter. Select
-the bins once, before the fit, so that each evaluation only touches the fitted bins.
-[`rebin_hist`](@ref) rebins every grid point without selecting a range.
 
 ## Fits with a generalised histogram
 
