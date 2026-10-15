@@ -1,40 +1,35 @@
 """
+    GeneralisedHistogram(spectrum; grid...)
     GeneralisedHistogram(hists; grid...)
 
-A simulated energy spectrum that depends on 1 to 5 parameters, for example the
-thickness of a dead layer or the position of a source. It holds the spectrum
-simulated at every point of a grid in these parameters and interpolates between
-them.
+A histogram whose counts depend on parameters. It holds the histogram simulated at
+every point of a grid in the parameters, and interpolates linearly between the grid
+points, in each parameter and separately in each bin. [`get_weights`](@ref) and
+[`get_histogram`](@ref) return the counts at given values of the parameters.
 
-`hists` is an array of 1D histograms with one dimension per parameter: `hists[i, j]`
-is the spectrum simulated at the `i`-th value of the first parameter and the `j`-th
-value of the second. All histograms must have the same binning. The keyword
-arguments give the name and the grid values of each parameter, in the order of the
-dimensions of `hists`. Each grid is an evenly spaced range of at least two values,
-for example
+The keyword arguments give the name and the grid of each parameter, an evenly spaced
+range of at least two values. All the histograms must have the same binning. They are
+given in one of two ways:
 
-```julia
-gh = GeneralisedHistogram(hists; fccd = 0.5:0.1:2.0, alpha_frac = 0.0:0.2:1.0)
-```
+- `spectrum` is a function that returns the histogram for the values of the parameters,
+  given as a named tuple:
+  ```julia
+  gh = GeneralisedHistogram(p -> simulate(p.fccd, p.tl); fccd = 0.6:0.2:1.4, tl = 0.0:0.1:0.5)
+  ```
+- `hists` is an array of histograms with one dimension per parameter, in the order of
+  the keyword arguments: `hists[i, j]` is the histogram at the `i`-th value of the first
+  parameter and the `j`-th value of the second. Only the size of the array is checked,
+  so two parameters with grids of the same length can be swapped by mistake. The
+  function form above avoids this.
 
-for a grid of 16 FCCD values (in mm) times 6 values of `alpha_frac`.
+Each evaluation sums the histograms of the ``2^N`` corners of the grid cell around the
+parameter values, so its time doubles with each parameter.
 
-[`get_weights`](@ref) returns the interpolated counts per bin at any point inside
-the grid. In every bin the counts are interpolated linearly in each parameter
-(multilinear interpolation, the extension of linear interpolation to several
-parameters). With ``N`` parameters the point lies in a cell of the grid with
-``2^N`` corners. Along parameter ``d`` it lies a fraction ``t_d`` (from 0 to 1) of
-the way from the lower to the upper grid value of the cell. The counts in a bin are
-the sum over the corners of the counts simulated at the corner times a weight. The
-weight is the product over the parameters of ``t_d`` if the corner is at the upper
-grid value of parameter ``d``, and of ``1 - t_d`` if it is at the lower one. With one
-parameter this is ``(1 - t) n_k + t n_{k+1}``, where ``n_k`` and ``n_{k+1}`` are the
-counts at the two grid values around the point.
-
-This works when a parameter changes the counts in each bin smoothly, such as a
-dead layer or a source position. It does not work for a parameter that moves a
-peak in energy, such as the energy scale: two shifted peaks interpolate to two
-peaks of half the height.
+!!! warning
+    The interpolation is an approximation. It suits a parameter that changes the counts
+    in each bin smoothly. It does not suit a parameter that moves a peak, such as the
+    energy scale: between two grid points the peak appears twice, at half the height.
+    Check that the grid is fine enough for each use.
 
 # Fields
 * `edges`: the bin edges, in the units of the histograms (keV for a spectrum)
@@ -48,13 +43,21 @@ struct GeneralisedHistogram{N,G<:NamedTuple}
     counts::Array{Vector{Float64},N}
 end
 
+function GeneralisedHistogram(spectrum::Function; grid...)
+    grid = NamedTuple(grid)
+    # the histogram at every combination of grid values, in the order of the keywords
+    hists = map(Iterators.product(Tuple(grid)...)) do values
+        spectrum(NamedTuple{keys(grid)}(values))
+    end
+    return GeneralisedHistogram(hists; grid...)
+end
+
 function GeneralisedHistogram(
     hists::AbstractArray{<:Histogram{<:Real,1},N};
     grid...,
 ) where {N}
     grid = NamedTuple(grid)
-    1 <= N <= 5 ||
-        throw(ArgumentError("a generalised histogram has 1 to 5 parameters, not $N"))
+    length(grid) >= 1 || throw(ArgumentError("a generalised histogram needs a parameter"))
     length(grid) == N || throw(
         ArgumentError("hists has $N dimensions but there are $(length(grid)) parameters"),
     )
