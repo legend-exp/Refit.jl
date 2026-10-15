@@ -16,6 +16,18 @@ using StatsBase
         @test sum(r.weights) == sum(h.weights)
         @test r.edges[1][end] == 5.0
         @test_throws ArgumentError rebin_hist(h, 0)
+
+        # to given edges, of any width, which must be edges of `h`
+        edges = [-5.0, -1.0, 0.0, 0.5, 5.0]
+        r = rebin_hist(h, edges)
+        @test r.edges[1] == edges
+        @test r.weights == [integrate_hist(h, edges[i], edges[i+1]) for i = 1:4]
+        @test sum(r.weights) == sum(h.weights)
+        # only the range of the edges
+        @test rebin_hist(h, [-1.0, 1.0]).weights == [integrate_hist(h, -1.0, 1.0)]
+        @test_throws ArgumentError rebin_hist(h, [-5.0, 0.25, 5.0])
+        @test_throws ArgumentError rebin_hist(h, [0.0, -1.0])
+        @test_throws ArgumentError rebin_hist(h, [0.0])
     end
 
     @testset "add_histograms" begin

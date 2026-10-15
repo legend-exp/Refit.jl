@@ -37,6 +37,100 @@ const const_rate = 2.0
     @test e_rebin.low == [0.0, 2000.0]
     @test e_rebin.high == [2000.0, 4000.0]
 
+    # bins of any width, given by their edges
+    fm_var, e_var = build_forward_model(
+        pdfs;
+        e_low = 1000,
+        e_high = 5000,
+        binning = [0.0, 1000.0, 3000.0, 5000.0],
+    )
+    @test e_var.low == [1000.0, 3000.0]
+    @test e_var.high == [3000.0, 5000.0]
+    @test fm_var((a = 1.0, b = 0.0)) ≈ [2.0 + 3.0, 4.0 + 5.0]
+    # an analytic component gets the width of each bin
+    fm_flat, e_flat = build_forward_model(
+        Dict(:c => (analytic = (E, p) -> p.rate,));
+        e_low = 0,
+        e_high = 5000,
+        edges = 0.0:1000.0:5000.0,
+        binning = [0.0, 2000.0, 5000.0],
+    )
+    @test e_flat.high == [2000.0, 5000.0]
+    @test fm_flat((rate = 2.0,)) ≈ [4000.0, 6000.0]
+
+    # several ranges, each with its own edges: the region between them is skipped
+    ranges = [[0.0, 1000.0], [2000.0, 3000.0, 5000.0]]
+    fm_r, e_r = build_forward_model(pdfs; e_low = 0, e_high = 5000, binning = ranges)
+    @test e_r.low == [0.0, 2000.0, 3000.0]
+    @test e_r.high == [1000.0, 3000.0, 5000.0]
+    @test fm_r((a = 1.0, b = 0.0)) ≈ [1.0, 3.0, 4.0 + 5.0]
+    # as read from a file, in any order, and with e_low still applied
+    _, e_any = build_forward_model(
+        pdfs;
+        e_low = 500,
+        e_high = 5000,
+        binning = Any[Any[2000, 3000, 5000], Any[0, 1000]],
+    )
+    @test e_any.low == [2000.0, 3000.0]
+    # ranges that touch leave no gap
+    _, e_touch = build_forward_model(
+        pdfs;
+        e_low = 0,
+        e_high = 5000,
+        binning = [[0, 1000], [1000, 3000]],
+    )
+    @test e_touch.high == [1000.0, 3000.0]
+    @test_throws ArgumentError build_forward_model(
+        pdfs;
+        binning = [[0, 3000], [2000, 5000]],
+    )
+    @test_throws ArgumentError build_forward_model(pdfs; binning = [[0, 1000], [2000]])
+
+    # a spec with Julia ranges, or the same with strings as read from a YAML file
+    h10 = Histogram(0.0:10.0:5000.0, ones(500))
+    spec = [100:20:3000, 3200:100:4200, [4200, 4250, 4270]]
+    _, e_spec =
+        build_forward_model(Dict(:a => h10); e_low = 0, e_high = 5000, binning = spec)
+    @test e_spec.low == [100.0:20.0:2980.0; 3200.0:100.0:4100.0; 4200.0; 4250.0]
+    @test e_spec.high == [120.0:20.0:3000.0; 3300.0:100.0:4200.0; 4250.0; 4270.0]
+    _, e_yaml = build_forward_model(
+        Dict(:a => h10);
+        e_low = 0,
+        e_high = 5000,
+        binning = Any["100:20:3000", "3200:100:4200", [4200, 4250, 4270]],
+    )
+    @test e_yaml == e_spec
+    # a string ends at its stop, with a narrower last bin, so ranges that touch leave no
+    # gap. A Julia range stops at its last step, so here 1900 to 2010 keV is skipped
+    _, e_stop = build_forward_model(
+        Dict(:a => h10);
+        e_low = 0,
+        e_high = 5000,
+        binning = ["500:200:2010", "2010:10:2040"],
+    )
+    @test (1900.0, 2010.0) in collect(zip(e_stop.low, e_stop.high))
+    @test e_stop.high[1:(end-1)] == e_stop.low[2:end]
+    _, e_julia = build_forward_model(
+        Dict(:a => h10);
+        e_low = 0,
+        e_high = 5000,
+        binning = [500:200:2010, 2010:10:2040],
+    )
+    @test !((1900.0, 2010.0) in collect(zip(e_julia.low, e_julia.high)))
+    # a decimal step that reaches its stop gives no extra bin
+    _, e_dec = build_forward_model(
+        Dict(:a => Histogram(0.0:0.1:1.0, ones(10)));
+        e_low = 0,
+        e_high = 1,
+        binning = ["0:0.1:1"],
+    )
+    @test length(e_dec.low) == 10
+    @test_throws ArgumentError build_forward_model(Dict(:a => h10); binning = ["100:3000"])
+    @test_throws ArgumentError build_forward_model(
+        Dict(:a => h10);
+        binning = [100:20:200, :x],
+    )
+
     @test_throws MethodError build_forward_model(Dict("a" => h1))
     @test_throws MethodError build_forward_model(Dict(:a => [1.0, 2.0]))
     @test_throws ArgumentError build_forward_model(Dict{Symbol,typeof(h1)}())

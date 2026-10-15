@@ -29,9 +29,20 @@ centre of each and the `n` values are averaged. This takes `n` times as many cal
 `g`, and the error of the integral over the bin falls as ``1/n^2``.
 
 All histograms must share the same binning. Without any (only analytic components),
-give the bin edges in keV with `edges`. Only bins fully inside `[e_low, e_high]` and
-outside the `blind = (min, max)` region are kept. `binning` merges that many consecutive
-bins first.
+give the bin edges in keV with `edges`. The histograms are first rebinned with
+`binning`, for example read from a YAML file:
+- an integer merges that many consecutive bins
+- a vector of numbers gives the new bin edges in keV, with bins of any width
+- a vector of ranges gives each range its own bin edges in keV, for example
+  `[100:20:3000, 3200:100:4200, [4200, 4250, 4270]]`. A range is a vector or range of
+  edges, or a string `"start:step:stop"` as in a YAML file. The regions between the
+  ranges, here 3000 to 3200 keV, are skipped. Ranges that touch, here at 4200 keV, are
+  joined. A string always ends at `stop`: `"500:200:2015"` ends with a narrower bin from
+  1900 to 2015 keV. A Julia range stops at its last step instead: `500:200:2015` is
+  `500:200:1900`
+
+Each new edge must be an edge of the histograms. Then only the bins fully inside
+`[e_low, e_high]` and outside the `blind = (min, max)` region are kept.
 
 Returns `(forward_model, bin_edges)`:
 - `bin_edges`: `(low, high)`, the lower and upper edges in keV of the kept bins
@@ -49,7 +60,7 @@ function build_forward_model(
     e_high::Real = 4000,
     blind::Union{Tuple{Real,Real},Nothing} = nothing,
     norm::Real = 1,
-    binning::Int = 1,
+    binning::Union{Int,AbstractVector} = 1,
     edges::Union{AbstractVector{<:Real},Nothing} = nothing,
     points_per_bin::Int = 1,
 )
@@ -65,10 +76,13 @@ function build_forward_model(
             type such as `x::Float64 = 1.0`"
     end
     # the simulated spectra, rebinned. An analytic component with no simulation has none
-    hists = [isnothing(s.pdf) ? nothing : rebin_hist(s.pdf, binning) for s in specs]
-    model_edges = _model_edges(hists, edges, binning)
+    rebin_to, ranges = _binning(binning)
+    hists = [isnothing(s.pdf) ? nothing : rebin_hist(s.pdf, rebin_to) for s in specs]
+    model_edges = _model_edges(hists, edges, rebin_to)
 
-    is_valid = get_valid_bins(model_edges, (e_low, e_high), blind)
+    is_valid =
+        get_valid_bins(model_edges, (e_low, e_high), blind) .&
+        _in_ranges(model_edges, ranges)
     bin_low = model_edges[1:(end-1)][is_valid]
     bin_high = model_edges[2:end][is_valid]
     width = bin_high .- bin_low
@@ -173,6 +187,51 @@ function _component_spec(c::NamedTuple)
     end
     return spec
 end
+
+# `binning` as what the histograms are rebinned with, an integer or bin edges in keV, and
+# the ranges whose bins are kept, `nothing` to keep all. A vector of numbers is a list of
+# edges. Otherwise it is a list of ranges, each with its own edges: the histograms are
+# rebinned to the edges of all of them, and the bins between two ranges are skipped.
+# The vectors may come from a file, so they are recognised by their content, not type.
+_binning(binning::Int) = (binning, nothing)
+function _binning(binning::AbstractVector)
+    all(x -> x isa Real, binning) && return (collect(Float64, binning), nothing)
+    ranges = sort([_range_edges(r) for r in binning]; by = first)
+    all(r -> length(r) >= 2, ranges) ||
+        throw(ArgumentError("each range of `binning` needs at least two edges"))
+    for (r, next) in zip(ranges, ranges[2:end])
+        last(r) <= first(next) || throw(ArgumentError("the ranges of `binning` overlap"))
+    end
+    return unique(reduce(vcat, ranges)), ranges
+end
+
+# the bin edges in keV of one range of `binning`: a vector or range of numbers, or a
+# string "start:step:stop", the way a range is written in a YAML file. A string always
+# ends at `stop`: if the steps do not reach it, the last bin is narrower
+_range_edges(r::AbstractVector) = collect(Float64, r)
+function _range_edges(r::AbstractString)
+    parts = split(r, ":")
+    length(parts) == 3 ||
+        throw(ArgumentError("the range \"$r\" of `binning` is not \"start:step:stop\""))
+    start, step, stop = parse.(Float64, parts)
+    edges = collect(start:step:stop)
+    # `stop` itself, also when rounding left the last step a hair below it
+    if last(edges) ≈ stop
+        edges[end] = stop
+    else
+        push!(edges, stop)
+    end
+    return edges
+end
+_range_edges(r) =
+    throw(ArgumentError("the range $r of `binning` is not a vector or a string"))
+
+# true for the bins inside one of the `ranges`, for all bins without ranges
+_in_ranges(edges, ::Nothing) = trues(length(edges) - 1)
+_in_ranges(edges, ranges) = [
+    any(r -> first(r) <= low && high <= last(r), ranges) for
+    (low, high) in zip(edges[1:(end-1)], edges[2:end])
+]
 
 # Bin edges of the model in keV. All the simulated spectra must share them. `edges` is
 # treated like a spectrum without counts: it is rebinned and checked in the same way.

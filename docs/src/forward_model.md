@@ -107,10 +107,65 @@ its bins (see below).
 |---|---|---|
 | `e_low`, `e_high` | 500, 4000 | Energy range in keV. Only bins fully inside are kept |
 | `blind` | `nothing` | `(min, max)` in keV. Bins overlapping this range are removed |
-| `binning` | 1 | Number of consecutive bins merged before the range is applied |
+| `binning` | 1 | Bins merged, or new bin edges in keV, applied before the range, see [Binning](@ref) |
 | `norm` | 1 | Factor ``N`` multiplying every component with a simulated spectrum |
 | `edges` | `nothing` | Bin edges in keV, needed only for a model with no histogram |
 | `points_per_bin` | 1 | Number of points in each bin at which an analytic function is evaluated |
+
+## Binning
+
+`binning` rebins the histograms before the energy range and the blinded region are
+applied. It takes three forms, for example read from a YAML file:
+
+| `binning` | Bins |
+|---|---|
+| `20` | every 20 consecutive bins merged into one |
+| `[500, 520, 600, 1000]` or `500:20:3000` | these bin edges in keV, with bins of any width |
+| `[500:20:1400, 1500:100:2500, [2600, 2610, 2620, 2630]]` | several ranges, each with its own edges |
+
+With several ranges, the regions between them are skipped, here 1400 to 1500 keV and
+2500 to 2600 keV. Ranges that touch are joined. Every edge must be an edge of the
+histograms, and each new bin is the sum of the bins inside it:
+
+```@example demo
+model_r, bin_edges_r = build_forward_model(
+    mc_dict;
+    e_low = 500,
+    e_high = 3200,
+    norm = 1e-3 * livetime,
+    binning = [500:20:1400, 1500:100:2500, [2600, 2610, 2620, 2630]],
+)
+
+# the bins around the first skipped region, lower and upper edges in keV
+bin_edges_r.low[44:47], bin_edges_r.high[44:47]
+```
+
+In a YAML file a range is written as a string `"start:step:stop"`:
+
+```yaml
+binning:
+  - 500:20:1400
+  - 1500:100:2500
+  - [2600, 2610, 2620, 2630]
+```
+
+```julia
+using YAML
+
+binning = YAML.load_file("fit.yaml")["binning"]
+model, bin_edges = build_forward_model(mc_dict; binning, e_low = 500, e_high = 3200)
+```
+
+On a single line, the ranges need quotes: `["500:20:1400", "1500:100:2500"]`.
+
+A string always ends at its `stop`. If the steps do not reach it, the last bin is
+narrower: `"500:200:2015"` has the edges 500, 700, ..., 1900 and 2015 keV. A Julia range
+follows the rule of Julia instead and stops at its last step: `500:200:2015` is
+`500:200:1900`, and the region from 1900 to 2015 keV is then not in the range, so it is
+skipped.
+
+With bins of different widths, the counts per bin are not comparable from one bin to the
+next. Divide them by the width of the bin to compare or plot them as counts per keV.
 
 ## Calling the model
 

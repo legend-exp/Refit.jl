@@ -19,6 +19,21 @@ function rebin_hist(h::Histogram{<:Real,1}, factor::Int)
 end
 
 """
+    rebin_hist(h::Histogram, edges::AbstractVector{<:Real})
+
+Rebins a 1D `Histogram` to the bin edges `edges`, in the units of `h` (keV for a
+spectrum), with bins of any width. Each new bin is the sum of the bins of `h` inside it,
+so every value in `edges` must be an edge of `h`. The new histogram covers only the range
+of `edges`.
+"""
+function rebin_hist(h::Histogram{<:Real,1}, edges::AbstractVector{<:Real})
+    length(edges) >= 2 || throw(ArgumentError("edges needs at least two values"))
+    all(>(0), diff(edges)) || throw(ArgumentError("edges must be strictly increasing"))
+    weights = [integrate_hist(h, edges[i], edges[i+1]) for i = 1:(length(edges)-1)]
+    return Histogram((collect(Float64, edges),), weights)
+end
+
+"""
     add_histograms(hs::Vector{<:Histogram})
 
 Sum the weights of histograms that share the same binning.
