@@ -19,8 +19,8 @@ For given values of the parameters, [`get_histogram`](@ref) returns a `Histogram
 [`get_weights`](@ref) its counts per bin:
 
 ```julia
-get_histogram(gh, (fccd = 1.05, tl = 0.27))  # a Histogram
-get_weights(gh, (fccd = 1.05, tl = 0.27))    # its counts per bin
+get_histogram(ghist, (fccd = 1.05, tl = 0.27))  # a Histogram
+get_weights(ghist, (fccd = 1.05, tl = 0.27))    # its counts per bin
 ```
 
 Inside, it holds the histogram simulated at every point of a grid in the parameters. In
@@ -37,7 +37,7 @@ A generalised histogram needs:
 The histograms usually come from a simulation that writes them to an LH5 file.
 [`read_generalised_hist`](@ref) reads one, and its docstring describes the format of the
 file. [`read_generalised_pdf`](@ref) also divides by the number of simulated primaries,
-like [`read_pdf`](@ref). For example, the templates of the
+like [`read_pdf`](@ref). For example, the simulated spectra of the
 [FCCD tutorial](tutorial_fccd.md) are the spectra of a 60 keV γ line on a grid of FCCD
 and transition layer thickness (TL), in mm:
 
@@ -46,8 +46,8 @@ using Refit
 using StatsBase
 
 file = "../../test/test_files/fccd/templates.lh5"  # relative to docs/src
-gh = read_generalised_pdf(file; groups = "pdf/geds")
-gh.grid
+ghist = read_generalised_pdf(file; groups = "pdf/geds")
+ghist.grid
 ```
 
 A generalised histogram can also be built in Julia, from a function that returns the
@@ -72,7 +72,7 @@ The values of the parameters are given as a named tuple, in any order. Other ent
 such as the activities of a fit, are ignored. A value outside the grid is an error.
 
 ```@example systematics
-w = get_weights(gh, (tl = 0.27, fccd = 1.05, activity = 3.0))
+w = get_weights(ghist, (tl = 0.27, fccd = 1.05, activity = 3.0))
 w[58:62]
 ```
 
@@ -83,8 +83,8 @@ w[58:62]
 the edges, so it also selects the fit range:
 
 ```@example systematics
-gh_fit = rebin_hist(gh, collect(5.0:5.0:65.0))  # 5 to 65 keV in 5 keV bins
-get_weights(gh_fit, (fccd = 1.05, tl = 0.27))
+ghist_fit = rebin_hist(ghist, collect(5.0:5.0:100.0))  # 5 to 100 keV in 5 keV bins
+get_weights(ghist_fit, (fccd = 1.05, tl = 0.27))
 ```
 
 Rebinning and interpolation both sum counts, so the order does not matter. Rebin once,
@@ -97,7 +97,7 @@ each bin. With a generalised histogram it interpolates at the parameter values o
 evaluation, for example for a known number of γs:
 
 ```julia
-model(p) = n_gamma .* get_weights(gh_fit, p)
+model(p) = n_gamma .* get_weights(ghist_fit, p)
 likelihood = build_likelihood(counts, model)
 ```
 
