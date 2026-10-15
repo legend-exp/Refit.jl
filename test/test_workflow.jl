@@ -21,8 +21,8 @@ using Test
         mc_dict;
         e_low = 100,
         e_high = 900,
-        blind = (400, 500),
-        binning = 2,
+        # bins of 20 keV, with 400 to 500 keV left out as a blinded region
+        binning = [100:20:400, 500:20:900],
     )
     counts = get_counts(data, bin_edges)
     @test length(counts) == length(model(true_params))

@@ -64,20 +64,12 @@ function integrate_hist(h::Histogram{<:Any,1}, a, b)
 end
 
 """
-    get_valid_bins(edges, range, blind = nothing)
+    get_valid_bins(edges, range)
 
-Boolean mask of bins fully inside `range = (min, max)` and, if `blind = (min, max)`
-is given, fully outside the blinded region.
+Boolean mask of the bins fully inside `range = (min, max)`.
 """
-function get_valid_bins(edges::AbstractVector{<:Real}, range::Tuple, blind = nothing)
-    bin_starts = edges[1:(end-1)]
-    bin_ends = edges[2:end]
-
-    inside_main = (bin_starts .>= range[1]) .& (bin_ends .<= range[2])
-    isnothing(blind) && return inside_main
-
-    outside_blind = (bin_ends .<= blind[1]) .| (bin_starts .>= blind[2])
-    return inside_main .& outside_blind
+function get_valid_bins(edges::AbstractVector{<:Real}, range::Tuple)
+    return (edges[1:(end-1)] .>= range[1]) .& (edges[2:end] .<= range[2])
 end
 
 """
@@ -106,7 +98,7 @@ model prediction. This is the inverse of [`get_counts`](@ref).
 `counts[i]` is the content of the bin between `bin_edges.low[i]` and
 `bin_edges.high[i]`. The bins must be sorted and must not overlap. The histogram
 covers the range from `low[1]` to `high[end]`. A gap between two bins, such as a
-blinded region, becomes one bin with 0 counts.
+region skipped by the binning, becomes one bin with 0 counts.
 """
 function counts_to_histogram(
     counts::AbstractVector{<:Real},

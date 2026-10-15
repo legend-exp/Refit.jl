@@ -50,6 +50,7 @@ using StatsBase
     @testset "get_valid_bins" begin
         edges = [0.0, 1, 2, 3, 4]
         @test Refit.get_valid_bins(edges, (1, 4)) == [false, true, true, true]
-        @test Refit.get_valid_bins(edges, (0, 4), (1, 3)) == [true, false, false, true]
+        # only the bins fully inside the range
+        @test Refit.get_valid_bins(edges, (0.5, 3)) == [false, true, true, false]
     end
 end

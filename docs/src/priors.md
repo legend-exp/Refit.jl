@@ -20,7 +20,8 @@ a_\mathrm{max} = \frac{f \, N_\mathrm{data}}{\mathrm{norm} \, N_\mathrm{pdf}},
 where ``N_\mathrm{data}`` and ``N_\mathrm{pdf}`` are the counts in the window of the
 data and of the simulated spectrum, `norm` is the factor of the
 [forward model](forward_model.md), and ``f`` is a safety factor. Only bins fully
-inside the window and outside the blinded region are used.
+inside the window are used, and, if `binning` has several ranges, only those inside one
+of them: a blinded region left out of the fit is not looked at.
 
 Two windows are used and the smaller `a_max` is kept:
 - the fit range `[e_low, e_high]`, with the safety factor `range_factor` (default 1.1),
@@ -56,7 +57,7 @@ The result is a `Dict` with the same keys as `mc_dict`. Each value is an interva
 
 A spectrum uses the reference range of the longest key that its name starts with.
 For example `:K40_hpge_bulk` uses `:K40`. Spectra without a range only use the fit
-range. `e_low`, `e_high`, `blind` and `norm` are as in the forward model.
+range. `e_low`, `e_high`, `binning` and `norm` are as in the forward model.
 
 ## Changing a range by hand
 

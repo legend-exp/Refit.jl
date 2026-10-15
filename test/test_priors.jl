@@ -20,9 +20,13 @@ using ValueShapes
         @test get_max_norm(100, 900, data, pdf) ≈ 340 / 80
         # a window edge that is not a bin edge: only the bins fully inside are used
         @test get_max_norm(420, 580, data, pdf) == Inf
-        # blinded bins are not used
-        @test get_max_norm(0, 1000, data, pdf; blind = (400, 600)) ≈ 400 / 80
-        @test get_max_norm(400, 600, data, pdf; blind = (400, 600)) == Inf
+        # a region left out between the ranges of the binning, such as a blinded one,
+        # is not used
+        blinded = [0:100:400, 600:100:1000]
+        @test get_max_norm(0, 1000, data, pdf; binning = blinded) ≈ 400 / 80
+        @test get_max_norm(400, 600, data, pdf; binning = blinded) == Inf
+        # a binning without ranges uses all bins
+        @test get_max_norm(100, 900, data, pdf; binning = 2) ≈ 340 / 80
         @test_throws ErrorException get_max_norm(
             0,
             1000,
@@ -67,7 +71,7 @@ using ValueShapes
         @test priors[:K40_hpge_bulk] == 0.0 .. (3 * 40 / 20)
         @test priors[:other_source] == 0.0 .. (2 * 340 / 80)
 
-        # blinding and norm
+        # norm, and a blinded region left out between two ranges
         priors = get_priors(pdfs, data; e_low = 100, e_high = 900, norm = 2)
         @test priors[:other_source] == 0.0 .. (range_max / 2)
         priors = get_priors(
@@ -76,7 +80,7 @@ using ValueShapes
             ref_ranges = Dict(:K40 => (400, 600)),
             e_low = 100,
             e_high = 900,
-            blind = (400, 600),
+            binning = [100:100:400, 600:100:900],
         )
         @test priors[:K40_hpge_bulk] == 0.0 .. (1.1 * 300 / 60)
 

@@ -1,5 +1,5 @@
 """
-    build_forward_model(components; e_low, e_high, blind, norm, binning, edges, points_per_bin)
+    build_forward_model(components; e_low, e_high, norm, binning, edges, points_per_bin)
 
 Build a function that maps fit parameters to the predicted counts per energy bin.
 
@@ -42,7 +42,9 @@ give the bin edges in keV with `edges`. The histograms are first rebinned with
   `500:200:1900`
 
 Each new edge must be an edge of the histograms. Then only the bins fully inside
-`[e_low, e_high]` and outside the `blind = (min, max)` region are kept.
+`[e_low, e_high]` are kept. To blind a region, leave it out between two ranges: for
+example `binning = [100:20:2000, 2080:20:4000]` does not fit 2000 to 2080 keV, around the
+Q-value of 2039 keV.
 
 Returns `(forward_model, bin_edges)`:
 - `bin_edges`: `(low, high)`, the lower and upper edges in keV of the kept bins
@@ -58,7 +60,6 @@ function build_forward_model(
     components::AbstractDict{Symbol};
     e_low::Real = 500,
     e_high::Real = 4000,
-    blind::Union{Tuple{Real,Real},Nothing} = nothing,
     norm::Real = 1,
     binning::Union{Int,AbstractVector} = 1,
     edges::Union{AbstractVector{<:Real},Nothing} = nothing,
@@ -81,8 +82,7 @@ function build_forward_model(
     model_edges = _model_edges(hists, edges, rebin_to)
 
     is_valid =
-        get_valid_bins(model_edges, (e_low, e_high), blind) .&
-        _in_ranges(model_edges, ranges)
+        get_valid_bins(model_edges, (e_low, e_high)) .& _in_ranges(model_edges, ranges)
     bin_low = model_edges[1:(end-1)][is_valid]
     bin_high = model_edges[2:end][is_valid]
     width = bin_high .- bin_low

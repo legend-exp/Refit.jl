@@ -109,7 +109,8 @@ end
         pdfs;
         e_low = 100,
         e_high = 900,
-        blind = (450.0, 550.0),
+        # 400 to 600 keV left out, as a blinded region
+        binning = [100:100:400, 600:100:900],
         norm = 1e-3,
     )
     hists = get_best_fit_histograms((a = 2.0, b = 4.0), model, bin_edges)

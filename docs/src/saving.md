@@ -12,7 +12,9 @@ using Refit
 
 # the fit of the forward model page, with the true activities as the best fit
 norm = 1e-3 * livetime
-model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200, blind = (2015.0, 2065.0), norm)
+# 2010 to 2070 keV is blinded: it is left out between the two ranges of the binning
+binning = [500:10:2010, 2070:10:3200]
+model, bin_edges = build_forward_model(mc_dict; e_low = 500, e_high = 3200, binning, norm)
 best = true_activities
 outdir = mktempdir()
 ```
@@ -44,7 +46,8 @@ info/chainid    chain, walker, step number and other bookkeeping of the sampler
 `get_best_fit_histograms` makes a histogram of the prediction of the model for the
 `parameters`, usually the best fit. The result is a dictionary with the total in the
 key `:total` and the contribution of each source, with the name of its activity. The
-bins outside the fit range and in the blinded region are empty.
+bins outside the fit range and in a region skipped by the binning, such as a blinded
+one, are empty.
 
 ```@example demo
 hists = get_best_fit_histograms(best, model, bin_edges)
