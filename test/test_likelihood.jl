@@ -9,6 +9,9 @@ using Test
     @test poisson_likelihood(obs, pred) ≈ sum(@. obs * log(pred) - pred)
     @test_throws DimensionMismatch poisson_likelihood([1, 2, 3], [1.0, 2.0])
     @test isfinite(poisson_likelihood([0], [0.0]))
+    # a negative prediction has no Poisson probability
+    @test poisson_likelihood([1, 2], [1.0, -0.5]) == -Inf
+    @test poisson_likelihood([0, 2], [-1e-3, 3.0]) == -Inf
 end
 
 @testset "get_counts" begin
