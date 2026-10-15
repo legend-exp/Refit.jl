@@ -5,17 +5,21 @@ DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Format = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LegendHDF5IO = "c9265ca6-b027-5446-b1a4-febfa8dd10b0"
 LegendMakie = "ce9a434a-d062-4f11-9371-3059ddb1c48a"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Refit = "25c10485-62ee-4db8-aac8-96ff0b0b3b5a"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 ValueShapes = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
 
-[compat]
-BAT = "5"
-
 [sources]
 Refit = {path = ".."}
+
+[compat]
+BAT = "5"
+ForwardDiff = "1"
+Optim = "2"

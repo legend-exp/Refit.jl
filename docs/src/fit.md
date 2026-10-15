@@ -50,18 +50,21 @@ optimiser. `bat_findmode` needs the package `Optim` for this. The models and lik
 of `Refit.jl` work with automatic differentiation by `ForwardDiff`, so an optimiser that
 uses the gradient, such as LBFGS, can be used:
 
-```julia
+```@example fit
 using Optim, ForwardDiff
 
 context = BATContext(ad = ForwardDiff)
-best = bat_findmode(posterior, OptimAlg(optalg = Optim.LBFGS()), context).result
+best_lbfgs = bat_findmode(posterior, OptimAlg(optalg = Optim.LBFGS()), context).result
 ```
 
 !!! note "Maximum likelihood"
-    `bat_bgml(likelihood, prior, OptimAlg(optalg = Optim.LBFGS()), context)` finds the
-    maximum of the likelihood instead of the posterior. The prior only chooses the
-    parameter space of the search, so the result does not depend on it as long as it is
-    not zero where the likelihood is large.
+    `bat_bgml` finds the maximum of the likelihood instead of the posterior. The prior
+    only chooses the parameter space of the search, so the result does not depend on it
+    as long as it is not zero where the likelihood is large:
+
+    ```@example fit
+    best_ml = bat_bgml(likelihood, prior, OptimAlg(optalg = Optim.LBFGS()), context).result
+    ```
 
 The uncertainty of each parameter, the smallest interval that contains 68% of its
 posterior, comes from the samples (see [Saving the results](saving.md)).
