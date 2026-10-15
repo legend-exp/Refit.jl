@@ -83,19 +83,20 @@ fig
 
 ## Fit range and binning
 
-The bin edges set the fit range: rebinning to edges keeps only the bins between the first
-and the last edge, for the simulated spectra and for the data alike. The range starts at
-5 keV, which leaves out the lowest bins, as an energy threshold does. It ends at 100 keV:
-above the peak only the background contributes, which separates it from the flat
-continuum of the transition layer.
+`select_bins` selects the bins of the fit: it merges every 5 bins of 1 keV and keeps
+the bins fully inside `e_low` to `e_high`, in the same way as `build_forward_model`.
+With the same keywords, the generalised histogram and the measured spectrum get the same
+bins. The range starts at 5 keV, which leaves out the lowest bins, as an energy
+threshold does. It ends at 100 keV: above the peak only the background contributes,
+which separates it from the flat continuum of the transition layer.
 
 ```@example fccd
 e_low, e_high = 5.0, 100.0  # keV, the fit range
-edges = collect(e_low:5.0:e_high)  # 5 keV bins
-ghist_fit = rebin_hist(ghist, edges)
+binning = 5  # 5 keV bins
 
-data = rebin_hist(read_hist("hist/geds", joinpath(dir, "data.lh5")), edges)
-counts = data.weights
+ghist_fit, bin_edges = select_bins(ghist; binning, e_low, e_high)
+data = read_hist("hist/geds", joinpath(dir, "data.lh5"))
+counts, _ = select_bins(data; binning, e_low, e_high)
 nothing # hide
 ```
 
@@ -109,11 +110,13 @@ measures the height of the peak and of the continuum.
 The model gives the expected counts in each bin. The γ line is the number of γs times
 the counts per γ, interpolated at the FCCD and TL of the parameters. The background is
 `bkg` counts per keV times the width of the bin. `build_likelihood` takes any such
-function of the parameters.
+function of the parameters. `build_forward_model` can make the same model, with the
+generalised histogram and an analytic background as components (see
+[Fits with a generalised histogram](@ref)).
 
 ```@example fccd
 n_gamma = 20_000
-width = diff(edges)  # keV
+width = bin_edges.high .- bin_edges.low  # keV
 
 line(p) = n_gamma .* get_weights(ghist_fit, p)
 background(p) = p.bkg .* width
@@ -183,15 +186,15 @@ The prediction of the best fit, of the γ line and of the background, compared w
 data:
 
 ```@example fccd
-bin_edges = (low = edges[1:(end-1)], high = edges[2:end])
+data_hist = counts_to_histogram(counts, bin_edges)
 total = counts_to_histogram(model(best), bin_edges)
 
 fig, ax, ax_res = fit_axes(; ylabel = "Counts per 5 keV")
-plot_hist!(ax, data; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
+plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
 plot_hist!(ax, counts_to_histogram(line(best), bin_edges); label = "60 keV γ line")
 plot_hist!(ax, counts_to_histogram(background(best), bin_edges); label = "Background")
 plot_hist!(ax, total; color = :black, linewidth = 3, label = "Best fit")
-plot_residuals!(ax_res, total, data)
+plot_residuals!(ax_res, total, data_hist)
 
 CairoMakie.xlims!(ax, e_low, e_high)
 CairoMakie.ylims!(ax, 10, 1e5)

@@ -55,6 +55,14 @@ counts = get_counts(data, bin_edges)
 counts
 ```
 
+Without a model from `build_forward_model`, [`select_bins`](@ref) selects the bins of the
+data with the same keywords, and returns the counts and the bin edges:
+
+```@example demo
+counts, bin_edges = select_bins(data; e_low = 500, e_high = 3200, binning = 2)
+counts == get_counts(data, bin_edges)
+```
+
 ## Building the likelihood
 
 ```@example demo
@@ -85,6 +93,12 @@ logdensityof(likelihood, other)
 `DimensionMismatch` if the two vectors differ in length. A bin with a predicted
 count of zero is allowed: a tiny number (`eps()`) is added to the prediction inside
 the logarithm, so the result stays finite.
+
+!!! warning "The statistical uncertainty of the simulation is not included"
+    The likelihood treats the simulated spectra as exact. Their statistical
+    fluctuations are not part of the uncertainty of the result. Simulate enough primaries
+    that these fluctuations are small compared with those of the data. For a
+    [generalised histogram](generalised_hist.md), this holds at every grid point.
 
 ## Simultaneous fits
 
