@@ -17,6 +17,7 @@ include("results.jl")
 include("plots.jl")
 
 export rebin_hist, add_histograms, integrate_hist, get_counts, counts_to_histogram
+export uniform_binning_with_peaks
 export build_forward_model
 export poisson_likelihood, build_likelihood
 export get_max_norm, get_priors, build_prior_dist

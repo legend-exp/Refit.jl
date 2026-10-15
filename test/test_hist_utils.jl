@@ -30,6 +30,37 @@ using StatsBase
         @test_throws ArgumentError rebin_hist(h, [0.0])
     end
 
+    @testset "uniform_binning_with_peaks" begin
+        h1 = Histogram(0.0:1.0:100.0, ones(100))
+        # no peaks: uniform bins, the last one narrower
+        @test uniform_binning_with_peaks(h1, 30) == [0.0, 30.0, 60.0, 90.0, 100.0]
+        # a peak from 44 to 52 is one bin. The edges 40, 50 and 60, less than one bin
+        # width from it, go, so the bins next to it are 14 and 18 wide
+        peak = [(44, 52)]
+        @test uniform_binning_with_peaks(h1, 10; peaks = peak) ==
+              [0.0, 10, 20, 30, 44, 52, 70, 80, 90, 100]
+        # the edges are moved to the nearest edges of the histogram
+        h2 = Histogram(0.0:2.0:100.0, ones(50))
+        @test uniform_binning_with_peaks(h2, 10; peaks = [(44.6, 51.3)]) ==
+              uniform_binning_with_peaks(h1, 10; peaks = peak)
+        @test uniform_binning_with_peaks(h1, 10; low = 20, high = 50) == [20.0, 30, 40, 50]
+        # usable as the binning of a model
+        _, bin_edges = build_forward_model(
+            Dict(:a => h1);
+            e_low = 0,
+            e_high = 100,
+            binning = uniform_binning_with_peaks(h1, 10; peaks = peak),
+        )
+        @test (44.0, 52.0) in collect(zip(bin_edges.low, bin_edges.high))
+        @test_throws ArgumentError uniform_binning_with_peaks(h1, 0)
+        @test_throws ArgumentError uniform_binning_with_peaks(h1, 10; peaks = [(90, 120)])
+        @test_throws ArgumentError uniform_binning_with_peaks(
+            h1,
+            10;
+            peaks = [(40, 50), (45, 55)],
+        )
+    end
+
     @testset "add_histograms" begin
         h1 = fit(Histogram, randn(1000), -5:0.5:5)
         h2 = fit(Histogram, randn(1000), -5:0.5:5)
