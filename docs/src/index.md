@@ -13,6 +13,8 @@ sampling the posterior, which combines the likelihood of the data with priors.
 
 - [Reading histograms](reading.md): read the data and the simulated spectra and normalise them
 - [Forward model](forward_model.md): map the activities to the predicted counts in each energy bin
+- [Binning](binning.md): bins of any width, regions left out such as a blinded one, and
+  a binning read from a YAML file
 - [Likelihood](likelihood.md): compare the predicted counts with the measured ones
 - [Priors](priors.md): estimate ranges for the activities from the data
 - [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
