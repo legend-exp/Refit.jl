@@ -93,6 +93,12 @@ using ValueShapes
             data,
         )
         @test_throws TypeError get_priors(pdfs, data; ref_ranges = Dict(:K40 => 1461))
+
+        # a generalised histogram: the widest range of its grid points, here the one
+        # with the fewest counts
+        gh = GeneralisedHistogram([pdf, Histogram(edges, fill(5.0, 10))], :x => 0.0:1.0:1.0)
+        priors = get_priors(Dict(:g => gh), data; e_low = 100, e_high = 900)
+        @test priors[:g] == 0.0 .. (1.1 * 340 / 40)
     end
 end
 

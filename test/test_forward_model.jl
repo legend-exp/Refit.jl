@@ -317,3 +317,43 @@ const const_rate = 2.0
         )
     end
 end
+
+@testset "build_forward_model with a generalised histogram" begin
+    edges = 0.0:1000.0:5000.0
+    # the counts in each bin are linear in the parameter, so the interpolation is exact
+    shape(x) = Histogram(edges, [1.0, 2.0, 3.0, 4.0, 5.0] .+ x .* [5.0, 4.0, 3.0, 2.0, 1.0])
+    gh = GeneralisedHistogram([shape(x) for x = 0.0:0.5:1.0], :x => 0.0:0.5:1.0)
+    h = Histogram(edges, fill(10.0, 5))
+    kw = (e_low = 1000, e_high = 4000, norm = 2.0)
+
+    # the activity times the interpolated spectrum, plus a histogram
+    model, bin_edges = build_forward_model(Dict(:g => gh, :h => h); kw...)
+    @test bin_edges.low == [1000, 2000, 3000]
+    p = (g = 3.0, h = 0.5, x = 0.25)
+    @test model(p) ≈ 2.0 .* (3.0 .* shape(0.25).weights[2:4] .+ 0.5 .* 10.0)
+    parts = model(p, Val(:by_component))
+    @test parts.g ≈ 2.0 .* 3.0 .* shape(0.25).weights[2:4]
+    @test parts.g .+ parts.h ≈ model(p)
+
+    # with an activity function and an analytic function
+    model, _ = build_forward_model(
+        Dict(:g => (pdf = gh, activity = p -> 2 * p.a, analytic = (E, p) -> E / 1000));
+        kw...,
+    )
+    energies = [1500.0, 2500.0, 3500.0]
+    @test model((a = 1.5, x = 0.75)) ≈
+          2.0 .* 3.0 .* (energies ./ 1000) .* shape(0.75).weights[2:4]
+
+    # the same as a forward model written with select_bins
+    selected, _ = select_bins(gh; e_low = 1000, e_high = 4000)
+    model, _ = build_forward_model(Dict(:g => gh); kw...)
+    @test model((g = 1.0, x = 0.6)) ≈ 2.0 .* get_weights(selected, (x = 0.6,))
+
+    # a value outside the grid, and a different binning
+    @test_throws DomainError model((g = 1.0, x = 1.5))
+    other = GeneralisedHistogram(
+        [Histogram(0.0:500.0:5000.0, ones(10)) for _ = 1:2],
+        :x => 0.0:1.0:1.0,
+    )
+    @test_throws ErrorException build_forward_model(Dict(:g => gh, :o => other); kw...)
+end
