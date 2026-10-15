@@ -1,73 +1,47 @@
 # Generalised histograms
 
-Some simulated spectra depend on a parameter that is not known well enough to fix, for
-example the thickness of a dead layer or the position of a source. A
-[`GeneralisedHistogram`](@ref) holds the spectrum simulated at every point of a grid in
-up to 5 such parameters. It returns the spectrum at any point inside the grid by linear
-interpolation between the grid points, separately in each bin.
+## Motivation
 
-## Building a generalised histogram
+In a fit of simulated spectra, the activity of each source scales a spectrum of fixed
+shape. Some properties of the setup change the shape itself, for example the thickness
+of the dead layer of a detector (FCCD, full charge collection depth), the width of its
+transition layer, or the position of a source. A scale factor cannot describe them.
 
-The spectra are given as an array of histograms with one dimension per parameter, all
-with the same binning. The keyword arguments give the name and the grid values of each
-parameter, in the order of the dimensions. Each grid is an evenly spaced range.
+The way around this is to simulate the spectrum on a grid of values of these
+properties and to interpolate between the grid points, also called template morphing.
+The properties then become parameters of the fit, like the activities.
 
-As a toy example, a flat spectrum from 0 to 100 keV with a peak whose height falls with
-the FCCD (in mm), simulated at 4 FCCD values times 3 values of a second parameter
-`alpha_frac` that scales the flat part:
+## What it does
 
-```@example ghist
-using Refit, StatsBase
+A [`GeneralisedHistogram`](@ref) holds the spectrum simulated at every point of an evenly
+spaced grid in 1 to 5 parameters. [`get_weights`](@ref) returns the counts per bin at any
+point inside the grid. In every bin it interpolates linearly in each parameter between
+the neighbouring grid points:
 
-fccd = 0.5:0.5:2.0
-alpha_frac = 0.0:0.5:1.0
-
-function toy_spectrum(f, a)
-    weights = fill(10.0 * (1 + a), 100)
-    weights[50] += 1000 / f
-    return Histogram((0.0:1.0:100.0,), weights)
-end
-
-hists = [toy_spectrum(f, a) for f in fccd, a in alpha_frac]
-gh = GeneralisedHistogram(hists; fccd = fccd, alpha_frac = alpha_frac)
-nothing # hide
+```julia
+gh = read_generalised_pdf("templates.lh5"; groups = "pdf/geds")
+get_weights(gh, (fccd = 1.05, tl = 0.27))  # counts per bin, here per simulated primary
 ```
 
-`hists[i, j]` is the spectrum at the `i`-th FCCD value and the `j`-th value of
-`alpha_frac`.
+The user only gives the values of the parameters. [`rebin_hist`](@ref) and
+[`add_histograms`](@ref) work as for a `Histogram`, on every grid point at once. A
+generalised histogram is read from an LH5 file with [`read_generalised_hist`](@ref), or
+with [`read_generalised_pdf`](@ref), which also divides by the number of simulated
+primaries like [`read_pdf`](@ref). The docstring of `read_generalised_hist` describes the
+format of the file.
 
-## Spectrum at a point of the grid
-
-[`get_weights`](@ref) returns the counts per bin at any point inside the grid, and
-[`get_histogram`](@ref) the same as a `Histogram`. The parameters are given as a named
-tuple, in any order. Other entries, such as the activities of a fit, are ignored:
-
-```@example ghist
-w = get_weights(gh, (fccd = 0.75, alpha_frac = 0.25, A = 3.0))
-w[49:51]
-```
-
-Halfway between the FCCD values 0.5 and 1.0 mm, the peak is halfway between 2000 and
-1000 counts. A point outside the grid is an error.
-
-## Rebinning
-
-[`rebin_hist`](@ref) rebins the spectrum at every grid point, in the same ways as for a
-`Histogram` (see [Binning](binning.md)). Rebinning to edges keeps only the range of the
-edges, so it also selects the fitted energy range:
-
-```@example ghist
-gh_fit = rebin_hist(gh, collect(40.0:5.0:60.0))
-get_weights(gh_fit, (fccd = 0.75, alpha_frac = 0.25))
-```
-
-Rebinning and interpolation both sum counts, so the order does not matter. Rebin once,
-before the fit, so that each evaluation touches only the fitted bins.
+The [FCCD tutorial](tutorial_fccd.md) fits the FCCD and the transition layer of a
+detector in this way.
 
 ## Limitations
 
-The interpolation is linear in each bin. This suits parameters that change the counts in
-each bin smoothly, such as a dead layer or a source position. It does not suit a
-parameter that moves a peak in energy, such as the energy scale: between two grid points
-the peak would appear twice, at half the height. Such parameters belong in an analytic
-part of the model instead.
+- The interpolation is linear in each bin. This suits a parameter that changes the
+  counts in each bin smoothly, such as a dead layer or a source position. It does not
+  suit a parameter that moves a peak in energy, such as the energy scale: between two
+  grid points the peak would appear twice, at half the height. Such parameters belong in
+  an [analytic part](@ref "Analytic functions") of the model.
+- Between grid points the interpolation is an approximation, unless the counts in each
+  bin are linear in the parameter. Check that the grid is fine enough, for example by
+  comparing with a simulation halfway between two grid points.
+- A point outside the grid is an error. The prior range of each parameter must lie
+  inside the grid.
