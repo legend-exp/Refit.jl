@@ -238,12 +238,11 @@ a straight line by its values at the two ends of the fit range.
 Like for activity functions, `get_priors` skips the analytic components, and their
 parameters need a prior by hand.
 
-## Each component separately
-
-`model(params, Val(:by_component))` returns a named tuple with the predicted counts of
-each component on its own, under the keys of the dictionary and in sorted order,
-whichever form the component has. [`get_best_fit_histograms`](@ref) uses this to draw
-the fit.
+!!! note "Each component separately"
+    `model(params, Val(:by_component))` returns a named tuple with the predicted counts
+    of each component on its own, under the keys of the dictionary and in sorted order,
+    whichever form the component has. [`get_best_fit_histograms`](@ref) uses this to
+    draw the fit.
 
 ## Bin edges
 

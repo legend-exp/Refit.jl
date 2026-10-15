@@ -17,6 +17,7 @@ makedocs(;
             "Binning" => "binning.md",
             "Likelihood" => "likelihood.md",
             "Priors" => "priors.md",
+            "Running the fit" => "fit.md",
             "Plotting" => "plotting.md",
             "Saving the results" => "saving.md",
         ],
