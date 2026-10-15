@@ -1,3 +1,5 @@
+using DensityInterface
+using ForwardDiff
 using Refit
 using StatsBase
 using Test
@@ -356,4 +358,36 @@ end
         :x => 0.0:1.0:1.0,
     )
     @test_throws ErrorException build_forward_model(Dict(:g => gh, :o => other); kw...)
+end
+
+@testset "derivatives" begin
+    edges = 0.0:1000.0:5000.0
+    h1 = Histogram(edges, [1.0, 2.0, 3.0, 4.0, 5.0])
+    h2 = Histogram(edges, [5.0, 4.0, 3.0, 2.0, 1.0])
+    shape(x) = Histogram(edges, [1.0, 1.0, 2.0, 2.0, 3.0] .+ x .* [3.0, 2.0, 1.0, 1.0, 1.0])
+    gh = GeneralisedHistogram([shape(x) for x = 0.0:0.5:1.0], :x => 0.0:0.5:1.0)
+    components = Dict(
+        :a => h1,
+        :b => (pdf = h2, activity = p -> 2 * p.c, analytic = (E, p) -> 1 + p.s * E / 1000),
+        :g => gh,
+        :flat => (analytic = (E, p) -> p.bkg,),
+    )
+    model, _ = build_forward_model(components; e_low = 0, e_high = 5000, norm = 0.5)
+    counts = [20.0, 25.0, 30.0, 30.0, 35.0]
+    likelihood = build_likelihood(counts, model)
+
+    # the gradient of the log-likelihood with ForwardDiff against finite differences
+    p = (a = 3.0, c = 1.5, s = 0.2, g = 2.0, x = 0.3, bkg = 0.004)
+    names = keys(p)
+    f(v) = logdensityof(likelihood, NamedTuple{names}(Tuple(v)))
+    v0 = collect(values(p))
+    gradient = ForwardDiff.gradient(f, v0)
+    step(i) = 1e-6 .* (eachindex(v0) .== i)
+    finite_differences =
+        [(f(v0 .+ step(i)) - f(v0 .- step(i))) / 2e-6 for i in eachindex(v0)]
+    @test gradient ≈ finite_differences rtol = 1e-5
+    # each component on its own, with derivatives too
+    parts(v) = sum(sum(model(NamedTuple{names}(Tuple(v)), Val(:by_component))))
+    @test ForwardDiff.gradient(parts, v0) ≈
+          ForwardDiff.gradient(v -> sum(model(NamedTuple{names}(Tuple(v)))), v0)
 end

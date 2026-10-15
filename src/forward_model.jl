@@ -126,7 +126,7 @@ function build_forward_model(
     # function, or 1 for an analytic component with no simulation
     function activities(params)
         fitted = NamedTuple{keys(mc)}(params)
-        a = ones(length(names))
+        a = ones(_number_type(params), length(names))
         for (j, k) in enumerate(plain)
             a[k] = fitted[j]
         end
@@ -141,7 +141,7 @@ function build_forward_model(
     # function `g` is once, when it is called, and not again in every bin
     function add_analytic!(pred, a, g, c, params)
         for i in eachindex(pred)
-            g_sum = 0.0
+            g_sum = zero(eltype(pred))
             for j = 1:points_per_bin
                 g_sum += g(energies[j, i], params)
             end
@@ -153,7 +153,7 @@ function build_forward_model(
     # the sum of all components
     function forward_model(params::NamedTuple)
         a = activities(params)
-        pred = zeros(length(bin_low))
+        pred = zeros(_number_type(params), length(bin_low))
         for k in no_analytic
             if is_ghist[k]
                 _add_interpolated!(pred, a[k], ghists[k], params)
@@ -173,19 +173,27 @@ function build_forward_model(
     # each component on its own
     function forward_model(params::NamedTuple, ::Val{:by_component})
         a = activities(params)
-        parts = Vector{Vector{Float64}}(undef, length(names))
+        T = _number_type(params)
+        parts = Vector{Vector{T}}(undef, length(names))
         for k in no_analytic
             c = is_ghist[k] ? get_weights(ghists[k], params) : counts[k]
             parts[k] = a[k] .* c
         end
         for (g, k) in zip(analytic_funcs, with_analytic)
             c = is_ghist[k] ? get_weights(ghists[k], params) : counts[k]
-            parts[k] = add_analytic!(zeros(length(bin_low)), a[k], g, c, params)
+            parts[k] = add_analytic!(zeros(T, length(bin_low)), a[k], g, c, params)
         end
         return NamedTuple{names}(Tuple(parts))
     end
     return forward_model, (low = bin_low, high = bin_high)
 end
+
+# The number type of the fit parameters, for the activities and the prediction:
+# Float64, or the number type of ForwardDiff when it computes derivatives
+_number_type(params::NamedTuple) = _promote_real(Float64, values(params)...)
+_promote_real(T) = T
+_promote_real(T, x::Real, rest...) = _promote_real(promote_type(T, typeof(x)), rest...)
+_promote_real(T, x, rest...) = _promote_real(T, rest...)
 
 # add `a` times the counts of the generalised histogram `gh` at the parameters. This is
 # a function of its own so that Julia knows the type of `gh` inside it
