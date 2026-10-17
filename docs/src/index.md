@@ -8,6 +8,7 @@ based on Monte-Carlo simulations, often generated with [remage](https://remage.r
 ## User manual
 `Refit.jl` can also do a lot more than this, for details see the following pages!
 
+- [Getting started](getting_started.md): install `Refit.jl` and the packages for the fit
 - [Reading histograms](reading.md): read the data and the simulated spectra and normalise them
 - [Accounting for systematic uncertainties](generalised_hist.md): interpolation of spectra to account for systematic uncertainities in models
 - [Forward model](forward_model.md): build models mapping the parameters to the predicted counts in each energy bin
