@@ -11,6 +11,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "User manual" => [
+            "Getting started" => "getting_started.md",
             "Reading spectra" => "reading.md",
             "Systematic uncertainties" => "generalised_hist.md",
             "Forward model" => "forward_model.md",
