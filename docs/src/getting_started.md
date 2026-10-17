@@ -35,7 +35,8 @@ or find the best fit. These steps use other packages, which must be installed
 separately:
 
 ```julia
-Pkg.add([PackageSpec(name = "BAT", version = "5"), "Optim", "ForwardDiff"])
+Pkg.add(name = "BAT", version = "5")
+Pkg.add(["Optim", "ForwardDiff"])
 ```
 
 - [BAT.jl](https://bat.github.io/) samples the posterior. The examples in this manual
