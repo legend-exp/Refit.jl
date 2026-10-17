@@ -10,15 +10,6 @@ using Pkg
 Pkg.add(url = "https://github.com/legend-exp/Refit.jl")
 ```
 
-!!! note "Error `failed to mmap` when cloning"
-    On some clusters the clone fails with `GitError(... failed to mmap ...)`. The git
-    library built into Julia does not work on the filesystem of `~/.julia` there. Use the
-    `git` program of the system instead, by setting this before installing:
-    ```julia
-    ENV["JULIA_PKG_USE_CLI_GIT"] = "true"
-    ```
-    or `export JULIA_PKG_USE_CLI_GIT=true` in the shell.
-
 Install it in a project environment (a folder with its own list of packages and
 versions) rather than in the global one. This keeps the versions of your analysis
 fixed and separate from other work:
