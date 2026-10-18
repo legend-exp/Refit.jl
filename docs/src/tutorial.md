@@ -322,7 +322,7 @@ grouped = group_histograms(
     ],
 )
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per 20 keV")
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV")
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
@@ -337,7 +337,7 @@ mark_blinded!(ax_res, grouped[:total])
 plot_residuals!(ax_res, grouped[:total], data_hist)
 
 CairoMakie.xlims!(ax, e_low, e_high)
-CairoMakie.ylims!(ax, 1, 1e5)
+CairoMakie.ylims!(ax, 0.05, 5e3)
 CairoMakie.ylims!(ax_res, -6, 6)
 CairoMakie.axislegend(ax; nbanks = 3)
 CairoMakie.axislegend(ax_res; nbanks = 3)

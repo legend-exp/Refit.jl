@@ -83,7 +83,8 @@ keys(grouped)
 The plot is made with a few functions that draw on a CairoMakie axis:
 - `fit_axes` makes the figure, with an axis for the spectra and one for the residuals,
 - `plot_hist!(ax, h)` draws the histogram `h` as a line, or filled with `filled = true`.
-  The other keywords (`color`, `linewidth`, `linestyle`, `label`, ...) go to Makie, and a
+  Bins of different widths are divided by their width. Here the blinded bin is wider
+  than the others, so the plot shows counts per keV. The other keywords (`color`, `linewidth`, `linestyle`, `label`, ...) go to Makie, and a
   line without a `color` gets the next color of the palette,
 - `mark_blinded!(ax, h)` draws the grey band over the empty bins of `h`,
 - `plot_residuals!(ax, prediction, data)` draws the residuals in units of standard
@@ -101,7 +102,7 @@ CairoMakie.update_theme!(
     Legend = (labelsize = 22,),
 )
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per 10 keV", size = (1300, 800))
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV", size = (1300, 800))
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
@@ -116,7 +117,7 @@ mark_blinded!(ax_res, grouped[:total])
 plot_residuals!(ax_res, grouped[:total], data_hist)
 
 CairoMakie.xlims!(ax, 500, 3200)
-CairoMakie.ylims!(ax, 1, 1e4)
+CairoMakie.ylims!(ax, 0.1, 1e3)
 CairoMakie.ylims!(ax_res, -6, 6)
 CairoMakie.axislegend(ax; nbanks = 3)
 CairoMakie.axislegend(ax_res; nbanks = 3)
