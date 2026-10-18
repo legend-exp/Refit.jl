@@ -34,7 +34,7 @@ function rebin_hist(h::Histogram{<:Real,1}, edges::AbstractVector{<:Real})
 end
 
 """
-    uniform_binning_with_peaks(h::Histogram, bin_width; peaks = [], low, high)
+    uniform_binning_with_peaks(h::Histogram, bin_width; peaks = [], blinded, low, high)
 
 Bin edges in keV for the keyword `binning` of [`build_forward_model`](@ref): bins of
 `bin_width` keV from `low` to `high`, by default the range of `h`, except that each peak
@@ -51,6 +51,11 @@ the ``^{40}``K and ``^{208}``Tl lines each as one bin:
 binning = uniform_binning_with_peaks(h, 20; peaks = [(1455, 1467), (2605, 2625)])
 ```
 
+`blinded = (min, max)` leaves out a region in keV, for example around the Q-value of
+2039 keV. Its edges are treated like those of a peak region, but instead of a bin there
+is a gap: the result is then two vectors of edges, below and above the region, which
+[`build_forward_model`](@ref) reads as two ranges with the region between them skipped.
+
 The same as `rebin_uniform_with_peaks` of pygama, except that the peaks are given, not
 searched for.
 """
@@ -58,18 +63,22 @@ function uniform_binning_with_peaks(
     h::Histogram{<:Real,1},
     bin_width::Real;
     peaks = Tuple{Float64,Float64}[],
+    blinded::Union{Nothing,Tuple{Real,Real}} = nothing,
     low::Real = first(h.edges[1]),
     high::Real = last(h.edges[1]),
 )
     bin_width > 0 || throw(ArgumentError("bin_width must be positive"))
     high > low || throw(ArgumentError("high must be above low"))
-    regions = sort([(Float64(a), Float64(b)) for (a, b) in peaks])
+    # the blinded region is placed like a peak region, and its bin is removed at the end
+    regions = [(Float64(a), Float64(b)) for (a, b) in peaks]
+    isnothing(blinded) || push!(regions, Float64.(blinded))
+    sort!(regions)
     for (a, b) in regions
         low <= a < b <= high ||
-            throw(ArgumentError("the peak region ($a, $b) is not inside ($low, $high)"))
+            throw(ArgumentError("the region ($a, $b) is not inside ($low, $high)"))
     end
     for (r, next) in zip(regions, regions[2:end])
-        r[2] <= next[1] || throw(ArgumentError("the peak regions $r and $next overlap"))
+        r[2] <= next[1] || throw(ArgumentError("the regions $r and $next overlap"))
     end
 
     edges = collect(Float64, low:bin_width:high)
@@ -83,7 +92,12 @@ function uniform_binning_with_peaks(
 
     # the nearest edge of `h` to each edge
     fine = h.edges[1]
-    return unique([fine[argmin(abs.(fine .- e))] for e in sort!(edges)])
+    edges = unique([fine[argmin(abs.(fine .- e))] for e in sort!(edges)])
+    isnothing(blinded) && return edges
+
+    # the edges below and above the blinded region, a part with no bin is left out
+    a, b = (fine[argmin(abs.(fine .- e))] for e in blinded)
+    return filter(r -> length(r) >= 2, [filter(<=(a), edges), filter(>=(b), edges)])
 end
 
 """

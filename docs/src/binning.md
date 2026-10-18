@@ -114,3 +114,13 @@ peaks = [(1450, 1470), (2600, 2630)]  # keV, on edges of the 10 keV bins
 binning_p = uniform_binning_with_peaks(mc_dict[:K40_hpge_bulk], 50; peaks, low = 500, high = 3200)
 binning_p[18:22]
 ```
+
+With `blinded = (min, max)` the region is left out instead of becoming a bin. The result
+is two ranges of edges, below and above it:
+
+```@example demo
+binning_b = uniform_binning_with_peaks(
+    mc_dict[:K40_hpge_bulk], 50; peaks, blinded = (2010, 2070), low = 500, high = 3200,
+)
+last(binning_b[1]), first(binning_b[2])
+```
