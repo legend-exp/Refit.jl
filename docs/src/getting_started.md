@@ -10,7 +10,7 @@ using Pkg
 Pkg.add(url = "https://github.com/legend-exp/Refit.jl")
 ```
 
-Install it in a project environment (a folder with its own list of packages and
+We suggest to install it in a project environment (a folder with its own list of packages and
 versions) rather than in the global one. This keeps the versions of your analysis
 fixed and separate from other work:
 
