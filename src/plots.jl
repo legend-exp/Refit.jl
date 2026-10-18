@@ -25,8 +25,17 @@ Draw the `Histogram` `h` as a step histogram on the CairoMakie axis `ax`: a line
 arguments, for example `color`, `linewidth` or `label`, go to the CairoMakie function
 that draws it (`lines!` or `band!`). Empty bins are drawn at 0, or at a very small value
 on a logarithmic axis. Returns the plot object.
+
+With bins of equal width the counts per bin are drawn. With bins of different widths,
+for example from [`uniform_binning_with_peaks`](@ref) or a blinded region, each bin is
+divided by its width, so the plot shows counts per unit of the x axis (counts per keV
+for a spectrum in keV).
 """
 function plot_hist!(ax, h::Histogram{<:Real,1}; filled::Bool = false, kwargs...)
+    widths = diff(h.edges[1])
+    if !all(w -> w ≈ first(widths), widths)
+        h = Histogram(h.edges, h.weights ./ widths)
+    end
     floor_value = _floor_value(ax)
     x, y = _steps(h, floor_value)
     filled && return CairoMakie.band!(ax, x, fill(floor_value, length(y)), y; kwargs...)

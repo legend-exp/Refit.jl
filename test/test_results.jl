@@ -203,6 +203,11 @@ end
     @test x == [0, 0, 1, 1, 2, 2]
     @test y == [0, 3, 3, 4, 4, 0]
 
+    # bins of equal width are drawn as counts, of different widths as counts per keV
+    heights(h) = [p[2] for p in plot_hist!(ax, h)[1][]]
+    @test heights(Histogram((0.0:2.0:4.0,), [3.0, 4.0])) == [0, 3, 3, 4, 4, 0]
+    @test heights(Histogram(([0.0, 1.0, 5.0],), [3.0, 4.0])) == [0, 3, 3, 1, 1, 0]
+
     # the empty bins of the prediction are not drawn as residuals
     @test mark_blinded!(ax, total; color = :red) === nothing
     scatter = plot_residuals!(ax_res, total, data; markersize = 10)
