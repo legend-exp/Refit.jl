@@ -32,8 +32,8 @@ end
 
 Estimate a range `0 .. a_max` for the activity of each simulated spectrum in
 `pdfs` (a `Dict(name => component)`, see [`build_forward_model`](@ref)), based on the
-measured spectrum `data`. Components with an `activity` or an `analytic` function are
-skipped: the parameters of the function need priors by hand.
+measured spectrum `data`. Components with an `activity` or an `analytic` function get
+no activity range: the parameters of the function need priors by hand.
 Returns `Dict(name => Interval)`. The entries can be replaced by any 1D distribution
 from Distributions.jl before calling [`build_prior_dist`](@ref).
 
@@ -54,7 +54,9 @@ the fit range. `e_low`, `e_high`, `binning` and `norm` are as in
 
 For a [`GeneralisedHistogram`](@ref), `a_max` is computed for the spectrum at every grid
 point, and the largest is used, so the range holds the activity for any values of the
-parameters of the grid.
+parameters of the grid. Each parameter of the grid also gets the full range of its grid,
+which becomes a uniform prior, also for a component with an `activity` or `analytic`
+function. A parameter shared by several grids gets the range common to all of them.
 """
 function get_priors(
     pdfs::AbstractDict{Symbol},
@@ -70,6 +72,7 @@ function get_priors(
     priors = Dict{Symbol,Any}()
     for (name, component) in pdfs
         spec = _component_spec(component)
+        spec.pdf isa GeneralisedHistogram && _add_grid_ranges!(priors, spec.pdf)
         if !isnothing(spec.activity) || !isnothing(spec.analytic)
             kind = isnothing(spec.activity) ? "an analytic" : "an activity"
             @info "get_priors: $name has $kind function, its parameters need priors by hand"
@@ -114,6 +117,20 @@ end
 
 _to_distribution(r::Interval) = Uniform(r.left, r.right)
 _to_distribution(d::UnivariateDistribution) = d
+
+# add the full grid range of each parameter of `gh` to `priors`. A parameter shared by
+# several generalised histograms must lie inside all their grids
+function _add_grid_ranges!(priors, gh::GeneralisedHistogram)
+    for (par, values) in pairs(gh.grid)
+        range = first(values) .. last(values)
+        if haskey(priors, par)
+            range = priors[par] ∩ range
+            isempty(range) && throw(ArgumentError("the grids of $par do not overlap"))
+        end
+        priors[par] = range
+    end
+    return priors
+end
 
 # the histogram at every grid point of a generalised histogram
 _grid_histograms(gh::GeneralisedHistogram) =

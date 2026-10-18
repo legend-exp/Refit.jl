@@ -99,6 +99,28 @@ using ValueShapes
         gh = GeneralisedHistogram([pdf, Histogram(edges, fill(5.0, 10))], :x => 0.0:1.0:1.0)
         priors = get_priors(Dict(:g => gh), data; e_low = 100, e_high = 900)
         @test priors[:g] == 0.0 .. (1.1 * 340 / 40)
+        # each parameter of the grid gets the full range of its grid
+        @test priors[:x] == 0.0 .. 1.0
+
+        # also with an activity function, and a parameter shared by two grids gets the
+        # range common to both
+        gh2 = GeneralisedHistogram([pdf, pdf, pdf], :x => 0.5:0.5:1.5)
+        priors = get_priors(
+            Dict(:g => gh, :h => (pdf = gh2, activity = p -> p.s)),
+            data;
+            e_low = 100,
+            e_high = 900,
+        )
+        @test priors[:x] == 0.5 .. 1.0
+        @test !haskey(priors, :h)
+
+        gh3 = GeneralisedHistogram([pdf, pdf], :x => 2.0:1.0:3.0)
+        @test_throws ArgumentError get_priors(
+            Dict(:g => gh, :h => gh3),
+            data;
+            e_low = 100,
+            e_high = 900,
+        )
     end
 end
 

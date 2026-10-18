@@ -153,7 +153,10 @@ model, bin_edges = build_forward_model(components; e_low = 5, e_high = 100, binn
 ```
 
 [`get_priors`](@ref) estimates the range of the activity at every grid point and uses
-the widest. The prior range of each parameter of the grid must lie inside its grid.
+the widest. It also gives each parameter of the grid the full range of its grid, here
+`:x => 0.0 .. 1.0`, which [`build_prior_dist`](@ref) turns into a uniform prior. A
+narrower range or another distribution can replace it, but it must stay inside the grid:
+a value outside the grid is an error.
 
 For a simple fit, the model can also be written by hand with the bins of
 [`select_bins`](@ref), as in the [FCCD tutorial](tutorial_fccd.md). Any function of the
