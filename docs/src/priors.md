@@ -79,6 +79,16 @@ priors[:K40_hpge_bulk] = 0.0 .. 100.0
 priors
 ```
 
+A range can also come from another energy window with `get_max_activity`. It returns
+the activity ``a_\mathrm{max}`` of the formula above without the safety factor, for any
+window. Here the range of ``^{40}``K uses only the counts of its 1461 keV line, with a
+safety factor of 1.5:
+
+```@example demo
+norm = 1e-3 * livetime  # as in build_forward_model
+priors[:K40_hpge_bulk] = 0.0 .. 1.5 * get_max_activity(1450, 1470, data, mc_dict[:K40_hpge_bulk]; norm)
+```
+
 The prior does not have to be a range. It can be any 1D distribution from
 [Distributions.jl](https://juliastats.org/Distributions.jl/stable/univariate/).
 For example, a Gaussian with mean 50 and width 10, truncated to positive
