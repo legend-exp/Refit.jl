@@ -1,21 +1,32 @@
 """
-    get_max_norm(low, high, data, pdf; binning = 1)
+    get_max_activity(low, high, data, pdf; binning = 1, norm = 1)
 
-Largest factor by which the simulated spectrum `pdf` can be scaled without exceeding
-the measured spectrum `data`: the ratio of the counts of `data` and `pdf` between
-`low` and `high` (keV). Only bins fully inside that range are used, and, if `binning`
-has several ranges as in [`build_forward_model`](@ref), only those inside one of them:
-a region the fit leaves out, such as a blinded one, is not looked at. `data` and `pdf`
-must have the same binning.
+Largest activity of the simulated spectrum `pdf` for which the prediction does not
+exceed the measured spectrum `data` between `low` and `high` (keV): the ratio of the
+counts of `data` and `pdf` in that range, divided by `norm`. `norm` is the factor of
+[`build_forward_model`](@ref), so the result is in the units of the activities of the
+fit. Only bins fully inside the range are used, and, if `binning` has several ranges as
+in [`build_forward_model`](@ref), only those inside one of them: a region the fit leaves
+out, such as a blinded one, is not looked at. `data` and `pdf` must have the same
+binning.
 
-Returns `Inf` if `pdf` has no counts in the range.
+For a [`GeneralisedHistogram`](@ref) the largest activity over its grid points is
+returned, so it holds for any values of the parameters of the grid.
+
+Returns `Inf` if `pdf` has no counts in the range. For example, to replace the range of
+[`get_priors`](@ref) by one from the counts around a peak, with a safety factor of 1.5:
+
+```julia
+priors[:K40] = 0.0 .. 1.5 * get_max_activity(1455, 1467, data, pdf; norm)
+```
 """
-function get_max_norm(
+function get_max_activity(
     low::Real,
     high::Real,
     data::Histogram{<:Real,1},
     pdf::Histogram{<:Real,1};
     binning::Union{Int,AbstractVector} = 1,
+    norm::Real = 1,
 )
     data.edges[1] == pdf.edges[1] || error("Histogram binning mismatch")
     edges = data.edges[1]
@@ -23,8 +34,16 @@ function get_max_norm(
         get_valid_bins(edges, (low, high)) .& _in_ranges(edges, last(_binning(binning)))
     n_pdf = sum(pdf.weights[is_valid])
     n_pdf > 0 || return Inf
-    return sum(data.weights[is_valid]) / n_pdf
+    return sum(data.weights[is_valid]) / (n_pdf * norm)
 end
+
+get_max_activity(
+    low::Real,
+    high::Real,
+    data::Histogram{<:Real,1},
+    pdf::GeneralisedHistogram;
+    kwargs...,
+) = maximum(h -> get_max_activity(low, high, data, h; kwargs...), _grid_histograms(pdf))
 
 """
     get_priors(pdfs, data; ref_ranges, e_low, e_high, binning, norm,
@@ -41,8 +60,8 @@ These are not real informative priors. They come from the data and only limit th
 fit to improve convergence. We can also use external knowledge for informative priors.
 
 `a_max` is the largest activity for which the prediction stays below the data, in
-a window: a safety factor times [`get_max_norm`](@ref) divided by `norm`. It is the
-smaller of two values:
+a window: a safety factor times [`get_max_activity`](@ref). It is the smaller of two
+values:
 - the value in the fit range `[e_low, e_high]`, times `range_factor` (default 1.1),
 - the value in the reference range of the source, times `peak_factor` (default 1.5).
 
@@ -86,10 +105,10 @@ function get_priors(
 
         # the largest activity for one simulated spectrum
         function largest_activity(pdf)
-            a_max = range_factor * get_max_norm(e_low, e_high, data, pdf; binning) / norm
+            a_max = range_factor * get_max_activity(e_low, e_high, data, pdf; binning, norm)
             isfinite(a_max) || throw(ArgumentError("$name has no counts in the fit range"))
             if !isnothing(ref)
-                a_ref = peak_factor * get_max_norm(ref..., data, pdf; binning) / norm
+                a_ref = peak_factor * get_max_activity(ref..., data, pdf; binning, norm)
                 a_max = min(a_max, a_ref)
             end
             return a_max

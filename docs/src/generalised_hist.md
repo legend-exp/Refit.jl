@@ -158,6 +158,20 @@ the widest. It also gives each parameter of the grid the full range of its grid,
 narrower range or another distribution can replace it, but it must stay inside the grid:
 a value outside the grid is an error.
 
+[`get_max_activity`](@ref) also takes a generalised histogram, to set the range of its
+activity from another energy window by hand. It returns the largest activity over the
+grid points. Here a made-up measured spectrum, the simulation at `x = 0.3` with an
+activity of 2, sets the range from the counts of the peak between 50 and 70 keV:
+
+```@example systematics
+using IntervalSets
+
+data = Histogram((0.0:1.0:100.0,), 2 .* get_weights(ghist, (x = 0.3,)))
+priors = Dict(:source => 0.0 .. 1.5 * get_max_activity(50, 70, data, ghist))
+```
+
+The grid point `x = 1`, with the fewest counts in the peak, gives the largest activity.
+
 For a simple fit, the model can also be written by hand with the bins of
 [`select_bins`](@ref), as in the [FCCD tutorial](tutorial_fccd.md). Any function of the
 parameters that returns the expected counts in the bins of the measured counts is a
