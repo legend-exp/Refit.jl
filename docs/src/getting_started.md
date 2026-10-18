@@ -15,7 +15,7 @@ versions) rather than in the global one. This keeps the versions of your analysi
 fixed and separate from other work:
 
 ```julia
-Pkg.activate("my_analysis")
+Pkg.activate(".")
 Pkg.add(url = "https://github.com/legend-exp/Refit.jl")
 ```
 
