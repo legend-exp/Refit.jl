@@ -74,6 +74,22 @@ using StatsBase
             binning = uniform_binning_with_peaks(h1, 10; peaks = peak),
         )
         @test (44.0, 52.0) in collect(zip(bin_edges.low, bin_edges.high))
+        # a blinded region is a gap between two ranges, its neighbours are as for a peak
+        blind = uniform_binning_with_peaks(h1, 10; peaks = peak, blinded = (74, 82))
+        @test blind == [[0.0, 10, 20, 30, 44, 52, 74], [82.0, 100]]
+        _, bin_edges =
+            build_forward_model(Dict(:a => h1); e_low = 0, e_high = 100, binning = blind)
+        @test all(@. bin_edges.high <= 74 || bin_edges.low >= 82)
+        @test (82.0, 100.0) in collect(zip(bin_edges.low, bin_edges.high))
+        # a blinded region at the end of the range leaves one range
+        @test uniform_binning_with_peaks(h1, 10; blinded = (90, 100)) ==
+              [[0.0, 10, 20, 30, 40, 50, 60, 70, 80, 90]]
+        @test_throws ArgumentError uniform_binning_with_peaks(
+            h1,
+            10;
+            peaks = peak,
+            blinded = (50, 60),
+        )
         @test_throws ArgumentError uniform_binning_with_peaks(h1, 0)
         @test_throws ArgumentError uniform_binning_with_peaks(h1, 10; peaks = [(90, 120)])
         @test_throws ArgumentError uniform_binning_with_peaks(
