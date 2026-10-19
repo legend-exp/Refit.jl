@@ -23,7 +23,7 @@ export uniform_binning_with_peaks
 export GeneralisedHistogram, get_weights, get_histogram
 export build_forward_model
 export poisson_likelihood, build_likelihood
-export get_max_activity, get_priors, build_prior_dist
+export get_max_norm, get_max_activity, get_priors, build_prior_dist
 export read_hist, read_pdf, read_generalised_hist, read_generalised_pdf
 export get_best_fit_histograms, write_best_fit, write_parameter_values
 export normalised_poisson_residual
