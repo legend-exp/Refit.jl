@@ -1,14 +1,39 @@
 """
+    get_max_norm(low, high, data, pdf; binning = 1)
+
+Largest factor by which the simulated spectrum `pdf` can be scaled without exceeding
+the measured spectrum `data`: the ratio of the counts of `data` and `pdf` between
+`low` and `high` (keV). Only bins fully inside that range are used, and, if `binning`
+has several ranges as in [`build_forward_model`](@ref), only those inside one of them:
+a region the fit leaves out, such as a blinded one, is not looked at. `data` and `pdf`
+must have the same binning.
+
+Returns `Inf` if `pdf` has no counts in the range.
+"""
+function get_max_norm(
+    low::Real,
+    high::Real,
+    data::Histogram{<:Real,1},
+    pdf::Histogram{<:Real,1};
+    binning::Union{Int,AbstractVector} = 1,
+)
+    data.edges[1] == pdf.edges[1] || error("Histogram binning mismatch")
+    edges = data.edges[1]
+    is_valid =
+        get_valid_bins(edges, (low, high)) .& _in_ranges(edges, last(_binning(binning)))
+    n_pdf = sum(pdf.weights[is_valid])
+    n_pdf > 0 || return Inf
+    return sum(data.weights[is_valid]) / n_pdf
+end
+
+"""
     get_max_activity(low, high, data, pdf; binning = 1, norm = 1)
 
 Largest activity of the simulated spectrum `pdf` for which the prediction does not
-exceed the measured spectrum `data` between `low` and `high` (keV): the ratio of the
-counts of `data` and `pdf` in that range, divided by `norm`. `norm` is the factor of
-[`build_forward_model`](@ref), so the result is in the units of the activities of the
-fit. Only bins fully inside the range are used, and, if `binning` has several ranges as
-in [`build_forward_model`](@ref), only those inside one of them: a region the fit leaves
-out, such as a blinded one, is not looked at. `data` and `pdf` must have the same
-binning.
+exceed the measured spectrum `data` between `low` and `high` (keV):
+[`get_max_norm`](@ref) divided by `norm`, the factor of [`build_forward_model`](@ref).
+The result is in the units of the activities of the fit. `binning` is as in
+[`get_max_norm`](@ref).
 
 For a [`GeneralisedHistogram`](@ref) the largest activity over its grid points is
 returned, so it holds for any values of the parameters of the grid.
@@ -20,22 +45,14 @@ Returns `Inf` if `pdf` has no counts in the range. For example, to replace the r
 priors[:K40] = 0.0 .. 1.5 * get_max_activity(1455, 1467, data, pdf; norm)
 ```
 """
-function get_max_activity(
+get_max_activity(
     low::Real,
     high::Real,
     data::Histogram{<:Real,1},
     pdf::Histogram{<:Real,1};
     binning::Union{Int,AbstractVector} = 1,
     norm::Real = 1,
-)
-    data.edges[1] == pdf.edges[1] || error("Histogram binning mismatch")
-    edges = data.edges[1]
-    is_valid =
-        get_valid_bins(edges, (low, high)) .& _in_ranges(edges, last(_binning(binning)))
-    n_pdf = sum(pdf.weights[is_valid])
-    n_pdf > 0 || return Inf
-    return sum(data.weights[is_valid]) / (n_pdf * norm)
-end
+) = get_max_norm(low, high, data, pdf; binning) / norm
 
 get_max_activity(
     low::Real,

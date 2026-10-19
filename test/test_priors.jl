@@ -15,30 +15,36 @@ using ValueShapes
     data_weights[5:6] .= 20.0
     data = Histogram(edges, data_weights)
 
-    @testset "get_max_activity" begin
+    @testset "get_max_norm" begin
         # 8 bins between 100 and 900 keV: 340 data counts, 80 simulated counts
-        @test get_max_activity(100, 900, data, pdf) ≈ 340 / 80
+        @test get_max_norm(100, 900, data, pdf) ≈ 340 / 80
         # a window edge that is not a bin edge: only the bins fully inside are used
-        @test get_max_activity(420, 580, data, pdf) == Inf
+        @test get_max_norm(420, 580, data, pdf) == Inf
         # a region left out between the ranges of the binning, such as a blinded one,
         # is not used
         blinded = [0:100:400, 600:100:1000]
-        @test get_max_activity(0, 1000, data, pdf; binning = blinded) ≈ 400 / 80
-        @test get_max_activity(400, 600, data, pdf; binning = blinded) == Inf
+        @test get_max_norm(0, 1000, data, pdf; binning = blinded) ≈ 400 / 80
+        @test get_max_norm(400, 600, data, pdf; binning = blinded) == Inf
         # a binning without ranges uses all bins
-        @test get_max_activity(100, 900, data, pdf; binning = 2) ≈ 340 / 80
-        # divided by the factor of the forward model
-        @test get_max_activity(100, 900, data, pdf; norm = 2) ≈ 340 / 160
-        # a generalised histogram: the largest over the grid points, here the one with
-        # the fewest counts
-        gh = GeneralisedHistogram([pdf, Histogram(edges, fill(5.0, 10))], :x => 0.0:1.0:1.0)
-        @test get_max_activity(100, 900, data, gh; norm = 2) ≈ 340 / 80
-        @test_throws ErrorException get_max_activity(
+        @test get_max_norm(100, 900, data, pdf; binning = 2) ≈ 340 / 80
+        @test_throws ErrorException get_max_norm(
             0,
             1000,
             Histogram(0.0:200.0:1000.0, fill(1.0, 5)),
             pdf,
         )
+    end
+
+    @testset "get_max_activity" begin
+        # get_max_norm divided by the factor of the forward model
+        @test get_max_activity(100, 900, data, pdf) ≈ 340 / 80
+        @test get_max_activity(100, 900, data, pdf; norm = 2) ≈ 340 / 160
+        blinded = [0:100:400, 600:100:1000]
+        @test get_max_activity(0, 1000, data, pdf; binning = blinded, norm = 2) ≈ 400 / 160
+        # a generalised histogram: the largest over the grid points, here the one with
+        # the fewest counts
+        gh = GeneralisedHistogram([pdf, Histogram(edges, fill(5.0, 10))], :x => 0.0:1.0:1.0)
+        @test get_max_activity(100, 900, data, gh; norm = 2) ≈ 340 / 80
     end
 
     @testset "get_priors" begin
