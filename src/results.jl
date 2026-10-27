@@ -30,6 +30,60 @@ function get_best_fit_histograms(
 end
 
 """
+    get_posterior_bands(samples, model, bin_edges; n = 10_000, groups = nothing,
+                        quantiles = (0.16, 0.84))
+
+Uncertainty bands of the prediction of the model, from the posterior `samples` (for
+example from `bat_sample`: the parameters of each sample are in `samples.v` and its
+weight in `samples.weight`). `model` and `bin_edges` come from
+[`build_forward_model`](@ref).
+
+`n` samples are drawn from the posterior, with a probability proportional to their
+weight, and the prediction of each one is computed as in
+[`get_best_fit_histograms`](@ref). With `groups`, the sources are summed into groups as
+in [`group_histograms`](@ref). In each bin, the band goes from the lower to the upper of
+the `quantiles` of the `n` predicted counts. The default is the central 68% interval.
+
+Returns an ordered dictionary with the same keys as [`get_best_fit_histograms`](@ref) (or
+[`group_histograms`](@ref) with `groups`), with `(low, high)` for each key: the two edges
+of the band as `Histogram`s. Draw them with the `band` keyword of [`plot_hist!`](@ref).
+"""
+function get_posterior_bands(
+    samples,
+    model::Function,
+    bin_edges::NamedTuple{(:low, :high)};
+    n::Integer = 10_000,
+    groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
+    quantiles::Tuple{Real,Real} = (0.16, 0.84),
+)
+    n > 0 || throw(ArgumentError("n must be positive"))
+    0 <= quantiles[1] < quantiles[2] <= 1 ||
+        throw(ArgumentError("quantiles must be increasing and between 0 and 1"))
+
+    draws = sample(eachindex(samples.v), Weights(Float64.(samples.weight)), n)
+
+    # the predicted counts of each source: one row per drawn sample, one column per bin
+    predictions = OrderedDict{Symbol,Matrix{Float64}}()
+    edges = nothing
+    for (row, i) in enumerate(draws)
+        hists = get_best_fit_histograms(samples.v[i], model, bin_edges)
+        isnothing(groups) || (hists = group_histograms(hists, groups))
+        for (name, h) in hists
+            counts = get!(() -> zeros(n, length(h.weights)), predictions, name)
+            counts[row, :] = h.weights
+        end
+        edges = first(values(hists)).edges
+    end
+
+    bands = OrderedDict{Symbol,NamedTuple{(:low, :high),NTuple{2,Histogram{Float64,1}}}}()
+    for (name, counts) in predictions
+        low, high = ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
+        bands[name] = (low = Histogram(edges, low), high = Histogram(edges, high))
+    end
+    return bands
+end
+
+"""
     normalised_poisson_residual(mu, obs)
 
 Residual of the observed counts `obs` with respect to the predicted counts `mu`,

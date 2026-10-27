@@ -18,7 +18,7 @@ end
 _floor_value(ax) = ax.yscale[] === log10 ? 1e-9 : 0.0
 
 """
-    plot_hist!(ax, h; filled = false, kwargs...)
+    plot_hist!(ax, h; filled = false, band = nothing, bandcolor = nothing, kwargs...)
 
 Draw the `Histogram` `h` as a step histogram on the CairoMakie axis `ax`: a line (with
 `linewidth = 2` unless set), or a filled area with `filled = true`. The other keyword
@@ -30,17 +30,46 @@ With bins of equal width the counts per bin are drawn. With bins of different wi
 for example from [`uniform_binning_with_peaks`](@ref) or a blinded region, each bin is
 divided by its width, so the plot shows counts per unit of the x axis (counts per keV
 for a spectrum in keV).
+
+With `band = (low, high)`, two `Histogram`s with the bins of `h` (for example one entry
+of [`get_posterior_bands`](@ref)), the region between them is filled. Its color is the
+color of the line with an opacity of 0.3, or `bandcolor`.
 """
-function plot_hist!(ax, h::Histogram{<:Real,1}; filled::Bool = false, kwargs...)
+function plot_hist!(
+    ax,
+    h::Histogram{<:Real,1};
+    filled::Bool = false,
+    band = nothing,
+    bandcolor = nothing,
+    kwargs...,
+)
     widths = diff(h.edges[1])
-    if !all(w -> w ≈ first(widths), widths)
-        h = Histogram(h.edges, h.weights ./ widths)
-    end
+    equal_widths = all(w -> w ≈ first(widths), widths)
+    per_width(hist) = equal_widths ? hist : Histogram(hist.edges, hist.weights ./ widths)
+
     floor_value = _floor_value(ax)
-    x, y = _steps(h, floor_value)
-    filled && return CairoMakie.band!(ax, x, fill(floor_value, length(y)), y; kwargs...)
-    attributes = merge((linewidth = 2,), NamedTuple(kwargs))
-    return CairoMakie.lines!(ax, x, y; attributes...)
+    x, y = _steps(per_width(h), floor_value)
+    plot = if filled
+        CairoMakie.band!(ax, x, fill(floor_value, length(y)), y; kwargs...)
+    else
+        attributes = merge((linewidth = 2,), NamedTuple(kwargs))
+        CairoMakie.lines!(ax, x, y; attributes...)
+    end
+
+    if !isnothing(band)
+        low, high = band
+        low.edges == h.edges == high.edges ||
+            throw(ArgumentError("the band and the histogram differ in binning"))
+        color = isnothing(bandcolor) ? (plot.color[], 0.3) : bandcolor
+        CairoMakie.band!(
+            ax,
+            x,
+            last(_steps(per_width(low), floor_value)),
+            last(_steps(per_width(high), floor_value));
+            color,
+        )
+    end
+    return plot
 end
 
 """

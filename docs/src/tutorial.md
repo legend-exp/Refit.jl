@@ -303,7 +303,8 @@ fig
 ```
 
 Finally, the prediction of the best fit is compared with the measured counts. The
-sources are summed into a few groups and plotted in the same way. See
+sources are summed into a few groups and plotted in the same way. The bands are the
+central 68% interval of the prediction in each bin, from 10000 samples of the posterior. See
 [Plotting](plotting.md) for the functions that are used and how the plot can be customised.
 
 ```@example tutorial
@@ -311,25 +312,31 @@ data_hist = counts_to_histogram(counts, bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
 # sum the sources into a few lines
-grouped = group_histograms(
-    hists,
-    [
-        "⁴⁰K" => r"K40",
-        "²¹²Pb → ²⁰⁸Pb" => r"Pb212",
-        "2νββ" => r"two_vbb",
-        "³⁹Ar" => r"Ar39",
-        "other" => :rest,
-    ],
-)
+groups = [
+    "⁴⁰K" => r"K40",
+    "²¹²Pb → ²⁰⁸Pb" => r"Pb212",
+    "2νββ" => r"two_vbb",
+    "³⁹Ar" => r"Ar39",
+    "other" => :rest,
+]
+grouped = group_histograms(hists, groups)
+bands = get_posterior_bands(samples, model, bin_edges; groups)
 
 fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV")
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
 for (label, h) in grouped
-    label == :total || plot_hist!(ax, h; label = string(label))
+    label == :total || plot_hist!(ax, h; band = bands[label], label = string(label))
 end
-plot_hist!(ax, grouped[:total]; color = :black, linewidth = 4, label = "Best fit")
+plot_hist!(
+    ax,
+    grouped[:total];
+    band = bands[:total],
+    color = :black,
+    linewidth = 4,
+    label = "Best fit",
+)
 
 # the blinded region (the empty bins) and the residuals
 mark_blinded!(ax, grouped[:total])
