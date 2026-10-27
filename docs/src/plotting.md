@@ -136,19 +136,18 @@ The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`.
 ### Uncertainty bands
 
 The uncertainty of the prediction comes from the posterior samples.
-`get_posterior_bands(samples, model, bin_edges)` draws 10000 samples (or `n`) from the
-posterior, with a probability proportional to their weight, and computes the prediction
-of each one. In each bin, the band goes from the 16% to the 84% quantile of the predicted
-counts (or other `quantiles`). The result has the same keys as `get_best_fit_histograms`,
-or as `group_histograms` with the same `groups`, with the lower and the upper edge of the
-band for each key.
+`get_posterior_bands(samples, model, bin_edges)` draws `n` samples (default 10000) from
+the posterior, with a probability proportional to their weight, and computes the
+prediction of each one. In each bin, the band goes from the 16% to the 84% quantile of
+the predicted counts (or other `quantiles`). The result has the same keys as
+`get_best_fit_histograms`, or as `group_histograms` with the same `groups`, with the lower
+and the upper edge of the band for each key.
 
 The keyword `band` of `plot_hist!` fills the region between the two edges, with the color
 of the line and an opacity of 0.3 (or `bandcolor`). Here the samples are made up, with a
 spread of 10% around the true activities:
 
 ```@example demo
-Random.seed!(3)
 samples = (
     v = [map(a -> a * (1 + 0.1 * randn()), true_activities) for _ in 1:20_000],
     weight = ones(Int, 20_000),
