@@ -133,6 +133,53 @@ fig
 
 The `Figure` can be saved with `CairoMakie.save("fit.png", fig)`.
 
+### Uncertainty bands
+
+The uncertainty of the prediction comes from the posterior samples.
+`get_posterior_bands(samples, model, bin_edges)` draws 10000 samples (or `n`) from the
+posterior, with a probability proportional to their weight, and computes the prediction
+of each one. In each bin, the band goes from the 16% to the 84% quantile of the predicted
+counts (or other `quantiles`). The result has the same keys as `get_best_fit_histograms`,
+or as `group_histograms` with the same `groups`, with the lower and the upper edge of the
+band for each key.
+
+The keyword `band` of `plot_hist!` fills the region between the two edges, with the color
+of the line and an opacity of 0.3 (or `bandcolor`). Here the samples are made up, with a
+spread of 10% around the true activities:
+
+```@example demo
+Random.seed!(3)
+samples = (
+    v = [map(a -> a * (1 + 0.1 * randn()), true_activities) for _ in 1:20_000],
+    weight = ones(Int, 20_000),
+)
+groups = ["⁴⁰K" => r"K40", "²¹²Pb" => [:Pb212_to_Pb208_hpge_bulk], "other" => :rest]
+bands = get_posterior_bands(samples, model, bin_edges; groups)
+
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV", size = (1300, 800))
+plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
+for (label, h) in grouped
+    label == :total || plot_hist!(ax, h; band = bands[label], label = string(label))
+end
+plot_hist!(
+    ax,
+    grouped[:total];
+    band = bands[:total],
+    color = :black,
+    linewidth = 4,
+    label = "Best fit",
+)
+mark_blinded!(ax, grouped[:total])
+mark_blinded!(ax_res, grouped[:total])
+plot_residuals!(ax_res, grouped[:total], data_hist)
+
+CairoMakie.xlims!(ax, 500, 3200)
+CairoMakie.ylims!(ax, 0.1, 1e3)
+CairoMakie.ylims!(ax_res, -6, 6)
+CairoMakie.axislegend(ax; nbanks = 3)
+fig
+```
+
 ## Posterior distributions
 
 `plot_posterior!(ax, samples, name)` draws the marginal posterior of the parameter `name` on

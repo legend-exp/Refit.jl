@@ -144,6 +144,55 @@ end
     @test_throws ArgumentError group_histograms(Dict(:a => hists[:alpha]), ["x" => :rest])
 end
 
+@testset "get_posterior_bands" begin
+    edges = 0.0:100.0:1000.0
+    pdfs =
+        Dict(:a => Histogram(edges, fill(10.0, 10)), :b => Histogram(edges, fill(5.0, 10)))
+    model, bin_edges = build_forward_model(
+        pdfs;
+        e_low = 100,
+        e_high = 900,
+        binning = [100:100:400, 600:100:900],
+        norm = 1e-3,
+    )
+
+    # a is 1 or 3 with equal probability (weights 1 and 3), b is always 4
+    Random.seed!(3)
+    samples = (
+        v = [(a = 1.0, b = 4.0), (a = 3.0, b = 4.0), (a = 3.0, b = 4.0)],
+        weight = [2, 1, 1],
+    )
+    bands = get_posterior_bands(samples, model, bin_edges; n = 2000)
+    @test collect(keys(bands)) == [:total, :a, :b]
+
+    low = get_best_fit_histograms((a = 1.0, b = 4.0), model, bin_edges)
+    high = get_best_fit_histograms((a = 3.0, b = 4.0), model, bin_edges)
+    for name in keys(bands)
+        @test bands[name].low.edges == low[name].edges
+        @test bands[name].low.weights ≈ low[name].weights
+        @test bands[name].high.weights ≈ high[name].weights
+    end
+
+    # the groups of group_histograms
+    grouped = get_posterior_bands(
+        samples,
+        model,
+        bin_edges;
+        n = 100,
+        groups = ["all" => [:a, :b]],
+    )
+    @test collect(keys(grouped)) == [:total, :all]
+    @test grouped[:all].low.weights ≈ grouped[:total].low.weights
+
+    @test_throws ArgumentError get_posterior_bands(samples, model, bin_edges; n = 0)
+    @test_throws ArgumentError get_posterior_bands(
+        samples,
+        model,
+        bin_edges;
+        quantiles = (0.84, 0.16),
+    )
+end
+
 @testset "fit_axes" begin
     fig, ax, ax_res = fit_axes(; title = "test", ylabel = "Counts per 20 keV")
     @test fig isa CairoMakie.Figure
@@ -197,6 +246,21 @@ end
     @test plot_hist!(ax, total).linewidth[] == 2
     @test plot_hist!(ax, total; linewidth = 5).linewidth[] == 5
     @test plot_hist!(ax_log, data; filled = true) isa CairoMakie.Makie.AbstractPlot
+
+    # a band around the line, with the color of the line and an opacity of 0.3
+    band = (low = Histogram(total.edges, 0.9 .* total.weights), high = total)
+    nplots = length(ax.scene.plots)
+    plot_hist!(ax, total; color = :red, band)
+    @test length(ax.scene.plots) == nplots + 2
+    @test CairoMakie.to_color(ax.scene.plots[end].color[]) ==
+          CairoMakie.to_color((:red, 0.3))
+    plot_hist!(ax_log, total; band, bandcolor = :grey)
+    @test CairoMakie.to_color(ax_log.scene.plots[end].color[]) == CairoMakie.to_color(:grey)
+    @test_throws ArgumentError plot_hist!(
+        ax,
+        total;
+        band = (low = Histogram(0.0:1.0:2.0, [1.0, 2.0]), high = total),
+    )
 
     # the step line goes up at the first edge and down at the last one
     x, y = Refit._steps(Histogram((0.0:1.0:2.0,), [3.0, 4.0]), 0.0)
