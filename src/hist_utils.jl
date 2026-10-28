@@ -129,11 +129,17 @@ function bayesian_blocks_binning(
         throw(ArgumentError("h must hold non-negative whole numbers of counts"))
     regions = _binning_regions(peaks, blinded, low, high)
 
-    # the Bayesian blocks of the continuum from `a` to `b` keV
+    # the Bayesian blocks of the continuum from `a` to `b` keV, with edges of `h`. A part
+    # with no bin (a peak at `low`, for example) gives only its edge
     fine = h.edges[1]
     function blocks(a, b)
         i, j = _nearest_index(fine, a), _nearest_index(fine, b)
-        return _bayesian_blocks(fine[i:j], h.weights[i:(j-1)], p0)
+        i < j || return [fine[i]]
+        return BayesianBlocks.partition(
+            collect(fine[i:j]),
+            round.(Int, h.weights[i:(j-1)]);
+            p0,
+        )
     end
     # each region, a peak or the blinded one, is one bin between two parts of the
     # continuum, each partitioned on its own
@@ -145,20 +151,6 @@ function bayesian_blocks_binning(
     end
     append!(edges, blocks(start, high))
     return _split_at_blinded(unique(edges), fine, blinded)
-end
-
-# The edges of the Bayesian blocks of the bins with `edges` and `counts`, from
-# BayesianBlocks.jl. It places the edges halfway between the centres of bins with counts,
-# so each is moved to the nearest edge of the bins, and the outer ones to the ends.
-# BayesianBlocks.jl takes the outer blocks to start and end at the centre of the first
-# and last bin, half a bin short, so their counts per keV look too high and the first
-# and last bin often come out as blocks of their own. Such a block is merged into the
-# next one.
-function _bayesian_blocks(edges, counts, p0)
-    any(>(0), counts) || return [first(edges), last(edges)]
-    blocks = BayesianBlocks.partition(Histogram((edges,), round.(Int, counts)); p0)
-    inner = unique([_nearest_edge(edges, e) for e in blocks[2:(end-1)]])
-    return [first(edges); filter(e -> edges[2] < e < edges[end-1], inner); last(edges)]
 end
 
 # the peak regions and the blinded region (min, max) in keV, sorted, checked to lie
