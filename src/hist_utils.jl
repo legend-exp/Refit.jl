@@ -68,18 +68,8 @@ function uniform_binning_with_peaks(
     high::Real = last(h.edges[1]),
 )
     bin_width > 0 || throw(ArgumentError("bin_width must be positive"))
-    high > low || throw(ArgumentError("high must be above low"))
     # the blinded region is placed like a peak region, and its bin is removed at the end
-    regions = [(Float64(a), Float64(b)) for (a, b) in peaks]
-    isnothing(blinded) || push!(regions, Float64.(blinded))
-    sort!(regions)
-    for (a, b) in regions
-        low <= a < b <= high ||
-            throw(ArgumentError("the region ($a, $b) is not inside ($low, $high)"))
-    end
-    for (r, next) in zip(regions, regions[2:end])
-        r[2] <= next[1] || throw(ArgumentError("the regions $r and $next overlap"))
-    end
+    regions = _binning_regions(peaks, blinded, low, high)
 
     edges = collect(Float64, low:bin_width:high)
     last(edges) < high && push!(edges, high)
@@ -90,13 +80,118 @@ function uniform_binning_with_peaks(
         append!(edges, (a, b))
     end
 
-    # the nearest edge of `h` to each edge
     fine = h.edges[1]
-    edges = unique([fine[argmin(abs.(fine .- e))] for e in sort!(edges)])
-    isnothing(blinded) && return edges
+    edges = unique([_nearest_edge(fine, e) for e in sort!(edges)])
+    return _split_at_blinded(edges, fine, blinded)
+end
 
-    # the edges below and above the blinded region, a part with no bin is left out
-    a, b = (fine[argmin(abs.(fine .- e))] for e in blinded)
+"""
+    bayesian_blocks_binning(h::Histogram; p0 = 0.05, peaks = [], blinded, low, high)
+
+Bin edges in keV for the keyword `binning` of [`build_forward_model`](@ref), chosen from
+the counts of `h` with the Bayesian blocks method of
+[BayesianBlocks.jl](https://github.com/gipert/BayesianBlocks.jl) (Scargle et al. 2013,
+<https://doi.org/10.1088/0004-637X/764/2/167>). The bins are as wide as possible while
+the counts per keV inside each are consistent with being constant: narrow bins where the
+spectrum changes quickly, such as at a peak or a Compton edge, and wide bins on a flat
+continuum. Each edge is an edge of `h`. The range is `low` to `high`, by default that of
+`h`.
+
+`h` must hold whole numbers of counts, for example the measured spectrum: the method compares
+the changes in counts per keV to their Poisson fluctuations. `p0` is roughly the
+probability of a false edge, one caused by a fluctuation. A smaller `p0` gives fewer and
+wider bins; typical values are 0.01 to 0.1.
+
+Each peak region `(min, max)` in `peaks` becomes a single bin, and the Bayesian blocks are
+found separately on each part of the continuum between them, so the counts in a peak do
+not change the continuum bins. `blinded = (min, max)` leaves out a region, as in
+[`uniform_binning_with_peaks`](@ref): the result is then two vectors of edges, below and
+above it, and the counts in the blinded region are not used. All edges are first moved to
+the nearest edge of `h`.
+
+```julia
+binning = bayesian_blocks_binning(data; peaks = [(1455, 1467), (2605, 2625)])
+```
+
+The same as `rebin_bblocks` and `rebin_bblocks_with_peaks` of pygama, except that the
+peaks are given, not searched for.
+"""
+function bayesian_blocks_binning(
+    h::Histogram{<:Real,1};
+    p0::Real = 0.05,
+    peaks = Tuple{Float64,Float64}[],
+    blinded::Union{Nothing,Tuple{Real,Real}} = nothing,
+    low::Real = first(h.edges[1]),
+    high::Real = last(h.edges[1]),
+)
+    0 < p0 < 1 || throw(ArgumentError("p0 must be between 0 and 1"))
+    all(w -> w >= 0 && isinteger(w), h.weights) ||
+        throw(ArgumentError("h must hold non-negative whole numbers of counts"))
+    regions = _binning_regions(peaks, blinded, low, high)
+
+    # the Bayesian blocks of the continuum from `a` to `b` keV
+    fine = h.edges[1]
+    function blocks(a, b)
+        i, j = _nearest_index(fine, a), _nearest_index(fine, b)
+        return _bayesian_blocks(fine[i:j], h.weights[i:(j-1)], p0)
+    end
+    # each region, a peak or the blinded one, is one bin between two parts of the
+    # continuum, each partitioned on its own
+    edges = Float64[]
+    start = low
+    for (a, b) in regions
+        append!(edges, blocks(start, a))
+        start = b
+    end
+    append!(edges, blocks(start, high))
+    return _split_at_blinded(unique(edges), fine, blinded)
+end
+
+# The edges of the Bayesian blocks of the bins with `edges` and `counts`, from
+# BayesianBlocks.jl. It places the edges halfway between the centres of bins with counts,
+# so each is moved to the nearest edge of the bins, and the outer ones to the ends.
+# BayesianBlocks.jl takes the outer blocks to start and end at the centre of the first
+# and last bin, half a bin short, so their counts per keV look too high and the first
+# and last bin often come out as blocks of their own. Such a block is merged into the
+# next one.
+function _bayesian_blocks(edges, counts, p0)
+    any(>(0), counts) || return [first(edges), last(edges)]
+    blocks = BayesianBlocks.partition(Histogram((edges,), round.(Int, counts)); p0)
+    inner = unique([_nearest_edge(edges, e) for e in blocks[2:(end-1)]])
+    return [first(edges); filter(e -> edges[2] < e < edges[end-1], inner); last(edges)]
+end
+
+# the peak regions and the blinded region (min, max) in keV, sorted, checked to lie
+# inside (low, high) and not to overlap
+function _binning_regions(peaks, blinded, low, high)
+    high > low || throw(ArgumentError("high must be above low"))
+    regions = [(Float64(a), Float64(b)) for (a, b) in peaks]
+    isnothing(blinded) || push!(regions, Float64.(blinded))
+    sort!(regions)
+    for (a, b) in regions
+        low <= a < b <= high ||
+            throw(ArgumentError("the region ($a, $b) is not inside ($low, $high)"))
+    end
+    for (r, next) in zip(regions, regions[2:end])
+        r[2] <= next[1] || throw(ArgumentError("the regions $r and $next overlap"))
+    end
+    return regions
+end
+
+# the index of the edge in the sorted `fine` nearest to `e`, the lower one on a tie
+function _nearest_index(fine, e)
+    i = clamp(searchsortedfirst(fine, e), 2, length(fine))
+    return e - fine[i-1] <= fine[i] - e ? i - 1 : i
+end
+
+# the edge in the sorted `fine` nearest to `e`
+_nearest_edge(fine, e) = fine[_nearest_index(fine, e)]
+
+# `edges` unchanged without a blinded region, otherwise the edges below and above it as
+# two ranges, and a part with no bin is left out
+function _split_at_blinded(edges, fine, blinded)
+    isnothing(blinded) && return edges
+    a, b = (_nearest_edge(fine, e) for e in blinded)
     return filter(r -> length(r) >= 2, [filter(<=(a), edges), filter(>=(b), edges)])
 end
 

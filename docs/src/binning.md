@@ -124,3 +124,28 @@ binning_b = uniform_binning_with_peaks(
 )
 last(binning_b[1]), first(binning_b[2])
 ```
+
+## Bayesian blocks binning
+
+[`bayesian_blocks_binning`](@ref) chooses the bins from the counts of a spectrum, with
+[BayesianBlocks.jl](https://github.com/gipert/BayesianBlocks.jl). Each bin is as wide as
+possible while the counts per keV inside it are consistent with being constant. This gives
+narrow bins at peaks and Compton edges, and wide bins on a flat continuum or where there are
+few counts. The spectrum must hold whole numbers of counts, so use the measured one:
+
+```@example demo
+binning_bb = bayesian_blocks_binning(data; low = 500, high = 3200)
+```
+
+`p0` sets how easily a new edge is added. It is roughly the probability that an edge comes
+from a fluctuation. The default is 0.05, and a smaller value gives fewer bins.
+
+As for [`uniform_binning_with_peaks`](@ref), `peaks` makes each peak region a single bin,
+and `blinded` leaves out a region. The bins of each part of the continuum between them are
+found from the counts of that part only:
+
+```@example demo
+binning_bbp = bayesian_blocks_binning(
+    data; p0 = 0.01, peaks, blinded = (2010, 2070), low = 500, high = 3200,
+)
+```
