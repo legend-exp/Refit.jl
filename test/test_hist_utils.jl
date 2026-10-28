@@ -99,6 +99,35 @@ using StatsBase
         )
     end
 
+    @testset "bayesian_blocks_binning" begin
+        # a flat spectrum is one block
+        flat = Histogram(0.0:1.0:100.0, fill(100.0, 100))
+        @test bayesian_blocks_binning(flat) == [0.0, 100.0]
+        # a step in the counts per keV at 40 keV is an edge
+        step = Histogram(0.0:1.0:100.0, [fill(10.0, 40); fill(1000.0, 60)])
+        @test bayesian_blocks_binning(step) == [0.0, 40.0, 100.0]
+        @test bayesian_blocks_binning(step; low = 20, high = 80) == [20.0, 40.0, 80.0]
+        # a peak region is one bin and the continuum around it is partitioned on its own
+        @test bayesian_blocks_binning(step; peaks = [(60.4, 70)]) ==
+              [0.0, 40.0, 60.0, 70.0, 100.0]
+        # a blinded region is a gap between two ranges
+        blind = bayesian_blocks_binning(step; blinded = (50, 60))
+        @test blind == [[0.0, 40.0, 50.0], [60.0, 100.0]]
+        _, bin_edges =
+            build_forward_model(Dict(:a => step); e_low = 0, e_high = 100, binning = blind)
+        @test all(@. bin_edges.high <= 50 || bin_edges.low >= 60)
+        # a part of the range with no counts is one bin
+        @test bayesian_blocks_binning(Histogram(0.0:1.0:10.0, zeros(10))) == [0.0, 10.0]
+        @test_throws ArgumentError bayesian_blocks_binning(flat; p0 = 0)
+        @test_throws ArgumentError bayesian_blocks_binning(
+            Histogram(0.0:1.0:2.0, [1.5, 2.0]),
+        )
+        @test_throws ArgumentError bayesian_blocks_binning(
+            Histogram(0.0:1.0:2.0, [-1.0, 2.0]),
+        )
+        @test_throws ArgumentError bayesian_blocks_binning(flat; peaks = [(90, 120)])
+    end
+
     @testset "add_histograms" begin
         h1 = fit(Histogram, randn(1000), -5:0.5:5)
         h2 = fit(Histogram, randn(1000), -5:0.5:5)
