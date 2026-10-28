@@ -143,6 +143,11 @@ the predicted counts (or other `quantiles`). The result has the same keys as
 `get_best_fit_histograms`, or as `group_histograms` with the same `groups`, with the lower
 and the upper edge of the band for each key.
 
+The best fit (the global mode of the posterior) can lie outside this central interval,
+for example when an activity is close to 0. With `contains = best`, each band contains
+the prediction at `best` and holds the same probability: where the prediction is outside
+the central interval, the band is moved the least needed to reach it.
+
 The keyword `band` of `plot_hist!` fills the region between the two edges, with the color
 of the line and an opacity of 0.3 (or `bandcolor`). Here the samples are made up, with a
 spread of 10% around the true activities:
