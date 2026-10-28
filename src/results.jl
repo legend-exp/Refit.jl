@@ -31,7 +31,7 @@ end
 
 """
     get_posterior_bands(samples, model, bin_edges; n = 10_000, groups = nothing,
-                        quantiles = (0.16, 0.84))
+                        quantiles = (0.16, 0.84), contains = nothing)
 
 Uncertainty bands of the prediction of the model, from the posterior `samples` (for
 example from `bat_sample`: the parameters of each sample are in `samples.v` and its
@@ -44,6 +44,12 @@ weight, and the prediction of each one is computed as in
 in [`group_histograms`](@ref). In each bin, the band goes from the lower to the upper of
 the `quantiles` of the `n` predicted counts. The default is the central 68% interval.
 
+With `contains`, parameters such as the global mode (the best fit), each band contains
+the prediction for these parameters and still holds the same probability. The prediction
+at the mode can lie outside the central interval, for example when an activity is close
+to 0. The band is then moved the least needed: from the quantile at the prediction to
+the quantile 68% (or `quantiles[2] - quantiles[1]`) above it, or from 68% below it.
+
 Returns an ordered dictionary with the same keys as [`get_best_fit_histograms`](@ref) (or
 [`group_histograms`](@ref) with `groups`), with `(low, high)` for each key: the two edges
 of the band as `Histogram`s. Draw them with the `band` keyword of [`plot_hist!`](@ref).
@@ -55,6 +61,7 @@ function get_posterior_bands(
     n::Integer = 10_000,
     groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
     quantiles::Tuple{Real,Real} = (0.16, 0.84),
+    contains::Union{Nothing,NamedTuple} = nothing,
 )
     n > 0 || throw(ArgumentError("n must be positive"))
     0 <= quantiles[1] < quantiles[2] <= 1 ||
@@ -75,12 +82,37 @@ function get_posterior_bands(
         edges = first(values(hists)).edges
     end
 
+    if !isnothing(contains)
+        fixed = get_best_fit_histograms(contains, model, bin_edges)
+        isnothing(groups) || (fixed = group_histograms(fixed, groups))
+    end
+
     bands = OrderedDict{Symbol,NamedTuple{(:low, :high),NTuple{2,Histogram{Float64,1}}}}()
     for (name, counts) in predictions
-        low, high = ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
+        if isnothing(contains)
+            low, high =
+                ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
+        else
+            limits = [
+                _band_containing(column, y, quantiles...) for
+                (column, y) in zip(eachcol(counts), fixed[name].weights)
+            ]
+            low, high = first.(limits), last.(limits)
+        end
         bands[name] = (low = Histogram(edges, low), high = Histogram(edges, high))
     end
     return bands
+end
+
+# The band of the predicted counts `column` in one bin, with the probability `q2 - q1`,
+# that contains the value `y`: the band from the quantile `q1` to `q2` if it contains
+# `y`, otherwise the band moved the least needed to reach `y`.
+function _band_containing(column, y, q1, q2)
+    width = q2 - q1
+    below = count(<=(y), column) / length(column)
+    start = clamp(q1, below - width, below)
+    low, high = quantile(column, start), quantile(column, start + width)
+    return min(low, y), max(high, y)
 end
 
 """

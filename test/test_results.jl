@@ -184,6 +184,38 @@ end
     @test collect(keys(grouped)) == [:total, :all]
     @test grouped[:all].low.weights ≈ grouped[:total].low.weights
 
+    # a band that contains the prediction for given parameters: a is 1 to 10 with equal
+    # probability, and the prediction at a = 10 is above the central 68% interval
+    samples = (v = [(a = Float64(a), b = 4.0) for a = 1:10], weight = ones(Int, 10))
+    # the prediction of a for this value, in the fitted bins (the others are empty)
+    at(a) = get_best_fit_histograms((a = a, b = 4.0), model, bin_edges)
+    fitted = at(1.0)[:a].weights .> 0
+    # the same draws from the posterior in each call
+    function draw_bands(; kwargs...)
+        Random.seed!(3)
+        return get_posterior_bands(samples, model, bin_edges; n = 2000, kwargs...)
+    end
+    central = draw_bands()
+    moved = draw_bands(; contains = (a = 10.0, b = 4.0))
+    @test all(central[:a].high.weights[fitted] .< at(10.0)[:a].weights[fitted])
+    # the band goes from the quantile 0.32 (a between 3 and 5) to the prediction at a = 10
+    @test moved[:a].high.weights ≈ at(10.0)[:a].weights
+    @test all(
+        at(3.0)[:a].weights[fitted] .<
+        moved[:a].low.weights[fitted] .<
+        at(5.0)[:a].weights[fitted],
+    )
+    @test moved[:b].low.weights ≈ moved[:b].high.weights ≈ at(10.0)[:b].weights
+
+    # a prediction inside the central interval does not change the band
+    inside = draw_bands(; contains = (a = 5.0, b = 4.0))
+    @test inside[:a].low.weights ≈ central[:a].low.weights
+    @test inside[:a].high.weights ≈ central[:a].high.weights
+
+    # with groups, the band contains the prediction of each group
+    grouped = draw_bands(; groups = ["all" => [:a, :b]], contains = (a = 10.0, b = 4.0))
+    @test grouped[:all].high.weights ≈ at(10.0)[:total].weights
+
     @test_throws ArgumentError get_posterior_bands(samples, model, bin_edges; n = 0)
     @test_throws ArgumentError get_posterior_bands(
         samples,
