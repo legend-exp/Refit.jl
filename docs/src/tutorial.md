@@ -303,8 +303,9 @@ fig
 ```
 
 Finally, the prediction of the best fit is compared with the measured counts. The
-sources are summed into a few groups and plotted in the same way. The bands are the
-central 68% interval of the prediction in each bin, from 10000 samples of the posterior. See
+sources are summed into a few groups and plotted in the same way. The bands are 68%
+intervals of the prediction in each bin, from 10000 samples of the posterior, moved where
+needed to contain the best fit (`contains = best`). See
 [Plotting](plotting.md) for the functions that are used and how the plot can be customised.
 
 ```@example tutorial
@@ -320,7 +321,7 @@ groups = [
     "other" => :rest,
 ]
 grouped = group_histograms(hists, groups)
-bands = get_posterior_bands(samples, model, bin_edges; groups)
+bands = get_posterior_bands(samples, model, bin_edges; groups, contains = best)
 
 fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV")
 
