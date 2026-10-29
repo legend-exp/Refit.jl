@@ -51,8 +51,9 @@ to 0. The band is then moved the least needed: from the quantile at the predicti
 the quantile 68% (or `quantiles[2] - quantiles[1]`) above it, or from 68% below it.
 
 Returns an ordered dictionary with the same keys as [`get_best_fit_histograms`](@ref) (or
-[`group_histograms`](@ref) with `groups`), with `(low, high)` for each key: the two edges
-of the band as `Histogram`s. Draw them with the `band` keyword of [`plot_hist!`](@ref).
+[`group_histograms`](@ref) with `groups`), with `(low, high, median)` for each key: the two
+edges of the band and the median of the predicted counts in each bin, as `Histogram`s.
+Draw them with the `band` keyword of [`plot_hist!`](@ref).
 """
 function get_posterior_bands(
     samples,
@@ -63,11 +64,10 @@ function get_posterior_bands(
     quantiles::Tuple{Real,Real} = (0.16, 0.84),
     contains::Union{Nothing,NamedTuple} = nothing,
 )
-    n > 0 || throw(ArgumentError("n must be positive"))
     0 <= quantiles[1] < quantiles[2] <= 1 ||
         throw(ArgumentError("quantiles must be increasing and between 0 and 1"))
 
-    draws = sample(eachindex(samples.v), Weights(Float64.(samples.weight)), n)
+    draws = _draws(samples, n)
 
     # the predicted counts of each source: one row per drawn sample, one column per bin
     predictions = OrderedDict{Symbol,Matrix{Float64}}()
@@ -87,7 +87,10 @@ function get_posterior_bands(
         isnothing(groups) || (fixed = group_histograms(fixed, groups))
     end
 
-    bands = OrderedDict{Symbol,NamedTuple{(:low, :high),NTuple{2,Histogram{Float64,1}}}}()
+    bands = OrderedDict{
+        Symbol,
+        NamedTuple{(:low, :high, :median),NTuple{3,Histogram{Float64,1}}},
+    }()
     for (name, counts) in predictions
         if isnothing(contains)
             low, high =
@@ -99,7 +102,12 @@ function get_posterior_bands(
             ]
             low, high = first.(limits), last.(limits)
         end
-        bands[name] = (low = Histogram(edges, low), high = Histogram(edges, high))
+        median = [quantile(column, 0.5) for column in eachcol(counts)]
+        bands[name] = (
+            low = Histogram(edges, low),
+            high = Histogram(edges, high),
+            median = Histogram(edges, median),
+        )
     end
     return bands
 end
@@ -113,6 +121,90 @@ function _band_containing(column, y, q1, q2)
     start = clamp(q1, below - width, below)
     low, high = quantile(column, start), quantile(column, start + width)
     return min(low, y), max(high, y)
+end
+
+"""Indices of `n` samples drawn from `samples` with a probability proportional to their weight."""
+function _draws(samples, n)
+    n > 0 || throw(ArgumentError("n must be positive"))
+    return sample(eachindex(samples.v), Weights(Float64.(samples.weight)), n)
+end
+
+"""
+    get_predicted_counts(samples, model, bin_edges, ranges; n = 10_000)
+
+The counts predicted by the model in the energy `ranges`, for each of `n` samples drawn
+from `samples` with a probability proportional to their weight, as in
+[`get_posterior_bands`](@ref). `samples` can come from a fit, or be drawn from the
+priors, for example with `bat_sample(prior, IIDSampling(nsamples = 10^5)).result`.
+
+`ranges` is an interval in keV, for example `1930 .. 2190`, or a vector of intervals,
+which are added. The bins of the model must cover them: their ends are edges of the
+bins, and no bins between them are left out of the model.
+
+Returns an ordered dictionary with the counts of each drawn sample: the total in
+`:total`, followed by each component of the model, sorted by name. For example,
+`quantile(counts[:total], [0.16, 0.5, 0.84])` gives the median and the central 68%
+interval.
+"""
+function get_predicted_counts(
+    samples,
+    model::Function,
+    bin_edges::NamedTuple{(:low, :high)},
+    ranges;
+    n::Integer = 10_000,
+)
+    ranges = vcat(ranges)
+    inside = [
+        any(r -> leftendpoint(r) <= low && high <= rightendpoint(r), ranges) for
+        (low, high) in zip(bin_edges.low, bin_edges.high)
+    ]
+    sum(bin_edges.high[inside] .- bin_edges.low[inside]; init = 0.0) ≈ sum(width, ranges) ||
+        throw(ArgumentError("the bins of the model do not cover $ranges"))
+
+    draws = _draws(samples, n)
+    counts = OrderedDict{Symbol,Vector{Float64}}(:total => zeros(n))
+    for (row, i) in enumerate(draws)
+        for (name, c) in pairs(model(samples.v[i], Val(:by_component)))
+            values = get!(() -> zeros(n), counts, name)
+            values[row] = sum(view(c, inside))
+            counts[:total][row] += values[row]
+        end
+    end
+    return counts
+end
+
+"""
+    background_index(samples, model, bin_edges; livetime, mass,
+                     window = [1930 .. 2099, 2109 .. 2114, 2124 .. 2190], n = 10_000)
+
+Background index at the Q-value of the 0νββ decay of ``^{76}``Ge for `n` samples drawn
+from `samples`: the counts of [`get_predicted_counts`](@ref) in `window`, divided by the
+width of the window and by the exposure. `livetime` and `mass` are quantities with units
+(from Unitful.jl), for example `10u"yr"` and `1000u"kg"`: the live time in the `norm` of
+the model and the mass of the HPGe detectors of the simulation.
+
+`window` is in keV. The default is 1930 to 2190 keV without the γ lines of ``^{208}``Tl
+at 2104 keV and of ``^{214}``Bi at 2119 keV, 240 keV in total. The bins of the model must
+cover it, for example with `binning = [[1930, 2099], [2109, 2114], [2124, 2190]]` in
+[`build_forward_model`](@ref), one bin for each part.
+
+Returns an ordered dictionary as [`get_predicted_counts`](@ref), with the background
+index of each sample in counts/(keV kg yr). For example, `quantile(bi[:total], 0.9)` is
+the upper limit at 90% probability.
+"""
+function background_index(
+    samples,
+    model::Function,
+    bin_edges::NamedTuple{(:low, :high)};
+    livetime::Unitful.Time,
+    mass::Unitful.Mass,
+    window = [1930 .. 2099, 2109 .. 2114, 2124 .. 2190],
+    n::Integer = 10_000,
+)
+    exposure = sum(width, vcat(window)) * u"keV" * mass * livetime
+    scale = uconvert(u"keV^-1*kg^-1*yr^-1", 1 / exposure)
+    counts = get_predicted_counts(samples, model, bin_edges, window; n)
+    return OrderedDict(name => scale .* c for (name, c) in counts)
 end
 
 """

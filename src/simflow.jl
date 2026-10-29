@@ -34,10 +34,12 @@ function SimProd(path::AbstractString)
     config_file = joinpath(path, "simflow-config.yaml")
     isfile(config_file) || throw(ArgumentError("$path has no simflow-config.yaml"))
     config = YAML.load_file(config_file)
-    # "$_" in the paths of the configuration stands for the cycle directory
-    pdf_dir = normpath(replace(config["paths"]["tier"]["pdf"], raw"$_" => path))
+    pdf_dir = _cycle_path(path, config["paths"]["tier"]["pdf"])
     return SimProd(path, config["experiment"], pdf_dir, nothing, nothing)
 end
+
+"""A path `p` of the configuration of the cycle at `path`, where `\$_` stands for the cycle directory."""
+_cycle_path(path, p) = normpath(replace(p, raw"$_" => path))
 
 """The simids of `prod`, read from disk at the first call."""
 function _simids(prod::SimProd)
