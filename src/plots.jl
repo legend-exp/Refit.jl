@@ -180,7 +180,8 @@ value. The lower limit of the y axis is 0. The other keywords, for example `colo
 `label`, go to [`plot_hist!`](@ref).
 
 The plots have labels, so a legend can be added with `CairoMakie.axislegend(ax)`, or in
-another place with `CairoMakie.Legend(fig[2, 4], ax)`.
+another place with `CairoMakie.Legend(fig[2, 4], ax)`. To compare the posteriors of a
+quantity for several sources, one row each, see [`plot_posteriors!`](@ref).
 
 Returns the interval as `low .. high`.
 """
@@ -237,11 +238,127 @@ function plot_posterior!(
 end
 
 """
-    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600), colors)
+    plot_spectrum!(ax, samples, model, bin_edges; groups = nothing, n = 10_000)
+
+Draw the prediction of the model for the `samples` on the CairoMakie axis `ax`, as in
+[`get_posterior_bands`](@ref): for the total and for each source, or each group of
+sources with `groups` (see [`group_histograms`](@ref)), the median of the predicted
+counts in each bin as a line, with the band of the central 68% interval. The total is
+black. The lines have labels, so a legend can be added with `CairoMakie.axislegend(ax)`.
+Returns the bands.
+"""
+function plot_spectrum!(
+    ax,
+    samples,
+    model::Function,
+    bin_edges::NamedTuple{(:low, :high)};
+    groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
+    n::Integer = 10_000,
+)
+    bands = get_posterior_bands(samples, model, bin_edges; groups, n)
+    for (name, band) in bands
+        color = name == :total ? (; color = :black) : (;)
+        plot_hist!(ax, band.median; band, label = string(name), color...)
+    end
+    return bands
+end
+
+"""
+    plot_posteriors!(ax, posteriors; labels = string, log = true, color = :steelblue)
+
+Draw the posterior distributions of a quantity for several sources on the CairoMakie
+axis `ax`, as one violin per row: its width shows how often each value occurs in the
+samples. All the rows share the x axis, so they are the same quantity, in the same unit.
+To draw the posterior of one parameter of the fit as a histogram, see
+[`plot_posterior!`](@ref).
+
+`posteriors` is an ordered dictionary `name => values`, with the values of the quantity
+for each sample, for example from [`background_index`](@ref), or from
+[`get_predicted_counts`](@ref) divided by the live time for an event rate. The rows go
+from the top in the order of `posteriors`. Each violin goes from the 0.5% to the 99.5%
+quantile of its values, which leaves out the few samples far in the tails. A quantity
+that is the same in all samples is a vertical line. Values with units, as those of
+[`background_index`](@ref), are drawn in the unit of the first row.
+
+With `log = true`, for values spread over orders of magnitude, the violins show the
+distribution of the logarithm of the values, which must be positive, and the ticks of
+the x axis are powers of 10. Leave the scale of the axis linear. `labels` gives the text
+of each row on the y axis, as a dictionary `name => text` or a function of the name, by
+default the name. `color` is the color of all the violins, or a dictionary
+`name => color` (`:steelblue` for the names it does not have) or a function of the name.
+It is the color of the outline, and of the fill with an opacity of 0.4.
+"""
+function plot_posteriors!(
+    ax,
+    posteriors::AbstractDict{Symbol,<:AbstractVector};
+    labels = string,
+    log::Bool = true,
+    color = :steelblue,
+)
+    names = collect(keys(posteriors))
+    rows = length(names):-1:1
+    # the setting of a row: one for all, from a dictionary or from a function of the name
+    pick(setting, name, default) =
+        setting isa AbstractDict ? get(setting, name, default) :
+        setting isa Function ? setting(name) : setting
+
+    # the numbers in the unit of the first row, or the values without units
+    unit = Unitful.unit(first(first(values(posteriors))))
+    x = map(collect(values(posteriors))) do v
+        v = ustrip.(unit, v)
+        log || return v
+        all(>(0), v) ||
+            throw(ArgumentError("with log = true the values must be positive"))
+        return log10.(v)
+    end
+    limits = [Tuple(quantile(v, [0.005, 0.995])) for v in x]
+
+    for (row, name, v, (low, high)) in zip(rows, names, x, limits)
+        c = pick(color, name, :steelblue)
+        if allequal(v)
+            CairoMakie.linesegments!(
+                ax,
+                fill(first(v), 2),
+                [row - 0.4, row + 0.4];
+                color = c,
+            )
+        else
+            CairoMakie.violin!(
+                ax,
+                fill(row, length(v)),
+                v;
+                orientation = :horizontal,
+                width = 0.9,
+                datalimits = (low, high),
+                # a solid outline, the fill of the same color and transparent
+                color = (CairoMakie.to_color(c), 0.4),
+                strokecolor = c,
+                strokewidth = 1.5,
+            )
+        end
+    end
+
+    ax.yticks = (collect(rows), [string(pick(labels, name, name)) for name in names])
+    if log
+        # a tick at each power of 10 in the range of the violins
+        low, high = extrema(Iterators.flatten(limits))
+        exponents = floor(Int, low):ceil(Int, high)
+        ax.xticks = (
+            collect(exponents),
+            [CairoMakie.rich("10", CairoMakie.superscript(string(k))) for k in exponents],
+        )
+    end
+    return nothing
+end
+
+"""
+    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600), colors,
+             residuals = true)
 
 Make a CairoMakie figure for the plot of a fit: an axis for the spectra with an axis for
 the residuals below it. The energy axes are linked and only the lower one has labels.
-Returns `(fig, ax, ax_residuals)`.
+Returns `(fig, ax, ax_residuals)`. With `residuals = false`, for spectra without data,
+there is only the axis for the spectra and `ax_residuals` is `nothing`.
 
 `size` is the size of the figure in pixels. With `scale = :log` the y axis of `ax` is
 logarithmic, with `:linear` it is linear. The lines drawn by [`plot_hist!`](@ref)
@@ -258,6 +375,7 @@ function fit_axes(;
     ylabel::AbstractString = "Counts",
     size::Tuple{Integer,Integer} = (1300, 600),
     colors::AbstractVector = CairoMakie.Makie.wong_colors(),
+    residuals::Bool = true,
 )
     scale in (:log, :linear) || throw(ArgumentError("scale must be :log or :linear"))
 
@@ -269,6 +387,7 @@ function fit_axes(;
         title,
         palette = (color = colors,),
     )
+    residuals || (ax.xlabel = "Energy [keV]"; return fig, ax, nothing)
     ax_res = CairoMakie.Axis(fig[2, 1]; ylabel = "Residual [σ]", xlabel = "Energy [keV]")
 
     CairoMakie.rowsize!(fig.layout, 1, CairoMakie.Relative(0.7))
@@ -282,8 +401,10 @@ end
     group_histograms(hists, groups)
 
 Sum the sources of the best fit into groups, for example to plot fewer lines. `hists` is
-the result of [`get_best_fit_histograms`](@ref) and `groups` is a vector with one
-`label => selection` for each group. The selection is one of
+the result of [`get_best_fit_histograms`](@ref), or the values for each sample of
+[`get_predicted_counts`](@ref) or [`background_index`](@ref), which are added sample by
+sample. `groups` is a vector with one `label => selection` for each group. The selection
+is one of
 - a vector of source names, for example `[:K40_cables, :K40_fibers]`,
 - a regular expression that is matched to the source names, for example `r"K40"`,
 - `:rest`, for all the sources that no other group selects.
@@ -302,11 +423,14 @@ grouped = group_histograms(
 ```
 """
 function group_histograms(
-    hists::AbstractDict{Symbol,<:Histogram{<:Real,1}},
+    hists::AbstractDict{Symbol,<:Union{Histogram{<:Real,1},AbstractVector{<:Number}}},
     groups::AbstractVector{<:Pair},
 )
-    haskey(hists, :total) ||
-        throw(ArgumentError("hists must have the key :total, see get_best_fit_histograms"))
+    haskey(hists, :total) || throw(
+        ArgumentError(
+            "hists must have the key :total, see get_best_fit_histograms or get_predicted_counts",
+        ),
+    )
     sources = [name for name in keys(hists) if name != :total]
 
     selected = Dict{Symbol,Vector{Symbol}}()
@@ -334,12 +458,16 @@ function group_histograms(
         union!(taken, members)
     end
 
-    grouped = OrderedDict{Symbol,Histogram{Float64,1}}(:total => hists[:total])
+    grouped = OrderedDict{Symbol,valtype(hists)}(:total => hists[:total])
     for (label, selection) in groups
         name = Symbol(label)
         name == :total && throw(ArgumentError("a group cannot be called total"))
         members = selection == :rest ? setdiff(sources, taken) : selected[name]
-        isempty(members) || (grouped[name] = add_histograms([hists[s] for s in members]))
+        parts = [hists[s] for s in members]
+        isempty(parts) || (
+            grouped[name] =
+                eltype(parts) <: Histogram ? add_histograms(parts) : sum(parts)
+        )
     end
     return grouped
 end

@@ -5,6 +5,7 @@ using Random
 using Refit
 using StatsBase
 using Test
+using Unitful
 
 @testset "best fit histograms" begin
     edges = 0.0:100.0:1000.0
@@ -197,6 +198,12 @@ end
     end
     central = draw_bands()
     moved = draw_bands(; contains = (a = 10.0, b = 4.0))
+    # the median of a is between 5 and 6
+    @test all(
+        at(5.0)[:a].weights[fitted] .<=
+        central[:a].median.weights[fitted] .<=
+        at(6.0)[:a].weights[fitted],
+    )
     @test all(central[:a].high.weights[fitted] .< at(10.0)[:a].weights[fitted])
     # the band goes from the quantile 0.32 (a between 3 and 5) to the prediction at a = 10
     @test moved[:a].high.weights ≈ at(10.0)[:a].weights
@@ -246,6 +253,12 @@ end
     _, ax_linear, _ = fit_axes(; scale = :linear)
     @test ax_linear.yscale[] === identity
     @test_throws ArgumentError fit_axes(; scale = :sqrt)
+
+    # without data, no axis for the residuals
+    fig_one, ax_one, no_res = fit_axes(; residuals = false)
+    @test isnothing(no_res)
+    @test ax_one.xlabel[] == "Energy [keV]"
+    @test count(c -> c isa CairoMakie.Axis, fig_one.content) == 1
 end
 
 @testset "plot blocks" begin
@@ -375,4 +388,76 @@ end
     @test_throws ArgumentError plot_posterior!(ax, samples, :a; level = 1.0)
     constant = (v = [(a = 1.0,), (a = 1.0,)], weight = [1, 1])
     @test_throws ArgumentError plot_posterior!(ax, constant, :a)
+end
+
+@testset "plot_spectrum!" begin
+    edges = 0.0:100.0:1000.0
+    pdfs =
+        Dict(:a => Histogram(edges, fill(10.0, 10)), :b => Histogram(edges, fill(5.0, 10)))
+    model, bin_edges = build_forward_model(pdfs; e_low = 100, e_high = 900, norm = 1e-3)
+    samples = (v = [(a = Float64(a), b = 4.0) for a = 1:10], weight = ones(10))
+
+    # a line for the total and each source, the total in black, with a band each
+    fig, ax, _ = fit_axes(; residuals = false)
+    bands = plot_spectrum!(ax, samples, model, bin_edges; n = 500)
+    @test collect(keys(bands)) == [:total, :a, :b]
+    lines = filter(p -> p isa CairoMakie.Lines, ax.scene.plots)
+    @test [l.label[] for l in lines] == ["total", "a", "b"]
+    @test CairoMakie.to_color(lines[1].color[]) == CairoMakie.to_color(:black)
+    @test length(ax.scene.plots) == 6
+
+    grouped =
+        plot_spectrum!(ax, samples, model, bin_edges; n = 100, groups = ["all" => r"."])
+    @test collect(keys(grouped)) == [:total, :all]
+end
+
+@testset "plot_posteriors!" begin
+    values = Refit.OrderedDict(
+        :a => 10 .^ range(-3, 1; length = 100),
+        :b => fill(2.0, 100),
+        :c => collect(1.0:100.0),
+    )
+    fig = CairoMakie.Figure()
+    ax = CairoMakie.Axis(fig[1, 1])
+
+    # the rows from the top in the order of the values, with the labels given; a violin
+    # for each spread of values, a line for one value
+    plot_posteriors!(ax, values; labels = Dict(:a => "source a"))
+    @test ax.yticks[][1] == [3, 2, 1]
+    @test ax.yticks[][2] == ["source a", "b", "c"]
+    @test count(p -> p isa CairoMakie.Violin, ax.scene.plots) == 2
+    @test count(p -> p isa CairoMakie.LineSegments, ax.scene.plots) == 1
+    # a tick at each power of 10 between the 0.5% and 99.5% quantiles, here 1e-3 to 1e2
+    @test ax.xticks[][1] == collect(-3:2)
+    violin = first(filter(p -> p isa CairoMakie.Violin, ax.scene.plots))
+    @test violin.datalimits[] == Tuple(quantile(range(-3, 1; length = 100), [0.005, 0.995]))
+
+    # the values themselves on a linear axis
+    ax_lin = CairoMakie.Axis(fig[1, 2])
+    plot_posteriors!(ax_lin, values; log = false, labels = name -> uppercase(string(name)))
+    @test ax_lin.yticks[][2] == ["A", "B", "C"]
+    violin = first(filter(p -> p isa CairoMakie.Violin, ax_lin.scene.plots))
+    @test maximum(violin[2][]) == 10
+
+    # the color of each row, by name
+    ax_color = CairoMakie.Axis(fig[1, 3])
+    plot_posteriors!(ax_color, values; color = Dict(:c => :black))
+    violins = filter(p -> p isa CairoMakie.Violin, ax_color.scene.plots)
+    # the outline in the color, the fill in the same color with an opacity of 0.4
+    @test CairoMakie.to_color(violins[1].strokecolor[]) == CairoMakie.to_color(:steelblue)
+    @test CairoMakie.to_color(violins[2].strokecolor[]) == CairoMakie.to_color(:black)
+    @test CairoMakie.to_color(violins[2].color[]) == CairoMakie.to_color((:black, 0.4))
+    plot_posteriors!(ax_color, values; color = name -> name == :a ? :red : :blue)
+    violins = filter(p -> p isa CairoMakie.Violin, ax_color.scene.plots)
+    @test CairoMakie.to_color(violins[3].strokecolor[]) == CairoMakie.to_color(:red)
+
+    # values with units, in the unit of the first row
+    ax_units = CairoMakie.Axis(fig[1, 4])
+    with_units =
+        Refit.OrderedDict(:a => [1.0, 2.0] .* u"kg", :b => [3000.0, 4000.0] .* u"g")
+    plot_posteriors!(ax_units, with_units; log = false)
+    violins = filter(p -> p isa CairoMakie.Violin, ax_units.scene.plots)
+    @test violins[2][2][] ≈ [3.0, 4.0]
+
+    @test_throws ArgumentError plot_posteriors!(ax, Refit.OrderedDict(:a => [0.0, 1.0]))
 end

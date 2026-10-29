@@ -18,6 +18,7 @@ based on Monte-Carlo simulations, often generated with [remage](https://remage.r
 - [Running the fit](fit.md): sample the posterior with BAT.jl and get the best fit
 - [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
 - [Saving the results](saving.md): save the samples, the best fit spectra and the activities
+- [Expected background from known activities](expected_background.md): the expected spectrum and background index from assay results or other known activities
 
 ## Tutorials
 

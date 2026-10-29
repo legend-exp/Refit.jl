@@ -21,6 +21,7 @@ makedocs(;
             "Running the fit" => "fit.md",
             "Plotting" => "plotting.md",
             "Saving the results" => "saving.md",
+            "Expected background from known activities" => "expected_background.md",
         ],
         "Tutorials" => [
             "Fitting a background spectrum" => "tutorial.md",
