@@ -17,26 +17,26 @@ model, bin_edges = build_forward_model(
 
 # predicted counts in each bin
 pred = model(params)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">270-element Vector{Float64}:
- 1559.087964241272
- 1553.4540459659506
- 1547.4651135047611
+ 1559.0879642412722
+ 1553.454045965951
+ 1547.4651135047616
  1541.137095370121
- 1534.4854325997342
- 1527.5288575667907
- 1522.5131150670657
- 1595.7260618078335
- 1695.8930745538917
- 1524.2000964583099
+ 1534.4854325997348
+ 1527.5288575667914
+ 1522.5131150670659
+ 1595.726061807834
+ 1695.893074553892
+ 1524.2000964583103
     ⋮
-   64.1266516954892
-   63.2468951858514
-   62.379818376442984
-   61.5252396665875
-   60.68297989484832
-   59.85286231147065
-   59.03471255098209
-   58.22835860495513
-   57.43363079493656</code></pre><p><code>pred</code> is a flat vector with one entry per kept bin, here <code>length(pred)</code> = 270. Entry <code>i</code> is the sum over all spectra of <code>activity * norm * (counts in the simulated bin)</code>. The order of the activities does not matter. A missing activity raises an error.</p><h2 id="Activity-functions"><a class="docs-heading-anchor" href="#Activity-functions">Activity functions</a><a id="Activity-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Activity-functions" title="Permalink"></a></h2><p>The activity of a component does not have to be a fit parameter of its own. For example, the activity of <span>$^{208}$</span>Tl is tied to that of <span>$^{212}$</span>Bi by the branching ratio of 35.94 %, so this component adds no parameter of its own:</p><pre><code class="language-julia hljs">:Tl208_cables =&gt; (pdf = h_Tl208, activity = p -&gt; 0.3594 * p.Bi212_cables)</code></pre><p>A function can also replace the activity by the quantity of interest. To fit the half-life of the <span>$2\nu\beta\beta$</span> decay instead of its activity:</p><pre><code class="language-julia hljs">n_ge76 = 1.0e28  # made-up number of Ge-76 nuclei
+   64.12665169548922
+   63.246895185851415
+   62.37981837644299
+   61.52523966658751
+   60.68297989484833
+   59.852862311470666
+   59.03471255098211
+   58.22835860495515
+   57.433630794936576</code></pre><p><code>pred</code> is a flat vector with one entry per kept bin, here <code>length(pred)</code> = 270. Entry <code>i</code> is the sum over all spectra of <code>activity * norm * (counts in the simulated bin)</code>. The order of the activities does not matter. A missing activity raises an error.</p><h2 id="Activity-functions"><a class="docs-heading-anchor" href="#Activity-functions">Activity functions</a><a id="Activity-functions-1"></a><a class="docs-heading-anchor-permalink" href="#Activity-functions" title="Permalink"></a></h2><p>The activity of a component does not have to be a fit parameter of its own. For example, the activity of <span>$^{208}$</span>Tl is tied to that of <span>$^{212}$</span>Bi by the branching ratio of 35.94 %, so this component adds no parameter of its own:</p><pre><code class="language-julia hljs">:Tl208_cables =&gt; (pdf = h_Tl208, activity = p -&gt; 0.3594 * p.Bi212_cables)</code></pre><p>A function can also replace the activity by the quantity of interest. To fit the half-life of the <span>$2\nu\beta\beta$</span> decay instead of its activity:</p><pre><code class="language-julia hljs">n_ge76 = 1.0e28  # made-up number of Ge-76 nuclei
 year = 3.156e7   # s
 
 components = merge(
@@ -66,6 +66,6 @@ bin_edges.low, bin_edges.high</code></pre><pre class="documenter-example-output"
 best_fit = counts_to_histogram(pred, bin_edges)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StatsBase.Histogram{Float64, 1, Tuple{Vector{Float64}}}
 edges:
   [500.0, 510.0, 520.0, 530.0, 540.0, 550.0, 560.0, 570.0, 580.0, 590.0  …  3110.0, 3120.0, 3130.0, 3140.0, 3150.0, 3160.0, 3170.0, 3180.0, 3190.0, 3200.0]
-weights: [1559.087964241272, 1553.4540459659506, 1547.4651135047611, 1541.137095370121, 1534.4854325997342, 1527.5288575667907, 1522.5131150670657, 1595.7260618078335, 1695.8930745538917, 1524.2000964583099  …  65.01927197298384, 64.1266516954892, 63.2468951858514, 62.379818376442984, 61.5252396665875, 60.68297989484832, 59.85286231147065, 59.03471255098209, 58.22835860495513, 57.43363079493656]
+weights: [1559.0879642412722, 1553.454045965951, 1547.4651135047616, 1541.137095370121, 1534.4854325997348, 1527.5288575667914, 1522.5131150670659, 1595.726061807834, 1695.893074553892, 1524.2000964583103  …  65.01927197298386, 64.12665169548922, 63.246895185851415, 62.37981837644299, 61.52523966658751, 60.68297989484833, 59.852862311470666, 59.03471255098211, 58.22835860495515, 57.433630794936576]
 closed: left
-isdensity: false</code></pre><p>The histogram covers the fit range, from <code>bin_edges.low[1]</code> to <code>bin_edges.high[end]</code>. A region skipped by the binning, such as a blinded one, becomes one bin with 0 counts.</p><p>See the <a href="../api/">API</a> for the full docstring.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../generalised_hist/">« Systematic uncertainties</a><a class="docs-footer-nextpage" href="../binning/">Binning »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Thursday 29 October 2026 14:11">Thursday 29 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+isdensity: false</code></pre><p>The histogram covers the fit range, from <code>bin_edges.low[1]</code> to <code>bin_edges.high[end]</code>. A region skipped by the binning, such as a blinded one, becomes one bin with 0 counts.</p><p>See the <a href="../api/">API</a> for the full docstring.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../generalised_hist/">« Systematic uncertainties</a><a class="docs-footer-nextpage" href="../binning/">Binning »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Thursday 29 October 2026 14:40">Thursday 29 October 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
