@@ -2,6 +2,7 @@ module Refit
 
 import BayesianBlocks
 using DensityInterface
+import HDF5
 import Distributions
 using Distributions: Uniform, UnivariateDistribution
 using IntervalSets
@@ -15,6 +16,7 @@ include("forward_model.jl")
 include("likelihood.jl")
 include("priors.jl")
 include("io.jl")
+include("simflow.jl")
 include("results.jl")
 include("plots.jl")
 
@@ -26,6 +28,7 @@ export build_forward_model
 export poisson_likelihood, build_likelihood
 export get_max_norm, get_max_activity, get_priors, build_prior_dist
 export read_hist, read_pdf, read_generalised_hist, read_generalised_pdf
+export SimProd, simids, pdf_file, has_pdf, pdf_groups, cut_groups, hpge_groups
 export get_best_fit_histograms, get_posterior_bands, write_best_fit, write_parameter_values
 export normalised_poisson_residual
 export plot_hist!,
