@@ -10,9 +10,13 @@ The histogram format is described in the LH5 specification. The `group` should c
 """
 function read_hist(group::String, file::String)
 
-    # files written from Julia count the axes from 1, files from the simulation from 0
-    from_julia = lh5open(f -> haskey(f, "$group/binning/axis_1"), "$file", "r")
-    if from_julia
+    # 1D histograms from the simulation have only axis_0. The others, written from Julia
+    # (axes counted from 1) or with two or more axes, are read by LegendHDF5IO. Python
+    # (h5py) writes arrays in row-major order and Julia reads them in column-major order:
+    # weights[i, j] of a 2D histogram from Python is bin i of its last axis and bin j of
+    # its first. The edges keep the order of the file.
+    has_axis_1 = lh5open(f -> haskey(f, "$group/binning/axis_1"), "$file", "r")
+    if has_axis_1
         # read the edges and weights into memory before the file is closed
         return lh5open("$file", "r") do f
             h = f[group]

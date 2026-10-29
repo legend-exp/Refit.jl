@@ -81,3 +81,81 @@ files = Dict(
 )
 pdf = read_pdf(files; groups = "pdf/mul_surv")
 ```
+
+## Spectra from a legend-simflow production cycle
+
+[legend-simflow](https://github.com/legend-exp/legend-simflow) writes one `pdf` tier
+file per simulation (`simid`) of a production cycle. [`SimProd`](@ref) finds
+these files from the directory of the cycle, the one with `simflow-config.yaml`:
+
+```julia
+prod = SimProd("prod/l1000dsg01/v1.1.0")
+simids(prod)  # the simulations in the cycle, as Symbols
+pdf_file(prod, :hpge_icpc_bulk_2vbb)  # the path of one pdf tier file
+```
+
+All files of a cycle contain the same histograms. The `pdf` tier sorts the events into
+categories: by multiplicity (`mul1`), by the LAr veto (`is_spms_coincident`,
+`not_spms_coincident`) and by the A/E cut (`is_high_aoe`, `is_ss_aoe`, `is_low_aoe`,
+`is_invalid_aoe`), for example. It stores one histogram for each combination of
+categories and each HPGe group. [`cut_groups`](@ref) lists the combinations and
+[`hpge_groups`](@ref) the HPGe groups, read from the file of the first
+simulation. [`pdf_groups`](@ref) lists all the histograms of the `pdf` tier. Showing
+`prod` in the REPL prints a summary of the cycle:
+
+```julia
+julia> prod
+SimProd at /data/l1000dsg01/v1.1.0
+├─ experiment: l1000dsg01
+├─ 36 simulations:
+│    cable_connectors_Pb212_to_Pb208
+│    cable_connectors_Pb214_to_Po214
+│    cables_Pb212_to_Pb208
+│    ⋮
+│    wls_reflector_Pb214_to_Po214
+├─ cut groups:
+│    is_high_aoe ∧ is_spms_coincident ∧ mul1
+│    is_invalid_aoe ∧ is_spms_coincident ∧ mul1
+│    is_low_aoe ∧ is_spms_coincident ∧ mul1
+│    is_spms_coincident ∧ is_ss_aoe ∧ mul1
+│    is_high_aoe ∧ mul1 ∧ not_spms_coincident
+│    is_invalid_aoe ∧ mul1 ∧ not_spms_coincident
+│    is_low_aoe ∧ mul1 ∧ not_spms_coincident
+│    is_ss_aoe ∧ mul1 ∧ not_spms_coincident
+└─ HPGe groups: all
+```
+
+The simulations, categories and HPGe groups are `Symbol`s. `read_pdf` sums the
+histograms whose combination contains all the categories of `groups`, and divides by the
+number of primaries. `groups` is a category or a vector of categories, in any order. A
+vector of such vectors sums the histograms matched by any of them, each counted once.
+`hpge_group` is the HPGe group, `:all` by default, or a vector of HPGe groups to sum.
+Groups that share detectors, such as `:all` and any other, count their events twice:
+
+```julia
+# all multiplicity-1 events of the HPGe group "all"
+pdf = read_pdf(prod, :hpge_icpc_bulk_2vbb)
+# after the LAr veto and the A/E cuts
+pdf = read_pdf(prod, :hpge_icpc_bulk_2vbb; groups = [:not_spms_coincident, :is_ss_aoe])
+# after the A/E cuts only
+pdf = read_pdf(prod, :hpge_icpc_bulk_2vbb; groups = :is_ss_aoe)
+# after the low-side A/E cut only: the histograms matched by any of the lists
+pdf = read_pdf(prod, :hpge_icpc_bulk_2vbb; groups = [[:is_ss_aoe], [:is_high_aoe]])
+```
+
+[`has_pdf`](@ref) checks whether a spectrum is there without reading it: a simulation,
+a selection with the same `groups` and `hpge_group` as `read_pdf`, or a histogram path:
+
+```julia
+has_pdf(prod, :hpge_icpc_bulk_2vbb)
+has_pdf(prod, :hpge_icpc_bulk_2vbb; groups = [:is_ss_aoe, :not_spms_coincident], hpge_group = :all)
+has_pdf(prod, :hpge_icpc_bulk_2vbb, "mul1/not_spms_coincident/is_ss_aoe/all")
+```
+
+A vector of simulations gives a dictionary of spectra, with the `simid`s as keys, ready
+for [`build_forward_model`](@ref):
+
+```julia
+mc_dict = read_pdf(prod, [:hpge_icpc_bulk_2vbb, :liquid_argon_underground_Ar39];
+                   groups = [:not_spms_coincident, :is_ss_aoe])
+```
