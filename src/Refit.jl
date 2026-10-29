@@ -4,10 +4,12 @@ import BayesianBlocks
 using DensityInterface
 import HDF5
 import Distributions
-using Distributions: Uniform, UnivariateDistribution
+using Distributions: Normal, Uniform, UnivariateDistribution, truncated
 using IntervalSets
 using OrderedCollections: OrderedDict
 using StatsBase
+import Unitful
+using Unitful: @u_str, uconvert, ustrip
 using ValueShapes: NamedTupleDist
 
 include("hist_utils.jl")
@@ -17,6 +19,7 @@ include("likelihood.jl")
 include("priors.jl")
 include("io.jl")
 include("simflow.jl")
+include("activities.jl")
 include("results.jl")
 include("plots.jl")
 
@@ -29,8 +32,11 @@ export poisson_likelihood, build_likelihood
 export get_max_norm, get_max_activity, get_priors, build_prior_dist
 export read_hist, read_pdf, read_generalised_hist, read_generalised_pdf
 export SimProd, simids, pdf_file, has_pdf, pdf_groups, cut_groups, hpge_groups
+export activity_prior, read_activities, activity_components, background_index
 export get_best_fit_histograms, get_posterior_bands, write_best_fit, write_parameter_values
+export get_predicted_counts
 export normalised_poisson_residual
 export plot_hist!,
     mark_blinded!, plot_residuals!, fit_axes, group_histograms, plot_posterior!
+export plot_spectrum!, plot_posteriors!
 end # module Refit
