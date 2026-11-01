@@ -14,11 +14,10 @@ based on Monte-Carlo simulations, often generated with [remage](https://remage.r
 - [Forward model](forward_model.md): build models mapping the parameters to the predicted counts in each energy bin
 - [Binning](binning.md): tools to handle binning the spectra
 - [Likelihood](likelihood.md): functionality to build an optimised likelihood functions
-- [Priors](priors.md): including estimation of ranges for the activities from the data
-- [Running the fit](fit.md): sample the posterior with BAT.jl and get the best fit
-- [Plotting](plotting.md): plot the best fit, make plots with a different style, and plot the posteriors
+- [Priors](priors.md): including estimation of ranges for the activities from the data, and priors from measured activities
+- [Running the fit](fit.md): sample the posterior with BAT.jl, get the best fit and the posteriors of derived quantities, such as the counts in an energy range
+- [Plotting](plotting.md): plot the best fit, the prediction without data, make plots with a different style, and plot the posteriors
 - [Saving the results](saving.md): save the samples, the best fit spectra and the activities
-- [Expected background from known activities](expected_background.md): the expected spectrum and background index from assay results or other known activities
 
 ## Tutorials
 

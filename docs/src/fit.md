@@ -68,3 +68,38 @@ best_lbfgs = bat_findmode(posterior, OptimAlg(optalg = Optim.LBFGS()), context).
 
 The uncertainty of each parameter, the smallest interval that contains 68% of its
 posterior, comes from the samples (see [Saving the results](saving.md)).
+
+## Quantities derived from the samples
+
+Any quantity that follows from the predicted counts has a posterior: its values for the
+samples. `get_predicted_counts(samples, model, bin_edges, ranges)` gives the counts
+predicted in energy ranges, in keV, for `n` samples (default 10000) drawn with a
+probability proportional to their weight. The result has the total in `:total`, followed
+by each source. The ends of the ranges must be edges of the bins of the model. For
+example, the counts in the ``^{40}``K line at 1461 keV:
+
+```@example fit
+using Statistics
+
+counts = get_predicted_counts(samples, model, bin_edges, 1450 .. 1470)
+quantile(counts[:total], [0.16, 0.5, 0.84])  # median and central 68% interval
+```
+
+`group_histograms(counts, groups)` sums the sources into groups, sample by sample, and
+[`plot_posteriors!`](@ref) draws the posteriors (see [Plotting](plotting.md)).
+
+`background_index(samples, model, bin_edges; livetime, mass)` gives the posterior of the
+background index at the Q-value of the 0νββ decay of ``^{76}``Ge, in counts/(keV kg yr):
+the counts in a window around 2039 keV, divided by its width and by the exposure, the
+product of `livetime` and `mass`, given with units. The default window goes from 1930 to
+2190 keV without the γ lines at 2104 and 2119 keV, so the bins of the model must have
+edges at 1930, 2099, 2109, 2114, 2124 and 2190 keV, for example with
+`binning = [[1930, 2099], [2109, 2114], [2124, 2190]]`.
+
+Samples drawn from the prior instead of the posterior give these quantities before a fit,
+for example the background expected from the measured activities of the components (see
+[Priors from measured activities](priors.md#Priors-from-measured-activities)):
+
+```julia
+samples = (v = [rand(prior) for _ in 1:10^5], weight = ones(10^5))
+```
