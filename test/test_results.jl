@@ -388,6 +388,22 @@ end
     @test_throws ArgumentError plot_posterior!(ax, samples, :a; level = 1.0)
     constant = (v = [(a = 1.0,), (a = 1.0,)], weight = [1, 1])
     @test_throws ArgumentError plot_posterior!(ax, constant, :a)
+
+    # the values of any quantity, with weights: the same as the parameter a
+    values = [v.a for v in samples.v]
+    ax_values = CairoMakie.Axis(fig[3, 1])
+    @test plot_posterior!(ax_values, values; weights = samples.weight) == interval
+    # with units, in the unit of the first value, also for best and truth
+    ax_units = CairoMakie.Axis(fig[4, 1])
+    in_g = plot_posterior!(
+        ax_units,
+        values .* 1000u"g";
+        weights = samples.weight,
+        best = 0.5u"kg",
+    )
+    @test in_g.left ≈ 1000 * interval.left && in_g.right ≈ 1000 * interval.right
+    @test only(filter(p -> p isa CairoMakie.VLines, ax_units.scene.plots))[1][] == 500.0
+    @test_throws ArgumentError plot_posterior!(ax, [1.0, 1.0])
 end
 
 @testset "plot_spectrum!" begin

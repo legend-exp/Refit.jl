@@ -163,12 +163,19 @@ end
 """
     plot_posterior!(ax, samples, name; level = 0.68, nbins = 50, best = nothing,
                     truth = nothing, kwargs...)
+    plot_posterior!(ax, values; weights = nothing, level = 0.68, nbins = 50, best = nothing,
+                    truth = nothing, kwargs...)
 
 Draw the marginal posterior distribution of the parameter `name` on the CairoMakie axis
 `ax`, as a step histogram normalised to an integral of 1. `samples` are the samples of the
 posterior, for example from `bat_sample`: the parameters of each sample are in
 `samples.v` and its weight in `samples.weight`. The histogram has `nbins` bins between the
 smallest and the largest value.
+
+With `values` in place of `samples` and `name`, the distribution is that of the values of
+any quantity for each sample, with their `weights` (all equal by default), for example
+from [`background_index`](@ref). Values with units are drawn in the unit of the first, and
+`best` and `truth` are then in the same unit.
 
 The bins inside the smallest interval that contains the fraction `level` of the
 distribution are filled. This is the same interval as the one saved by
@@ -185,25 +192,38 @@ quantity for several sources, one row each, see [`plot_posteriors!`](@ref).
 
 Returns the interval as `low .. high`.
 """
+function plot_posterior!(ax, samples, name::Symbol; kwargs...)
+    haskey(first(samples.v), name) || throw(ArgumentError("unknown parameter $name"))
+    return plot_posterior!(
+        ax,
+        [v[name] for v in samples.v];
+        weights = samples.weight,
+        kwargs...,
+    )
+end
+
 function plot_posterior!(
     ax,
-    samples,
-    name::Symbol;
+    values::AbstractVector{<:Number};
+    weights::Union{Nothing,AbstractVector{<:Real}} = nothing,
     level::Real = 0.68,
     nbins::Integer = 50,
-    best::Union{Nothing,Real} = nothing,
-    truth::Union{Nothing,Real} = nothing,
+    best::Union{Nothing,Number} = nothing,
+    truth::Union{Nothing,Number} = nothing,
     bandcolor = nothing,
     kwargs...,
 )
     0 < level < 1 || throw(ArgumentError("level must be between 0 and 1"))
-    haskey(first(samples.v), name) || throw(ArgumentError("unknown parameter $name"))
 
-    values = [v[name] for v in samples.v]
-    weights = Float64.(samples.weight)
+    # the numbers in the unit of the first value, or the values without units
+    unit = Unitful.unit(first(values))
+    values = ustrip.(unit, values)
+    best = isnothing(best) ? nothing : ustrip(unit, best)
+    truth = isnothing(truth) ? nothing : ustrip(unit, truth)
+    weights = isnothing(weights) ? ones(length(values)) : Float64.(weights)
     # the last bin includes the largest value
     lowest, highest = extrema(values)
-    lowest < highest || throw(ArgumentError("all the samples of $name have the same value"))
+    lowest < highest || throw(ArgumentError("all the values are the same"))
     edges = range(lowest, highest + 1e-9 * (highest - lowest); length = nbins + 1)
 
     histogram = fit(Histogram, values, Weights(weights), edges)
