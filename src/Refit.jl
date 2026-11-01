@@ -32,7 +32,7 @@ export poisson_likelihood, build_likelihood
 export get_max_norm, get_max_activity, get_priors, build_prior_dist
 export read_hist, read_pdf, read_generalised_hist, read_generalised_pdf
 export SimProd, simids, pdf_file, has_pdf, pdf_groups, cut_groups, hpge_groups
-export activity_prior, read_activities, activity_components, background_index
+export activity_prior, read_activities, get_activity, background_index
 export get_best_fit_histograms, get_posterior_bands, write_best_fit, write_parameter_values
 export get_predicted_counts
 export normalised_poisson_residual

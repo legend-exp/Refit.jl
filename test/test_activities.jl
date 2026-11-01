@@ -1,6 +1,5 @@
 using Distributions
 using IntervalSets
-using LegendHDF5IO
 using Refit
 using StatsBase
 using Test
@@ -90,7 +89,7 @@ end
     end
 end
 
-@testset "activity_components and background_index" begin
+@testset "get_activity and background_index" begin
     # flat spectra: 1e-3 counts per keV and per simulated primary
     flat = Histogram(0.0:1.0:4000.0, fill(1e-3, 4000))
     double = Histogram(0.0:1.0:4000.0, fill(2e-3, 4000))
@@ -104,15 +103,19 @@ end
             Dict(:reflector_Pb214 => activity_prior(; val = 6u"μBq", unc = 3u"μBq")),
     )
 
-    # one source for each component and simid, the same spectrum for both parts
-    components, priors = activity_components(pdfs, activities)
-    names =
-        [:clamp_ultem_clamps_Pb214, :clamp_bronze_clamps_Pb214, :reflector_reflector_Pb214]
-    @test Set(keys(components)) == Set(names) == Set(keys(priors))
-    @test components[:clamp_ultem_clamps_Pb214] === pdfs[:clamps_Pb214]
-    @test components[:clamp_bronze_clamps_Pb214] === pdfs[:clamps_Pb214]
-    @test priors[:clamp_ultem_clamps_Pb214] == activities[:clamp_ultem][:clamps_Pb214]
-    @test_throws ArgumentError activity_components(Dict(:clamps_Pb214 => flat), activities)
+    # the prior of a simid listed by one component; none, or two that are summed, are errors
+    @test get_activity(activities, :reflector_Pb214) ==
+          activities[:reflector][:reflector_Pb214]
+    @test_throws ArgumentError get_activity(activities, :fibers_Pb214)
+    @test_throws ArgumentError get_activity(activities, :clamps_Pb214)
+
+    # one source for each part of the clamp, with the same spectrum
+    components = Dict(
+        :clamp_ultem_clamps_Pb214 => pdfs[:clamps_Pb214],
+        :clamp_bronze_clamps_Pb214 => pdfs[:clamps_Pb214],
+        :reflector_reflector_Pb214 => pdfs[:reflector_Pb214],
+    )
+    names = collect(keys(components))
 
     # one sample: the activities in µBq. A flat spectrum gives the same index in any
     # window: 1e-6 * a * 1e-3 counts per second and per keV, for the mass
@@ -243,15 +246,6 @@ end
             pdf: \$_/generated/tier/pdf
         """,
     )
-    pdf_dir = mkpath(joinpath(dir, "generated", "tier", "pdf"))
-    for (simid, n_prim) in ("clamps_Pb214" => 10, "reflector_Pb214" => 100)
-        lh5open(joinpath(pdf_dir, "l1000test-$simid-tier_pdf.lh5"), "w") do f
-            for cut in ("is_ss_aoe", "is_low_aoe")
-                f["pdf/mul1/$cut/all"] = Histogram(0.0:1.0:4.0, [1.0, 2.0, 3.0, 4.0])
-            end
-            f["nr_sim_events"] = n_prim
-        end
-    end
     config_dir =
         mkpath(joinpath(dir, "inputs", "simprod", "config", "bkgmodel", "l1000test"))
     write(
@@ -271,16 +265,5 @@ end
     prod = SimProd(dir)
     activities = read_activities(prod)
     @test activities[:clamp][:clamps_Pb214] == truncated(Normal(20, 2); lower = 0)
-
-    components, priors = activity_components(prod, activities; groups = :is_ss_aoe)
-    @test Set(keys(components)) == Set([:clamp_clamps_Pb214, :reflector_reflector_Pb214])
-    @test components[:clamp_clamps_Pb214].weights ≈ [1, 2, 3, 4] ./ 10
-    @test components[:reflector_reflector_Pb214].weights ≈ [1, 2, 3, 4] ./ 100
-    @test components[:clamp_clamps_Pb214].weights ≈
-          activity_components(prod, activities; groups = :mul1)[1][:clamp_clamps_Pb214].weights ./
-          2
-
-    activities[:fibers] =
-        Dict(:fibers_Pb214 => activity_prior(; val = 1u"μBq", unc = 1u"μBq"))
-    @test_throws ArgumentError activity_components(prod, activities)
+    @test get_activity(activities, :reflector_Pb214) == truncated(Normal(6, 3); lower = 0)
 end

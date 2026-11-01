@@ -94,44 +94,20 @@ function read_activities(prod::SimProd; unit::Unitful.Units = u"μBq")
 end
 
 """
-    activity_components(pdfs, activities)
-    activity_components(prod::SimProd, activities; groups = :mul1, hpge_group = :all)
+    get_activity(activities, simid)
 
-The sources of [`build_forward_model`](@ref) and their priors for
-[`build_prior_dist`](@ref), from the `activities` of [`read_activities`](@ref). There is
-one source for each component and simid, named `<component>_<simid>`, with the spectrum
-of the simid in `pdfs` and the distribution of the activity of the component. A simid
-listed under several components, for example a simulation that stands for parts of
-different materials, gives one source for each component.
-
-`pdfs` is a `Dict(simid => Histogram)`, for example from [`read_pdf`](@ref). With `prod`,
-the spectra of the simids of `activities` are read with `groups` and `hpge_group`, see
-[`read_pdf`](@ref).
-
-Returns `(components, priors)`, two dictionaries with the same keys.
+The prior of the activity of the simulation `simid` in the `activities` of
+[`read_activities`](@ref), for example to replace the range of [`get_priors`](@ref) for
+the parameter of its spectrum. It is an error if no component lists `simid`, or if
+several do: the activity of the simid is then their sum, which is left to the caller.
 """
-function activity_components(pdfs::AbstractDict{Symbol}, activities::AbstractDict{Symbol})
-    sources = [
-        (Symbol(component, "_", simid), simid, prior) for (component, a) in activities
-        for (simid, prior) in a
-    ]
-    missing_pdfs = setdiff(unique(s for (_, s, _) in sources), keys(pdfs))
-    isempty(missing_pdfs) ||
-        throw(ArgumentError("no spectrum for the simids $(join(missing_pdfs, ", "))"))
-    components = Dict(name => pdfs[simid] for (name, simid, _) in sources)
-    priors = Dict(name => prior for (name, _, prior) in sources)
-    return (; components, priors)
-end
-
-function activity_components(
-    prod::SimProd,
-    activities::AbstractDict{Symbol};
-    groups::Union{Symbol,AbstractVector} = :mul1,
-    hpge_group::Union{Symbol,AbstractVector} = :all,
-)
-    ids = unique(s for a in values(activities) for s in keys(a))
-    missing_ids = filter(s -> !has_pdf(prod, s), ids)
-    isempty(missing_ids) ||
-        throw(ArgumentError("$(prod.path) has no simids $(join(missing_ids, ", "))"))
-    return activity_components(read_pdf(prod, ids; groups, hpge_group), activities)
+function get_activity(activities::AbstractDict{Symbol}, simid::Symbol)
+    found = [component for (component, a) in activities if haskey(a, simid)]
+    isempty(found) && throw(ArgumentError("no component has an activity for $simid"))
+    length(found) == 1 || throw(
+        ArgumentError(
+            "several components have an activity for $simid: $(join(found, ", "))",
+        ),
+    )
+    return activities[only(found)][simid]
 end

@@ -46,15 +46,20 @@ activities[:two_nu_bb] = Dict(:hpge_icpc_bulk_2vbb => activity_prior(; val = a, 
 
 ## Sources of the forward model
 
-[`activity_components`](@ref) makes one source of the forward model for each component
-and simid, named `<component>_<simid>`, with the spectrum of the simid and the prior of
-the activity of the component. A simulation that stands for parts of different materials
-gives one source for each part. With the production cycle, the spectra are read with the
-event selection of [`read_pdf`](@ref):
+The sources of the forward model are the spectra of the simulations, read from the
+production cycle with the event selection of [`read_pdf`](@ref), and its parameters are
+their activities. [`get_activity`](@ref) gives the prior of the activity of a simulation
+from the file:
 
 ```julia
-components, priors = activity_components(prod, activities; groups = [:is_ss_aoe, :not_spms_coincident])
+simids = [:fibers_Pb214_to_Po214, :fibers_Pb212_to_Pb208, :hpge_icpc_bulk_2vbb]
+pdfs = read_pdf(prod, simids; groups = [:is_ss_aoe, :not_spms_coincident])
+priors = Dict(s => get_activity(activities, s) for s in simids)
 ```
+
+The activity of a simulation that stands for several components, for example for parts of
+different materials, is the sum of their activities. `get_activity` gives an error for
+it, and the caller decides how to build its prior.
 
 `norm` turns an activity in µBq into the number of decays in the live time. With the
 live time as a quantity with units, it is the number µBq × live time:
@@ -62,7 +67,7 @@ live time as a quantity with units, it is the number µBq × live time:
 ```julia
 livetime = 10u"yr"
 norm = ustrip(NoUnits, u"μBq" * livetime)
-model, bin_edges = build_forward_model(components; norm, e_low = 500, e_high = 3000, binning = 10)
+model, bin_edges = build_forward_model(pdfs; norm, e_low = 500, e_high = 3000, binning = 10)
 ```
 
 The activities are drawn from their priors. The samples have the format of those of
@@ -100,7 +105,7 @@ part of the window is enough:
 
 ```julia
 window_bins = [[1930, 2099], [2109, 2114], [2124, 2190]]
-model_qbb, bin_edges_qbb = build_forward_model(components; norm, binning = window_bins)
+model_qbb, bin_edges_qbb = build_forward_model(pdfs; norm, binning = window_bins)
 bi = background_index(samples, model_qbb, bin_edges_qbb; livetime, mass = 1000u"kg")
 quantile(bi[:total], 0.9)  # upper limit at 90% probability
 ```
