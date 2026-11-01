@@ -434,8 +434,8 @@ end
     bands = plot_spectrum!(ax, samples, model, bin_edges; n = 500)
     @test collect(keys(bands)) == [:total, :a, :b]
     lines = filter(p -> p isa CairoMakie.Lines, ax.scene.plots)
-    @test [l.label[] for l in lines] == ["total", "a", "b"]
-    @test CairoMakie.to_color(lines[1].color[]) == CairoMakie.to_color(:black)
+    @test [l.label[] for l in lines] == ["a", "b", "total"]
+    @test CairoMakie.to_color(lines[end].color[]) == CairoMakie.to_color(:black)
     @test length(ax.scene.plots) == 6
     # the x axis goes from the first to the last bin edge
     @test ax.finallimits[].origin[1] ≈ 100

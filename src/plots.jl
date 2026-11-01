@@ -275,9 +275,16 @@ function plot_spectrum!(
     n::Integer = 10_000,
 )
     bands = get_posterior_bands(samples, model, bin_edges; groups, n)
-    for (name, band) in bands
+    # the total last, on top of the sources
+    for name in [filter(!=(:total), collect(keys(bands))); :total]
         color = name == :total ? (; color = :black) : (;)
-        plot_hist!(ax, band.median; band, label = string(name), color...)
+        plot_hist!(
+            ax,
+            bands[name].median;
+            band = bands[name],
+            label = string(name),
+            color...,
+        )
     end
     CairoMakie.xlims!(ax, minimum(bin_edges.low), maximum(bin_edges.high))
     CairoMakie.ylims!(ax; low = ax.yscale[] === log10 ? 1e-2 : 0.0)
