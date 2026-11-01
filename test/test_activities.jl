@@ -249,7 +249,7 @@ end
     config_dir =
         mkpath(joinpath(dir, "inputs", "simprod", "config", "bkgmodel", "l1000test"))
     write(
-        joinpath(config_dir, "components.yaml"),
+        joinpath(config_dir, "activities.yaml"),
         """
         clamp:
           mass_in_kg: 2

@@ -38,7 +38,7 @@ end
     read_activities(prod::SimProd; unit = u"μBq")
 
 Read the activities of the components of an experiment from the YAML file `file`, or from
-`bkgmodel/<experiment>/components.yaml` in the configuration directory of the production
+`bkgmodel/<experiment>/activities.yaml` in the configuration directory of the production
 cycle `prod`.
 
 The file maps the name of each component to its quantity and to the activity of each
@@ -88,7 +88,7 @@ function read_activities(prod::SimProd; unit::Unitful.Units = u"μBq")
     config = YAML.load_file(joinpath(prod.path, "simflow-config.yaml"))
     config_dir = _cycle_path(prod.path, config["paths"]["config"])
     return read_activities(
-        joinpath(config_dir, "bkgmodel", prod.experiment, "components.yaml");
+        joinpath(config_dir, "bkgmodel", prod.experiment, "activities.yaml");
         unit,
     )
 end
