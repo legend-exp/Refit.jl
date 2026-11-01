@@ -6,7 +6,8 @@ from the measured spectrum.
 !!! note
     These are not real priors. They come from the data and only limit the range of
     the fit to improve convergence. Use external knowledge, for example a screening
-    measurement, for informative priors.
+    measurement, for informative priors (see
+    [Priors from measured activities](#Priors-from-measured-activities)).
 
 ## The maximum activity
 
@@ -100,6 +101,63 @@ using Distributions
 priors[:K40_hpge_bulk] = truncated(Normal(50.0, 10.0), 0.0, 1000.0)
 priors
 ```
+
+## Priors from measured activities
+
+A measured activity, for example from the screening of a material, gives an informative
+prior. `activity_prior` makes a Gaussian cut at 0 from a value and its uncertainty, or a
+half-normal distribution from an upper limit, whose quantile at the confidence level is
+the limit. The activities have units (from Unitful.jl). The distribution is of the
+activity as a number in `unit`, which must be the unit of the activities of the forward
+model, here mBq:
+
+```@example demo
+using Unitful
+
+priors[:K40_hpge_bulk] = activity_prior(; val = 42u"mBq", unc = 5u"mBq", unit = u"mBq")
+activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq")  # an upper limit at 90% CL
+```
+
+The activities of the components of an experiment can be listed in a YAML file. Each
+component has a quantity, its mass in kg, its area in m² or its number of pieces, and the
+activity per unit of quantity of each simulation (`simid`) of its decays, in µBq per kg,
+per m² or per piece. An activity is a measured value with its uncertainty, or an upper
+limit with its confidence level:
+
+```yaml
+hpge_detectors:
+  mass_in_kg: 20
+  specific_activity_in_uBq_per_kg:
+    K40_hpge_bulk: { val: 2100, unc: 250 }
+    Pb212_to_Pb208_hpge_bulk: { limit: 750, cl: 0.9 }
+```
+
+```@setup demo
+write(
+    "activities.yaml",
+    """
+    hpge_detectors:
+      mass_in_kg: 20
+      specific_activity_in_uBq_per_kg:
+        K40_hpge_bulk: { val: 2100, unc: 250 }
+        Pb212_to_Pb208_hpge_bulk: { limit: 750, cl: 0.9 }
+    """,
+)
+```
+
+`read_activities` reads the file and gives the prior of the activity of each component
+and simulation, the quantity times the activity per unit. `get_activity` takes the prior
+of one simulation from it:
+
+```@example demo
+activities = read_activities("activities.yaml"; unit = u"mBq")
+priors[:Pb212_to_Pb208_hpge_bulk] = get_activity(activities, :Pb212_to_Pb208_hpge_bulk)
+```
+
+A production cycle of legend-simflow has this file in its configuration, and
+`read_activities(SimProd(path))` reads it. A simulation that stands for several
+components, for example parts of different materials, has the sum of their activities:
+`get_activity` then gives an error, and the prior is left to the user.
 
 ## Components with an activity or analytic function
 

@@ -184,6 +184,21 @@ CairoMakie.axislegend(ax; nbanks = 3)
 fig
 ```
 
+### Prediction without data
+
+`plot_spectrum!(ax, samples, model, bin_edges; groups)` draws the prediction of the
+samples alone: the median of the predicted counts in each bin as a line, with the band of
+the central 68% interval, for the total in black and for each source or group. With
+samples drawn from the prior, it is the spectrum expected before a fit.
+`fit_axes(; residuals = false)` makes a figure without the panel of the residuals:
+
+```@example demo
+fig, ax, _ = fit_axes(; scale = :log, residuals = false, size = (800, 450))
+plot_spectrum!(ax, samples, model, bin_edges; groups)
+CairoMakie.Legend(fig[1, 2], ax)
+fig
+```
+
 ## Posterior distributions
 
 `plot_posterior!(ax, samples, name)` draws the marginal posterior of the parameter `name` on
@@ -211,6 +226,32 @@ ax = CairoMakie.Axis(
 interval =
     plot_posterior!(ax, samples, :K40_hpge_bulk; best = 40, truth = 42, bandcolor = :lightblue)
 CairoMakie.axislegend(ax)
+fig
+```
+
+`plot_posterior!(ax, values)` draws the posterior of any quantity from its value in each
+sample, for example the counts of [`get_predicted_counts`](@ref) (see
+[Running the fit](fit.md)). `plot_posteriors!(ax, posteriors)` draws the posteriors of a
+quantity for several sources or groups, one violin per row, from an ordered dictionary
+`name => values`. The violins show the logarithm of the values, which often span orders
+of magnitude, unless `log = false`. `labels` and `color` set the text and the color of
+each row. Here for the counts predicted between 1400 and 1500 keV by made-up samples:
+
+```@example demo
+using IntervalSets
+
+samples = (
+    v = [map(a -> a * (1 + 0.1 * randn()), true_activities) for _ in 1:20_000],
+    weight = ones(Int, 20_000),
+)
+counts = get_predicted_counts(samples, model, bin_edges, 1400 .. 1500)
+
+labels = Dict(:K40_hpge_bulk => "⁴⁰K", :Pb212_to_Pb208_hpge_bulk => "²¹²Pb", :two_vbb_hpge_bulk => "2νββ")
+fig = CairoMakie.Figure(size = (800, 700))
+ax = CairoMakie.Axis(fig[1, 1]; xlabel = "Counts in 1400–1500 keV")
+plot_posteriors!(ax, counts; labels)
+ax_total = CairoMakie.Axis(fig[2, 1]; xlabel = "Total counts in 1400–1500 keV", ylabel = "Probability density")
+plot_posterior!(ax_total, counts[:total])
 fig
 ```
 
