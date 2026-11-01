@@ -142,7 +142,7 @@ With `residuals = false`, [`fit_axes`](@ref) makes a figure without the panel of
 residuals, which needs data:
 
 ```julia
-fig, ax, _ = fit_axes(; residuals = false)
+fig, ax, _ = fit_axes(; scale = :log, residuals = false)
 plot_spectrum!(ax, samples, model, bin_edges; groups = ["²³⁸U" => r"Pb214", "²³²Th" => r"Pb212"])
 CairoMakie.axislegend(ax)
 ```

@@ -141,7 +141,7 @@ The prediction of the best fit, and of each component, compared with the data:
 data_hist = counts_to_histogram(counts, bin_edges)
 hists = get_best_fit_histograms(best, model, bin_edges)
 
-fig, ax, ax_res = fit_axes(; scale = :linear, ylabel = "Counts per 0.5 keV")
+fig, ax, ax_res = fit_axes(; ylabel = "Counts per 0.5 keV", size = (1300, 600), grid = true)
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
 plot_hist!(ax, hists[:background]; label = "Background")
 plot_hist!(ax, hists[:peak]; label = "Peak")

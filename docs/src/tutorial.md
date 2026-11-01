@@ -323,7 +323,7 @@ groups = [
 grouped = group_histograms(hists, groups)
 bands = get_posterior_bands(samples, model, bin_edges; groups, contains = best)
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV")
+fig, ax, ax_res = fit_axes(; scale = :log, ylabel = "Counts per keV", size = (1300, 600), grid = true)
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")

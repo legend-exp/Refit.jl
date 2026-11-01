@@ -237,8 +237,10 @@ end
     @test fig isa CairoMakie.Figure
     @test ax isa CairoMakie.Axis
     @test ax_res isa CairoMakie.Axis
-    @test ax.yscale[] === log10
+    @test ax.yscale[] === identity
     @test ax.title[] == "test"
+    @test !ax.xgridvisible[] && !ax_res.ygridvisible[]
+    @test fit_axes(; grid = true)[2].ygridvisible[]
 
     # the size of the figure
     fig_big, _, _ = fit_axes(; size = (800, 700))
@@ -250,8 +252,8 @@ end
     @test plot_hist!(ax_colors, h).color[] == CairoMakie.to_color(:red)
     @test plot_hist!(ax_colors, h).color[] == CairoMakie.to_color(:blue)
 
-    _, ax_linear, _ = fit_axes(; scale = :linear)
-    @test ax_linear.yscale[] === identity
+    _, ax_log, _ = fit_axes(; scale = :log)
+    @test ax_log.yscale[] === log10
     @test_throws ArgumentError fit_axes(; scale = :sqrt)
 
     # without data, no axis for the residuals
@@ -435,6 +437,11 @@ end
     @test [l.label[] for l in lines] == ["total", "a", "b"]
     @test CairoMakie.to_color(lines[1].color[]) == CairoMakie.to_color(:black)
     @test length(ax.scene.plots) == 6
+    # the x axis goes from the first to the last bin edge
+    @test ax.finallimits[].origin[1] ≈ 100
+    @test ax.finallimits[].widths[1] ≈ 800
+    # and the y axis from 0
+    @test ax.finallimits[].origin[2] ≈ 0 atol = 1e-12
 
     grouped =
         plot_spectrum!(ax, samples, model, bin_edges; n = 100, groups = ["all" => r"."])

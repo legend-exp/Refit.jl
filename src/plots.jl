@@ -279,6 +279,8 @@ function plot_spectrum!(
         color = name == :total ? (; color = :black) : (;)
         plot_hist!(ax, band.median; band, label = string(name), color...)
     end
+    CairoMakie.xlims!(ax, minimum(bin_edges.low), maximum(bin_edges.high))
+    CairoMakie.ylims!(ax; low = ax.yscale[] === log10 ? 1e-2 : 0.0)
     return bands
 end
 
@@ -371,43 +373,53 @@ function plot_posteriors!(
 end
 
 """
-    fit_axes(; scale = :log, title = "", ylabel = "Counts", size = (1300, 600), colors,
-             residuals = true)
+    fit_axes(; scale = :linear, title = "", ylabel = "Counts", size = nothing, colors,
+             grid = false, residuals = true)
 
 Make a CairoMakie figure for the plot of a fit: an axis for the spectra with an axis for
 the residuals below it. The energy axes are linked and only the lower one has labels.
 Returns `(fig, ax, ax_residuals)`. With `residuals = false`, for spectra without data,
 there is only the axis for the spectra and `ax_residuals` is `nothing`.
 
-`size` is the size of the figure in pixels. With `scale = :log` the y axis of `ax` is
-logarithmic, with `:linear` it is linear. The lines drawn by [`plot_hist!`](@ref)
-without a `color` take the next of `colors`, a vector of colors that repeats after the
-last one. The default is a color-blind friendly palette of 7 colors.
+`size` is the size of the figure in pixels, by default that of CairoMakie. With
+`scale = :log` the y axis of `ax` is logarithmic, with `:linear` it is linear. The lines
+drawn by [`plot_hist!`](@ref) without a `color` take the next of `colors`, a vector of
+colors that repeats after the last one. The default is a color-blind friendly palette of
+7 colors. With `grid = true` the axes have grid lines.
 
 Draw on the axes with [`plot_hist!`](@ref), [`mark_blinded!`](@ref) and
 [`plot_residuals!`](@ref), and set the limits, for example with
 `CairoMakie.xlims!(ax, 100, 4000)`.
 """
 function fit_axes(;
-    scale::Symbol = :log,
+    scale::Symbol = :linear,
     title::AbstractString = "",
     ylabel::AbstractString = "Counts",
-    size::Tuple{Integer,Integer} = (1300, 600),
+    size::Union{Nothing,Tuple{Integer,Integer}} = nothing,
     colors::AbstractVector = CairoMakie.Makie.wong_colors(),
+    grid::Bool = false,
     residuals::Bool = true,
 )
     scale in (:log, :linear) || throw(ArgumentError("scale must be :log or :linear"))
 
-    fig = CairoMakie.Figure(; size)
+    fig = isnothing(size) ? CairoMakie.Figure() : CairoMakie.Figure(; size)
     ax = CairoMakie.Axis(
         fig[1, 1];
         ylabel,
         yscale = scale == :log ? log10 : identity,
         title,
         palette = (color = colors,),
+        xgridvisible = grid,
+        ygridvisible = grid,
     )
     residuals || (ax.xlabel = "Energy [keV]"; return fig, ax, nothing)
-    ax_res = CairoMakie.Axis(fig[2, 1]; ylabel = "Residual [σ]", xlabel = "Energy [keV]")
+    ax_res = CairoMakie.Axis(
+        fig[2, 1];
+        ylabel = "Residual [σ]",
+        xlabel = "Energy [keV]",
+        xgridvisible = grid,
+        ygridvisible = grid,
+    )
 
     CairoMakie.rowsize!(fig.layout, 1, CairoMakie.Relative(0.7))
     CairoMakie.rowgap!(fig.layout, 12)
