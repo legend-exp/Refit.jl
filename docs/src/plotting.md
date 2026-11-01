@@ -102,7 +102,7 @@ CairoMakie.update_theme!(
     Legend = (labelsize = 22,),
 )
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV", size = (1300, 800))
+fig, ax, ax_res = fit_axes(; scale = :log, ylabel = "Counts per keV", size = (1300, 800), grid = true)
 
 # the data, the groups of sources (with the colors of the palette) and the best fit
 plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
@@ -160,7 +160,7 @@ samples = (
 groups = ["⁴⁰K" => r"K40", "²¹²Pb" => [:Pb212_to_Pb208_hpge_bulk], "other" => :rest]
 bands = get_posterior_bands(samples, model, bin_edges; groups)
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per keV", size = (1300, 800))
+fig, ax, ax_res = fit_axes(; scale = :log, ylabel = "Counts per keV", size = (1300, 800), grid = true)
 plot_hist!(ax, data_hist; filled = true, color = :lightblue, label = "Data")
 for (label, h) in grouped
     label == :total || plot_hist!(ax, h; band = bands[label], label = string(label))

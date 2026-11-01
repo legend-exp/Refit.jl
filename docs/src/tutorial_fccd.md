@@ -189,7 +189,7 @@ data:
 data_hist = counts_to_histogram(counts, bin_edges)
 total = counts_to_histogram(model(best), bin_edges)
 
-fig, ax, ax_res = fit_axes(; ylabel = "Counts per 5 keV")
+fig, ax, ax_res = fit_axes(; scale = :log, ylabel = "Counts per 5 keV", size = (1300, 600), grid = true)
 plot_hist!(ax, data_hist; filled = true, alpha = 0.6, color = :lightblue, label = "Data")
 plot_hist!(ax, counts_to_histogram(line(best), bin_edges); label = "60 keV γ line")
 plot_hist!(ax, counts_to_histogram(background(best), bin_edges); label = "Background")
