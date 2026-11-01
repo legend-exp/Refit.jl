@@ -307,6 +307,20 @@ end
         band = (low = Histogram(0.0:1.0:2.0, [1.0, 2.0]), high = total),
     )
 
+    # the band goes half the line width, here 1 pixel, beyond the first and last edge
+    fig_band = CairoMakie.Figure(; size = (400, 300))
+    ax_band = CairoMakie.Axis(fig_band[1, 1])
+    h = Histogram(0.0:1.0:2.0, [5.0, 5.0])
+    plot_hist!(ax_band, h; band = (low = h, high = h))
+    CairoMakie.limits!(ax_band, 0, 2, 0, 10)
+    x_band = first.(ax_band.scene.plots[end][1][])
+    px = ax_band.scene.viewport[].widths[1] / 2  # pixels per unit of x
+    @test collect(extrema(x_band)) ≈ [-1 / px, 2 + 1 / px]
+
+    # the steps move by `shift` into the lower bin
+    @test first(Refit._steps(Histogram((0.0:1.0:2.0,), [3.0, 4.0]), 0.0, 0.1)) ≈
+          [-0.1, -0.1, 0.9, 0.9, 2.1, 2.1]
+
     # the step line goes up at the first edge and down at the last one
     x, y = Refit._steps(Histogram((0.0:1.0:2.0,), [3.0, 4.0]), 0.0)
     @test x == [0, 0, 1, 1, 2, 2]

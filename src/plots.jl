@@ -2,16 +2,11 @@ import CairoMakie
 
 # step coordinates of a histogram: the weight of each bin is repeated at both edges,
 # and the line starts and ends at `floor_value`, so that the first and the last bin
-# are closed
-function _steps(h::Histogram{<:Real,1}, floor_value)
-    edges = collect(h.edges[1])
-    x = repeat(edges; inner = 2)
-    y = [
-        floor_value;
-        repeat(max.(Float64.(h.weights), floor_value); inner = 2);
-        floor_value
-    ]
-    return x, y
+# are closed. Each step moves by `shift` into its lower bin (or out of it, if negative)
+function _steps(h::Histogram{<:Real,1}, floor_value, shift = 0)
+    y = [floor_value; max.(Float64.(h.weights), floor_value); floor_value]
+    x = repeat(h.edges[1] .- shift .* sign.(diff(y)); inner = 2)
+    return x, [floor_value; repeat(y[2:(end-1)]; inner = 2); floor_value]
 end
 
 # the lowest value that is drawn: a logarithmic axis cannot show 0
@@ -61,13 +56,17 @@ function plot_hist!(
         low.edges == h.edges == high.edges ||
             throw(ArgumentError("the band and the histogram differ in binning"))
         color = isnothing(bandcolor) ? (plot.color[], 0.3) : bandcolor
-        CairoMakie.band!(
-            ax,
-            x,
-            last(_steps(per_width(low), floor_value)),
-            last(_steps(per_width(high), floor_value));
-            color,
-        )
+        # the line sticks out of the bin edges by half its width: the steps of the band
+        # move by as much outwards (on a linear x axis), and at most by half a bin
+        polygon = CairoMakie.lift(ax.finallimits, ax.scene.viewport) do limits, viewport
+            x_per_pixel = limits.widths[1] / viewport.widths[1]
+            shift =
+                filled ? 0.0 : min(plot.linewidth[] / 2 * x_per_pixel, minimum(widths) / 2)
+            lower = CairoMakie.Point2.(_steps(per_width(low), floor_value, -shift)...)
+            upper = CairoMakie.Point2.(_steps(per_width(high), floor_value, shift)...)
+            return [lower; reverse(upper)]
+        end
+        CairoMakie.poly!(ax, polygon; color)
     end
     return plot
 end
