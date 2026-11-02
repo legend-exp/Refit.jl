@@ -266,14 +266,21 @@ end
 
 """
     plot_spectrum!(ax, samples, model, bin_edges; groups = nothing, n = 10_000,
-                   quantiles = (0.16, 0.84), contains = nothing, smallest = nothing)
+                   quantiles = (0.16, 0.84), contains = nothing, smallest = nothing,
+                   upper_limits = true)
 
 Draw the prediction of the model for the `samples` on the CairoMakie axis `ax`, as in
 [`get_posterior_bands`](@ref): for the total and for each source, or each group of
 sources with `groups` (see [`group_histograms`](@ref)), the median of the predicted
 counts in each bin as a line, with the band of the central 68% interval, or of the
-interval chosen with `quantiles`, `contains` or `smallest`. The total is black. The lines have labels, so a legend can be added with `CairoMakie.axislegend(ax)`.
-Returns the bands.
+interval chosen with `quantiles`, `contains` or `smallest`. The total is black, the
+others take the colors of the palette of the axis in turn. The lines and bands have
+labels, so a legend can be added with `CairoMakie.axislegend(ax)`. Returns the bands.
+
+A source or group whose total predicted counts are an upper limit, as in
+[`plot_posteriors!`](@ref), for example an activity whose prior is an upper limit, is
+drawn without a line, as a band from 0 up to its smallest 90% interval in each bin.
+`upper_limits = false` draws it as the others.
 """
 function plot_spectrum!(
     ax,
@@ -285,8 +292,9 @@ function plot_spectrum!(
     quantiles::Union{Nothing,Tuple{Real,Real}} = nothing,
     contains::Union{Nothing,NamedTuple} = nothing,
     smallest::Union{Nothing,Real} = nothing,
+    upper_limits::Bool = true,
 )
-    bands = get_posterior_bands(
+    bands, predictions, edges = _posterior_bands(
         samples,
         model,
         bin_edges;
@@ -296,16 +304,38 @@ function plot_spectrum!(
         contains,
         smallest,
     )
+    # the sources whose total counts are an upper limit, with their smallest 90% interval
+    limits = filter(collect(keys(predictions))) do name
+        upper_limits && name != :total && _is_upper_limit(vec(sum(predictions[name]; dims = 2)))
+    end
+    limit_bands =
+        _bands(filter(p -> first(p) in limits, predictions), edges; smallest = 0.9)
+
+    # the colors of the palette in turn: a band without a line does not take the next one
+    theme = ax.scene.theme
+    palette =
+        haskey(theme, :palette) ? theme[:palette][:color][] : CairoMakie.Makie.wong_colors()
+    sources = filter(!=(:total), collect(keys(bands)))
     # the total last, on top of the sources
-    for name in [filter(!=(:total), collect(keys(bands))); :total]
-        color = name == :total ? (; color = :black) : (;)
-        plot_hist!(
-            ax,
-            bands[name].median;
-            band = bands[name],
-            label = string(name),
-            color...,
-        )
+    for (i, name) in enumerate([sources; :total])
+        color = name == :total ? :black : palette[mod1(i, length(palette))]
+        if name in limits
+            plot_hist!(
+                ax,
+                limit_bands[name].high;
+                filled = true,
+                color = (CairoMakie.to_color(color), 0.3),
+                label = string(name),
+            )
+        else
+            plot_hist!(
+                ax,
+                bands[name].median;
+                band = bands[name],
+                label = string(name),
+                color,
+            )
+        end
     end
     CairoMakie.xlims!(ax, minimum(bin_edges.low), maximum(bin_edges.high))
     CairoMakie.ylims!(ax; low = ax.yscale[] === log10 ? 1e-2 : 0.0)

@@ -474,6 +474,22 @@ end
     grouped =
         plot_spectrum!(ax, samples, model, bin_edges; n = 100, groups = ["all" => r"."])
     @test collect(keys(grouped)) == [:total, :all]
+
+    # a source whose activity is an upper limit is a band from 0, without a line, and as
+    # the others with upper_limits = false
+    Random.seed!(5)
+    with_limit = (
+        v = [(a = 5.0 + randn(), b = rand(half_normal_limit(4, 0.9))) for _ = 1:2000],
+        weight = ones(2000),
+    )
+    lines_of(ax) = [p.label[] for p in ax.scene.plots if p isa CairoMakie.Lines]
+    _, ax_limit, _ = fit_axes(; residuals = false)
+    plot_spectrum!(ax_limit, with_limit, model, bin_edges; n = 1000)
+    @test lines_of(ax_limit) == ["a", "total"]
+    @test any(p -> p isa CairoMakie.Band && p.label[] == "b", ax_limit.scene.plots)
+    _, ax_all, _ = fit_axes(; residuals = false)
+    plot_spectrum!(ax_all, with_limit, model, bin_edges; n = 1000, upper_limits = false)
+    @test lines_of(ax_all) == ["a", "b", "total"]
 end
 
 @testset "plot_posteriors!" begin

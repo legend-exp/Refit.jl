@@ -63,6 +63,18 @@ function get_posterior_bands(
     samples,
     model::Function,
     bin_edges::NamedTuple{(:low, :high)};
+    kwargs...,
+)
+    return first(_posterior_bands(samples, model, bin_edges; kwargs...))
+end
+
+# The bands of get_posterior_bands, with the predicted counts they come from: one matrix
+# for each source or group, one row per drawn sample and one column per bin, and the bin
+# edges
+function _posterior_bands(
+    samples,
+    model::Function,
+    bin_edges::NamedTuple{(:low, :high)};
     n::Integer = 10_000,
     groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
     quantiles::Union{Nothing,Tuple{Real,Real}} = nothing,
@@ -80,8 +92,6 @@ function get_posterior_bands(
         throw(ArgumentError("quantiles must be increasing and between 0 and 1"))
 
     draws = _draws(samples, n)
-
-    # the predicted counts of each source: one row per drawn sample, one column per bin
     predictions = OrderedDict{Symbol,Matrix{Float64}}()
     edges = nothing
     for (row, i) in enumerate(draws)
@@ -94,11 +104,24 @@ function get_posterior_bands(
         edges = first(values(hists)).edges
     end
 
+    fixed = nothing
     if !isnothing(contains)
         fixed = get_best_fit_histograms(contains, model, bin_edges)
         isnothing(groups) || (fixed = group_histograms(fixed, groups))
     end
+    bands = _bands(predictions, edges; quantiles, fixed, smallest)
+    return bands, predictions, edges
+end
 
+# The bands of the predicted counts of each source or group, see get_posterior_bands.
+# `fixed` are the histograms that the bands contain, or `nothing`
+function _bands(
+    predictions,
+    edges;
+    quantiles = (0.16, 0.84),
+    fixed = nothing,
+    smallest = nothing,
+)
     bands = OrderedDict{
         Symbol,
         NamedTuple{(:low, :high, :median),NTuple{3,Histogram{Float64,1}}},
@@ -111,7 +134,7 @@ function get_posterior_bands(
                 column in eachcol(counts)
             ]
             low, high = first.(limits), last.(limits)
-        elseif isnothing(contains)
+        elseif isnothing(fixed)
             low, high =
                 ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
         else
