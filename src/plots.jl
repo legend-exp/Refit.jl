@@ -127,46 +127,6 @@ function plot_residuals!(
     )
 end
 
-# Whether the density of the values `x` at 0, or at their lowest value, is at least 70% of
-# their highest density. The density of a window with 10% of the values is 0.1 over its
-# width: the lowest window is compared with the shortest one, at the highest density
-function _is_upper_limit(x)
-    low, high = _smallest_interval(x, ones(length(x)), 0.1)
-    return quantile(x, 0.1) - minimum(x) < (high - low) / 0.7
-end
-
-# The shortest interval that contains the fraction `level` of the weights of the samples `x`.
-function _smallest_interval(
-    x::AbstractVector{<:Real},
-    weights::AbstractVector{<:Real},
-    level::Real,
-)
-    length(x) == length(weights) ||
-        throw(DimensionMismatch("samples and weights differ in length"))
-    order = sortperm(x)
-    sorted = x[order]
-    cumulative = cumsum(Float64.(weights[order]))
-    target = level * last(cumulative)
-
-    best_width = Inf
-    best = (first(sorted), last(sorted))
-    stop = 1
-    for start in eachindex(sorted)
-        # the weight in start:stop is cumulative[stop] - cumulative[start - 1]
-        before = start == 1 ? 0.0 : cumulative[start-1]
-        while cumulative[stop] - before < target
-            stop == length(sorted) && return best
-            stop += 1
-        end
-        width = sorted[stop] - sorted[start]
-        if width < best_width
-            best_width = width
-            best = (sorted[start], sorted[stop])
-        end
-    end
-    return best
-end
-
 """
     plot_posterior!(ax, samples, name; level = 0.68, nbins = 50, best = nothing,
                     truth = nothing, kwargs...)
@@ -304,12 +264,15 @@ function plot_spectrum!(
         contains,
         smallest,
     )
-    # the sources whose total counts are an upper limit, with their smallest 90% interval
-    limits = filter(collect(keys(predictions))) do name
-        upper_limits && name != :total && _is_upper_limit(vec(sum(predictions[name]; dims = 2)))
-    end
-    limit_bands =
-        _bands(filter(p -> first(p) in limits, predictions), edges; smallest = 0.9)
+    # the sources whose total counts are an upper limit, and the upper edge of their
+    # smallest 90% interval in each bin
+    limits = Dict(
+        name => Histogram(
+            edges,
+            [last(_smallest_interval(c, 0.9)) for c in eachcol(counts)],
+        ) for (name, counts) in predictions if
+        upper_limits && name != :total && _is_upper_limit(vec(sum(counts; dims = 2)))
+    )
 
     # the colors of the palette in turn: a band without a line does not take the next one
     theme = ax.scene.theme
@@ -319,22 +282,12 @@ function plot_spectrum!(
     # the total last, on top of the sources
     for (i, name) in enumerate([sources; :total])
         color = name == :total ? :black : palette[mod1(i, length(palette))]
-        if name in limits
-            plot_hist!(
-                ax,
-                limit_bands[name].high;
-                filled = true,
-                color = (CairoMakie.to_color(color), 0.3),
-                label = string(name),
-            )
+        label = string(name)
+        if haskey(limits, name)
+            transparent = (CairoMakie.to_color(color), 0.3)
+            plot_hist!(ax, limits[name]; filled = true, color = transparent, label)
         else
-            plot_hist!(
-                ax,
-                bands[name].median;
-                band = bands[name],
-                label = string(name),
-                color,
-            )
+            plot_hist!(ax, bands[name].median; band = bands[name], label, color)
         end
     end
     CairoMakie.xlims!(ax, minimum(bin_edges.low), maximum(bin_edges.high))
