@@ -132,18 +132,11 @@ function read_activities(
     return activities
 end
 
-function read_activities(
-    prod::SimProd;
-    unit::Unitful.Units = u"μBq",
-    limit_prior::Union{Symbol,Function} = :halfnormal,
-)
+function read_activities(prod::SimProd; kwargs...)
     config = YAML.load_file(joinpath(prod.path, "simflow-config.yaml"))
     config_dir = _cycle_path(prod.path, config["paths"]["config"])
-    return read_activities(
-        joinpath(config_dir, "bkgmodel", prod.experiment, "activities.yaml");
-        unit,
-        limit_prior,
-    )
+    file = joinpath(config_dir, "bkgmodel", prod.experiment, "activities.yaml")
+    return read_activities(file; kwargs...)
 end
 
 """

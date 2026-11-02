@@ -115,36 +115,25 @@ end
 
 # The bands of the predicted counts of each source or group, see get_posterior_bands.
 # `fixed` are the histograms that the bands contain, or `nothing`
-function _bands(
-    predictions,
-    edges;
-    quantiles = (0.16, 0.84),
-    fixed = nothing,
-    smallest = nothing,
-)
+function _bands(predictions, edges; quantiles, fixed, smallest)
     bands = OrderedDict{
         Symbol,
         NamedTuple{(:low, :high, :median),NTuple{3,Histogram{Float64,1}}},
     }()
     for (name, counts) in predictions
-        if !isnothing(smallest)
-            # the drawn samples have equal weights
-            limits = [
-                _smallest_interval(column, ones(length(column)), smallest) for
-                column in eachcol(counts)
-            ]
-            low, high = first.(limits), last.(limits)
-        elseif isnothing(fixed)
-            low, high =
-                ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
-        else
-            limits = [
-                _band_containing(column, y, quantiles...) for
-                (column, y) in zip(eachcol(counts), fixed[name].weights)
-            ]
-            low, high = first.(limits), last.(limits)
+        low, high, median = (zeros(size(counts, 2)) for _ = 1:3)
+        for (bin, column) in enumerate(eachcol(counts))
+            # one sort per bin, from which all the quantiles are read
+            sorted = sort(column)
+            low[bin], high[bin] =
+                !isnothing(smallest) ? _smallest_interval(sorted, smallest) :
+                isnothing(fixed) ?
+                (
+                    quantile(sorted, quantiles[1]; sorted = true),
+                    quantile(sorted, quantiles[2]; sorted = true),
+                ) : _band_containing(sorted, fixed[name].weights[bin], quantiles...)
+            median[bin] = quantile(sorted, 0.5; sorted = true)
         end
-        median = [quantile(column, 0.5) for column in eachcol(counts)]
         bands[name] = (
             low = Histogram(edges, low),
             high = Histogram(edges, high),
@@ -154,15 +143,65 @@ function _bands(
     return bands
 end
 
-# The band of the predicted counts `column` in one bin, with the probability `q2 - q1`,
+# The band of the predicted counts `sorted` in one bin, with the probability `q2 - q1`,
 # that contains the value `y`: the band from the quantile `q1` to `q2` if it contains
 # `y`, otherwise the band moved the least needed to reach `y`.
-function _band_containing(column, y, q1, q2)
+function _band_containing(sorted, y, q1, q2)
     width = q2 - q1
-    below = count(<=(y), column) / length(column)
+    below = searchsortedlast(sorted, y) / length(sorted)
     start = clamp(q1, below - width, below)
-    low, high = quantile(column, start), quantile(column, start + width)
+    low, high = (quantile(sorted, q; sorted = true) for q in (start, start + width))
     return min(low, y), max(high, y)
+end
+
+# The shortest interval that contains the fraction `level` of the weights of the samples `x`.
+function _smallest_interval(
+    x::AbstractVector{<:Real},
+    weights::AbstractVector{<:Real},
+    level::Real,
+)
+    length(x) == length(weights) ||
+        throw(DimensionMismatch("samples and weights differ in length"))
+    order = sortperm(x)
+    sorted = x[order]
+    cumulative = cumsum(Float64.(weights[order]))
+    target = level * last(cumulative)
+
+    best_width = Inf
+    best = (first(sorted), last(sorted))
+    stop = 1
+    for start in eachindex(sorted)
+        # the weight in start:stop is cumulative[stop] - cumulative[start - 1]
+        before = start == 1 ? 0.0 : cumulative[start-1]
+        while cumulative[stop] - before < target
+            stop == length(sorted) && return best
+            stop += 1
+        end
+        width = sorted[stop] - sorted[start]
+        if width < best_width
+            best_width = width
+            best = (sorted[start], sorted[stop])
+        end
+    end
+    return best
+end
+
+# The shortest interval that contains the fraction `level` of the values `x`, all of the
+# same weight. One sort, or none if `x` is sorted
+function _smallest_interval(x::AbstractVector{<:Real}, level::Real)
+    sorted = issorted(x) ? x : sort(x)
+    k = ceil(Int, level * length(sorted))  # the values in the interval
+    start = argmin(sorted[k:end] .- sorted[1:(end-k+1)])
+    return sorted[start], sorted[start+k-1]
+end
+
+# Whether the density of the values `x` at 0, or at their lowest value, is at least 70% of
+# their highest density. The density of a window with 10% of the values is 0.1 over its
+# width: the lowest window is compared with the shortest one, at the highest density
+function _is_upper_limit(x)
+    sorted = sort(x)
+    low, high = _smallest_interval(sorted, 0.1)
+    return quantile(sorted, 0.1; sorted = true) - first(sorted) < (high - low) / 0.7
 end
 
 """Indices of `n` samples drawn from `samples` with a probability proportional to their weight."""
