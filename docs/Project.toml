@@ -4,6 +4,7 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+FFTA = "b86e33f2-c0db-4aa1-a6e0-ab43e668529e"
 Format = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
@@ -23,5 +24,8 @@ Refit = {path = ".."}
 
 [compat]
 BAT = "5"
+# FFTA 0.3.2 (through KernelDensity, for the violins of Makie) makes its plan_rfft
+# ambiguous with that of FFTW, which bat_sample calls. Remove once either is fixed
+FFTA = "=0.3.1"
 ForwardDiff = "1"
 Optim = "2"
