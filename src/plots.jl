@@ -396,9 +396,12 @@ function plot_posteriors!(
                 CairoMakie.lift(l -> [l], left),
                 [row];
                 marker = '<',
-                markersize = 12,
-                marker_offset = CairoMakie.Vec2f(4, 0),
+                markersize = 14,
+                marker_offset = CairoMakie.Vec2f(5, 0),
+                # an outline of the same color makes the < thicker
                 color = c,
+                strokecolor = c,
+                strokewidth = 0.7,
                 xautolimits = false,
             )
             CairoMakie.scatter!(ax, [from], [row]; marker = :vline, color = c)
