@@ -257,13 +257,14 @@ function plot_posterior!(
 end
 
 """
-    plot_spectrum!(ax, samples, model, bin_edges; groups = nothing, n = 10_000)
+    plot_spectrum!(ax, samples, model, bin_edges; groups = nothing, n = 10_000,
+                   quantiles = (0.16, 0.84), contains = nothing, smallest = nothing)
 
 Draw the prediction of the model for the `samples` on the CairoMakie axis `ax`, as in
 [`get_posterior_bands`](@ref): for the total and for each source, or each group of
 sources with `groups` (see [`group_histograms`](@ref)), the median of the predicted
-counts in each bin as a line, with the band of the central 68% interval. The total is
-black. The lines have labels, so a legend can be added with `CairoMakie.axislegend(ax)`.
+counts in each bin as a line, with the band of the central 68% interval, or of the
+interval chosen with `quantiles`, `contains` or `smallest`. The total is black. The lines have labels, so a legend can be added with `CairoMakie.axislegend(ax)`.
 Returns the bands.
 """
 function plot_spectrum!(
@@ -273,8 +274,20 @@ function plot_spectrum!(
     bin_edges::NamedTuple{(:low, :high)};
     groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
     n::Integer = 10_000,
+    quantiles::Union{Nothing,Tuple{Real,Real}} = nothing,
+    contains::Union{Nothing,NamedTuple} = nothing,
+    smallest::Union{Nothing,Real} = nothing,
 )
-    bands = get_posterior_bands(samples, model, bin_edges; groups, n)
+    bands = get_posterior_bands(
+        samples,
+        model,
+        bin_edges;
+        groups,
+        n,
+        quantiles,
+        contains,
+        smallest,
+    )
     # the total last, on top of the sources
     for name in [filter(!=(:total), collect(keys(bands))); :total]
         color = name == :total ? (; color = :black) : (;)

@@ -214,6 +214,34 @@ end
     )
     @test moved[:b].low.weights ≈ moved[:b].high.weights ≈ at(10.0)[:b].weights
 
+    # the smallest interval: with a from 1 to 10 less and less probable, the shortest
+    # interval with 68% goes from a = 1 to 5, which hold 40/55 of the probability
+    falling = (v = samples.v, weight = collect(10:-1:1))
+    Random.seed!(3)
+    shortest = get_posterior_bands(falling, model, bin_edges; n = 2000, smallest = 0.68)
+    @test shortest[:a].low.weights ≈ at(1.0)[:a].weights
+    @test shortest[:a].high.weights ≈ at(5.0)[:a].weights
+    @test_throws ArgumentError get_posterior_bands(
+        falling,
+        model,
+        bin_edges;
+        smallest = 0.68,
+        quantiles = (0.1, 0.9),
+    )
+    @test_throws ArgumentError get_posterior_bands(
+        falling,
+        model,
+        bin_edges;
+        smallest = 0.68,
+        contains = (a = 1.0, b = 4.0),
+    )
+    @test_throws ArgumentError get_posterior_bands(
+        falling,
+        model,
+        bin_edges;
+        smallest = 1.5,
+    )
+
     # a prediction inside the central interval does not change the band
     inside = draw_bands(; contains = (a = 5.0, b = 4.0))
     @test inside[:a].low.weights ≈ central[:a].low.weights
