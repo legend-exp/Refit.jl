@@ -31,7 +31,7 @@ end
 
 """
     get_posterior_bands(samples, model, bin_edges; n = 10_000, groups = nothing,
-                        quantiles = (0.16, 0.84), contains = nothing)
+                        quantiles = (0.16, 0.84), contains = nothing, smallest = nothing)
 
 Uncertainty bands of the prediction of the model, from the posterior `samples` (for
 example from `bat_sample`: the parameters of each sample are in `samples.v` and its
@@ -43,6 +43,10 @@ weight, and the prediction of each one is computed as in
 [`get_best_fit_histograms`](@ref). With `groups`, the sources are summed into groups as
 in [`group_histograms`](@ref). In each bin, the band goes from the lower to the upper of
 the `quantiles` of the `n` predicted counts. The default is the central 68% interval.
+With `smallest`, a probability such as 0.68, the band is instead the shortest interval
+that holds this probability in each bin. For a skewed distribution, such as that of an
+activity whose prior is an upper limit, it reaches further towards the most probable
+counts than the central interval.
 
 With `contains`, parameters such as the global mode (the best fit), each band contains
 the prediction for these parameters and still holds the same probability. The prediction
@@ -61,9 +65,17 @@ function get_posterior_bands(
     bin_edges::NamedTuple{(:low, :high)};
     n::Integer = 10_000,
     groups::Union{Nothing,AbstractVector{<:Pair}} = nothing,
-    quantiles::Tuple{Real,Real} = (0.16, 0.84),
+    quantiles::Union{Nothing,Tuple{Real,Real}} = nothing,
     contains::Union{Nothing,NamedTuple} = nothing,
+    smallest::Union{Nothing,Real} = nothing,
 )
+    isnothing(smallest) ||
+        isnothing(quantiles) && isnothing(contains) ||
+        throw(ArgumentError("smallest cannot be given with quantiles or contains"))
+    isnothing(smallest) ||
+        0 < smallest <= 1 ||
+        throw(ArgumentError("smallest must be between 0 and 1"))
+    quantiles = something(quantiles, (0.16, 0.84))
     0 <= quantiles[1] < quantiles[2] <= 1 ||
         throw(ArgumentError("quantiles must be increasing and between 0 and 1"))
 
@@ -92,7 +104,14 @@ function get_posterior_bands(
         NamedTuple{(:low, :high, :median),NTuple{3,Histogram{Float64,1}}},
     }()
     for (name, counts) in predictions
-        if isnothing(contains)
+        if !isnothing(smallest)
+            # the drawn samples have equal weights
+            limits = [
+                _smallest_interval(column, ones(length(column)), smallest) for
+                column in eachcol(counts)
+            ]
+            low, high = first.(limits), last.(limits)
+        elseif isnothing(contains)
             low, high =
                 ([quantile(column, q) for column in eachcol(counts)] for q in quantiles)
         else
