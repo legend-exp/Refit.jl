@@ -35,6 +35,29 @@ using Unitful
     )
     @test_throws ArgumentError activity_prior()
     @test_throws ArgumentError activity_prior(; limit = 2u"μBq", cl = 1.5)
+
+    # the distribution of an upper limit, by name or as a function of the limit and cl
+    @test activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = :halfnormal) ==
+          half_normal_limit(12, 0.9)
+    d = activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = :lognormal)
+    @test d isa LogNormal
+    @test quantile(d, 0.9) ≈ 12
+    @test median(d) ≈ 12 * exp(-quantile(Normal(), 0.9))
+    d = activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = lognormal_limit(; σ = 2))
+    @test quantile(d, 0.9) ≈ 12
+    @test std(log.(rand(d, 10^5))) ≈ 2 rtol = 0.02
+    # a function gets the limit in the unit of the distribution
+    d = activity_prior(;
+        limit = 1u"mBq",
+        cl = 0.9,
+        limit_prior = (limit, cl) -> Exponential(limit / -log(1 - cl)),
+    )
+    @test quantile(d, 0.9) ≈ 1000
+    @test_throws ArgumentError activity_prior(;
+        limit = 1u"μBq",
+        cl = 0.9,
+        limit_prior = :box,
+    )
 end
 
 @testset "read_activities" begin
@@ -78,6 +101,13 @@ end
     @test activities[:reflector][:reflector_Pb214] == truncated(Normal(6, 3); lower = 0)
     @test quantile(activities[:clamp_bronze][:clamps_Pb212], 0.9) ≈ 8
     @test quantile(activities[:sipms][:sipms_Pb214], 0.95) ≈ 50
+
+    # the distribution of all the limits, the measured values unchanged
+    lognormal = read_activities(file; limit_prior = :lognormal)
+    @test lognormal[:sipms][:sipms_Pb214] isa LogNormal
+    @test quantile(lognormal[:sipms][:sipms_Pb214], 0.95) ≈ 50
+    @test lognormal[:reflector][:reflector_Pb214] ==
+          activities[:reflector][:reflector_Pb214]
 
     # one quantity with the matching activity
     for bad in (
