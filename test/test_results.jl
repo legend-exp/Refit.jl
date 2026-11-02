@@ -42,6 +42,13 @@ using Unitful
 
     clash, clash_edges = build_forward_model(Dict(:total => pdfs[:a]); e_low = 100)
     @test_throws ArgumentError get_best_fit_histograms((total = 1.0,), clash, clash_edges)
+    @test_throws ArgumentError get_predicted_counts(
+        (v = [(total = 1.0,)], weight = [1.0]),
+        clash,
+        clash_edges,
+        100 .. 200;
+        n = 1,
+    )
 
     # components with an activity function and a shared parameter
     shared, shared_edges = build_forward_model(
@@ -562,4 +569,7 @@ end
     @test isempty(arrows(ax_none))
     @test Refit._is_upper_limit(limit_and_value[:limit])
     @test !Refit._is_upper_limit(limit_and_value[:value])
+    # values spread evenly from 0 are an upper limit, the same values far from 0 are not
+    @test Refit._is_upper_limit(collect(range(0, 1; length = 10^4)))
+    @test !Refit._is_upper_limit(collect(range(100, 101; length = 10^4)))
 end
