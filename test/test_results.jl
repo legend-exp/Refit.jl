@@ -526,4 +526,24 @@ end
     @test violins[2][2][] ≈ [3.0, 4.0]
 
     @test_throws ArgumentError plot_posteriors!(ax, Refit.OrderedDict(:a => [0.0, 1.0]))
+
+    # an upper limit, highest at 0, gets an arrow from its 90% quantile to the left edge of
+    # the axis; a measured value away from 0 does not, nor anything with
+    # upper_limits = false
+    Random.seed!(4)
+    limit_and_value = Refit.OrderedDict(
+        :limit => rand(half_normal_limit(10, 0.9), 10^4),
+        :value => rand(truncated(Normal(10, 2); lower = 0), 10^4),
+    )
+    arrows(ax) = filter(p -> p isa CairoMakie.Lines, ax.scene.plots)
+    ax_limit = CairoMakie.Axis(fig[2, 1])
+    plot_posteriors!(ax_limit, limit_and_value)
+    from, to = only(arrows(ax_limit))[1][]
+    @test from ≈ CairoMakie.Point2(log10(quantile(limit_and_value[:limit], 0.9)), 2)
+    @test to[1] ≈ ax_limit.finallimits[].origin[1] atol = 1e-3
+    ax_none = CairoMakie.Axis(fig[2, 2])
+    plot_posteriors!(ax_none, limit_and_value; upper_limits = false)
+    @test isempty(arrows(ax_none))
+    @test Refit._is_upper_limit(limit_and_value[:limit])
+    @test !Refit._is_upper_limit(limit_and_value[:value])
 end
