@@ -464,10 +464,11 @@ end
     @test ax.yticks[][2] == ["source a", "b", "c"]
     @test count(p -> p isa CairoMakie.Violin, ax.scene.plots) == 2
     @test count(p -> p isa CairoMakie.LineSegments, ax.scene.plots) == 1
-    # a tick at each power of 10 between the 0.5% and 99.5% quantiles, here 1e-3 to 1e2
+    # a tick at each power of 10 between the smallest and the largest value of all the
+    # rows, here 1e-3 to 1e2
     @test ax.xticks[][1] == collect(-3:2)
     violin = first(filter(p -> p isa CairoMakie.Violin, ax.scene.plots))
-    @test violin.datalimits[] == Tuple(quantile(range(-3, 1; length = 100), [0.005, 0.995]))
+    @test all(violin.datalimits[] .≈ (-3, 1))
 
     # the values themselves on a linear axis
     ax_lin = CairoMakie.Axis(fig[1, 2])

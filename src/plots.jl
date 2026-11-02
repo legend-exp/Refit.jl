@@ -303,10 +303,10 @@ To draw the posterior of one parameter of the fit as a histogram, see
 `posteriors` is an ordered dictionary `name => values`, with the values of the quantity
 for each sample, for example from [`background_index`](@ref), or from
 [`get_predicted_counts`](@ref) divided by the live time for an event rate. The rows go
-from the top in the order of `posteriors`. Each violin goes from the 0.5% to the 99.5%
-quantile of its values, which leaves out the few samples far in the tails. A quantity
-that is the same in all samples is a vertical line. Values with units, as those of
-[`background_index`](@ref), are drawn in the unit of the first row.
+from the top in the order of `posteriors`. Each violin goes from the smallest to the
+largest value. A quantity that is the same in all samples is a vertical line. Values
+with units, as those of [`background_index`](@ref), are drawn in the unit of the first
+row.
 
 With `log = true`, for values spread over orders of magnitude, the violins show the
 distribution of the logarithm of the values, which must be positive, and the ticks of
@@ -339,7 +339,7 @@ function plot_posteriors!(
             throw(ArgumentError("with log = true the values must be positive"))
         return log10.(v)
     end
-    limits = [Tuple(quantile(v, [0.005, 0.995])) for v in x]
+    limits = [extrema(v) for v in x]
 
     for (row, name, v, (low, high)) in zip(rows, names, x, limits)
         c = pick(color, name, :steelblue)
