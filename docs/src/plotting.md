@@ -149,7 +149,7 @@ the prediction at `best` and holds the same probability: where the prediction is
 the central interval, the band is moved the least needed to reach it.
 
 The keyword `band` of `plot_hist!` fills the region between the two edges, with the color
-of the line and an opacity of 0.3 (or `bandcolor`). Here the samples are made up, with a
+of the line and an opacity of 0.2 (or `bandcolor`). Here the samples are made up, with a
 spread of 10% around the true activities:
 
 ```@example demo

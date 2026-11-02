@@ -322,13 +322,13 @@ end
     @test plot_hist!(ax, total; linewidth = 5).linewidth[] == 5
     @test plot_hist!(ax_log, data; filled = true) isa CairoMakie.Makie.AbstractPlot
 
-    # a band around the line, with the color of the line and an opacity of 0.3
+    # a band around the line, with the color of the line and an opacity of 0.2
     band = (low = Histogram(total.edges, 0.9 .* total.weights), high = total)
     nplots = length(ax.scene.plots)
     plot_hist!(ax, total; color = :red, band)
     @test length(ax.scene.plots) == nplots + 2
     @test CairoMakie.to_color(ax.scene.plots[end].color[]) ==
-          CairoMakie.to_color((:red, 0.3))
+          CairoMakie.to_color((:red, 0.2))
     plot_hist!(ax_log, total; band, bandcolor = :grey)
     @test CairoMakie.to_color(ax_log.scene.plots[end].color[]) == CairoMakie.to_color(:grey)
     @test_throws ArgumentError plot_hist!(
