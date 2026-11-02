@@ -28,7 +28,7 @@ for a spectrum in keV).
 
 With `band = (low, high)`, two `Histogram`s with the bins of `h` (for example one entry
 of [`get_posterior_bands`](@ref)), the region between them is filled. Its color is the
-color of the line with an opacity of 0.3, or `bandcolor`.
+color of the line with an opacity of 0.2, or `bandcolor`.
 """
 function plot_hist!(
     ax,
@@ -55,7 +55,7 @@ function plot_hist!(
         low, high = band
         low.edges == h.edges == high.edges ||
             throw(ArgumentError("the band and the histogram differ in binning"))
-        color = isnothing(bandcolor) ? (plot.color[], 0.3) : bandcolor
+        color = isnothing(bandcolor) ? (plot.color[], 0.2) : bandcolor
         # the line sticks out of the bin edges by half its width: the steps of the band
         # move by as much outwards (on a linear x axis), and at most by half a bin
         polygon = CairoMakie.lift(ax.finallimits, ax.scene.viewport) do limits, viewport
@@ -284,7 +284,7 @@ function plot_spectrum!(
         color = name == :total ? :black : palette[mod1(i, length(palette))]
         label = string(name)
         if haskey(limits, name)
-            transparent = (CairoMakie.to_color(color), 0.3)
+            transparent = (CairoMakie.to_color(color), 0.2)
             plot_hist!(ax, limits[name]; filled = true, color = transparent, label)
         else
             plot_hist!(ax, bands[name].median; band = bands[name], label, color)
