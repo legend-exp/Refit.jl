@@ -195,13 +195,14 @@ function _smallest_interval(x::AbstractVector{<:Real}, level::Real)
     return sorted[start], sorted[start+k-1]
 end
 
-# Whether the density of the values `x` at 0, or at their lowest value, is at least 70% of
+# Whether the density of the values `x`, which are not negative, at 0 is at least 70% of
 # their highest density. The density of a window with 10% of the values is 0.1 over its
-# width: the lowest window is compared with the shortest one, at the highest density
+# width: the window from 0 to the 10% quantile is compared with the shortest one, at the
+# highest density. Values far from 0 have a wide window from 0, and are no upper limit
 function _is_upper_limit(x)
     sorted = sort(x)
     low, high = _smallest_interval(sorted, 0.1)
-    return quantile(sorted, 0.1; sorted = true) - first(sorted) < (high - low) / 0.7
+    return quantile(sorted, 0.1; sorted = true) < (high - low) / 0.7
 end
 
 """Indices of `n` samples drawn from `samples` with a probability proportional to their weight."""
@@ -245,7 +246,13 @@ function get_predicted_counts(
     draws = _draws(samples, n)
     counts = OrderedDict{Symbol,Vector{Float64}}(:total => zeros(n))
     for (row, i) in enumerate(draws)
-        for (name, c) in pairs(model(samples.v[i], Val(:by_component)))
+        parts = model(samples.v[i], Val(:by_component))
+        :total in keys(parts) && throw(
+            ArgumentError(
+                "a component cannot be called :total, the name is used for the sum",
+            ),
+        )
+        for (name, c) in pairs(parts)
             values = get!(() -> zeros(n), counts, name)
             values[row] = sum(view(c, inside))
             counts[:total][row] += values[row]
