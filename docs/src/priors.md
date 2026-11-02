@@ -119,12 +119,15 @@ activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq")  # an upper limit at
 ```
 
 The half-normal distribution of an upper limit is highest at 0. `limit_prior` chooses
-another one, with the same quantile at the confidence level: `:lognormal`, a log-normal
-distribution of width 1 in natural-log units, which is 0 at 0 and has its median at 0.28
-times the limit for 90% CL, or [`lognormal_limit`](@ref) with another width, or any
-function of the limit and the confidence level:
+another one, with the same quantile at the confidence level: `:exponential`, also highest
+at 0 but with more weight on low values, its median at 0.30 times the limit for 90% CL
+instead of 0.41, or `:lognormal`, a log-normal distribution of width 1 in natural-log
+units, which is 0 at 0 and has its median at 0.28 times the limit, or
+[`lognormal_limit`](@ref) with another width, or any function of the limit and the
+confidence level:
 
 ```@example demo
+activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = :exponential)
 activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = :lognormal)
 activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = lognormal_limit(σ = 2))
 activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = (L, cl) -> Uniform(0, L / cl))
