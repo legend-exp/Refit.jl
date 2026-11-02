@@ -118,6 +118,18 @@ priors[:K40_hpge_bulk] = activity_prior(; val = 42u"mBq", unc = 5u"mBq", unit = 
 activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq")  # an upper limit at 90% CL
 ```
 
+The half-normal distribution of an upper limit is highest at 0. `limit_prior` chooses
+another one, with the same quantile at the confidence level: `:lognormal`, a log-normal
+distribution of width 1 in natural-log units, which is 0 at 0 and has its median at 0.28
+times the limit for 90% CL, or [`lognormal_limit`](@ref) with another width, or any
+function of the limit and the confidence level:
+
+```@example demo
+activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = :lognormal)
+activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = lognormal_limit(σ = 2))
+activity_prior(; limit = 15u"mBq", cl = 0.9, unit = u"mBq", limit_prior = (L, cl) -> Uniform(0, L / cl))
+```
+
 The activities of the components of an experiment can be listed in a YAML file. Each
 component has a quantity, its mass in kg, its area in m² or its number of pieces, and the
 activity per unit of quantity of each simulation (`simid`) of its decays, in µBq per kg,
