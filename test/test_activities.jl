@@ -39,6 +39,10 @@ using Unitful
     # the distribution of an upper limit, by name or as a function of the limit and cl
     @test activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = :halfnormal) ==
           half_normal_limit(12, 0.9)
+    d = activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = :exponential)
+    @test d == exponential_limit(12, 0.9)
+    @test d isa Exponential
+    @test quantile(d, 0.9) ≈ 12
     d = activity_prior(; limit = 12u"μBq", cl = 0.9, limit_prior = :lognormal)
     @test d isa LogNormal
     @test quantile(d, 0.9) ≈ 12
@@ -50,7 +54,7 @@ using Unitful
     d = activity_prior(;
         limit = 1u"mBq",
         cl = 0.9,
-        limit_prior = (limit, cl) -> Exponential(limit / -log(1 - cl)),
+        limit_prior = (limit, cl) -> Uniform(0, limit / cl),
     )
     @test quantile(d, 0.9) ≈ 1000
     @test_throws ArgumentError activity_prior(;

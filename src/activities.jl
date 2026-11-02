@@ -11,6 +11,18 @@ function half_normal_limit(limit::Real, cl::Real)
 end
 
 """
+    exponential_limit(limit, cl)
+
+The prior of an upper limit `limit` at the confidence level `cl`, a number: an
+exponential distribution whose quantile `cl` is `limit`, with the mean
+`limit / -log(1 - cl)`. Like the half-normal it is highest at 0, but it favours lower
+values: its median is 0.30 times the limit for `cl = 0.9`, against 0.41.
+"""
+function exponential_limit(limit::Real, cl::Real)
+    return Distributions.Exponential(limit / -log(1 - cl))
+end
+
+"""
     lognormal_limit(; σ = 1)
 
 A function `(limit, cl) -> distribution` for the `limit_prior` of
@@ -26,8 +38,11 @@ function lognormal_limit(; σ::Real = 1)
 end
 
 # the priors of an upper limit that activity_prior knows by name
-const _limit_priors =
-    Dict(:halfnormal => half_normal_limit, :lognormal => lognormal_limit())
+const _limit_priors = Dict(
+    :halfnormal => half_normal_limit,
+    :exponential => exponential_limit,
+    :lognormal => lognormal_limit(),
+)
 
 """
     activity_prior(; val, unc, unit = u"μBq")
@@ -41,10 +56,11 @@ for example `83u"μBq"`.
 A measured value gives a Gaussian cut at 0, `truncated(Normal(val, unc); lower = 0)`.
 For an upper limit, `limit_prior` sets the distribution, whose quantile `cl` is `limit`:
 - `:halfnormal`, a Gaussian centred at 0 and cut at 0 ([`half_normal_limit`](@ref)),
+- `:exponential`, an exponential distribution ([`exponential_limit`](@ref)),
 - `:lognormal`, a log-normal distribution with a width of 1 in natural-log units
   ([`lognormal_limit`](@ref), which also takes other widths),
 - any function `(limit, cl) -> distribution`, which gets the limit as a number in `unit`,
-  for example `(L, cl) -> Exponential(L / -log(1 - cl))`.
+  for example `(L, cl) -> Uniform(0, L / cl)`.
 
 The distribution is of the activity in `unit`, as a number: the sources of
 [`build_forward_model`](@ref) need numbers, and their `norm` must turn this unit into the
