@@ -127,6 +127,14 @@ function plot_residuals!(
     )
 end
 
+# Whether the density of the values `x` at 0, or at their lowest value, is at least 70% of
+# their highest density. The density of a window with 10% of the values is 0.1 over its
+# width: the lowest window is compared with the shortest one, at the highest density
+function _is_upper_limit(x)
+    low, high = _smallest_interval(x, ones(length(x)), 0.1)
+    return quantile(x, 0.1) - minimum(x) < (high - low) / 0.7
+end
+
 # The shortest interval that contains the fraction `level` of the weights of the samples `x`.
 function _smallest_interval(
     x::AbstractVector{<:Real},
@@ -305,7 +313,8 @@ function plot_spectrum!(
 end
 
 """
-    plot_posteriors!(ax, posteriors; labels = string, log = true, color = :steelblue)
+    plot_posteriors!(ax, posteriors; labels = string, log = true, color = :steelblue,
+                     upper_limits = true)
 
 Draw the posterior distributions of a quantity for several sources on the CairoMakie
 axis `ax`, as one violin per row: its width shows how often each value occurs in the
@@ -328,6 +337,13 @@ of each row on the y axis, as a dictionary `name => text` or a function of the n
 default the name. `color` is the color of all the violins, or a dictionary
 `name => color` (`:steelblue` for the names it does not have) or a function of the name.
 It is the color of the outline, and of the fill with an opacity of 0.4.
+
+A quantity whose density at 0 is close to its highest density, for example an activity
+whose prior is an upper limit, or a measured activity compatible with 0, is drawn as an
+upper limit: a dashed arrow, in the color of its violin, from the 90% quantile of its
+values to the left edge of the axis. The density at 0 must be at least 70% of the
+highest density, which is estimated with windows that each hold 10% of the values: the
+lowest one against the shortest one. `upper_limits = false` draws no arrows.
 """
 function plot_posteriors!(
     ax,
@@ -335,6 +351,7 @@ function plot_posteriors!(
     labels = string,
     log::Bool = true,
     color = :steelblue,
+    upper_limits::Bool = true,
 )
     names = collect(keys(posteriors))
     rows = length(names):-1:1
@@ -343,18 +360,18 @@ function plot_posteriors!(
         setting isa AbstractDict ? get(setting, name, default) :
         setting isa Function ? setting(name) : setting
 
-    # the numbers in the unit of the first row, or the values without units
+    # the numbers in the unit of the first row, or the values without units, and their
+    # position on the x axis
     unit = Unitful.unit(first(first(values(posteriors))))
-    x = map(collect(values(posteriors))) do v
-        v = ustrip.(unit, v)
-        log || return v
-        all(>(0), v) ||
-            throw(ArgumentError("with log = true the values must be positive"))
-        return log10.(v)
-    end
+    numbers = [ustrip.(unit, v) for v in values(posteriors)]
+    log &&
+        !all(v -> all(>(0), v), numbers) &&
+        throw(ArgumentError("with log = true the values must be positive"))
+    position(value) = log ? log10(value) : value
+    x = [position.(v) for v in numbers]
     limits = [extrema(v) for v in x]
 
-    for (row, name, v, (low, high)) in zip(rows, names, x, limits)
+    for (row, name, v, (low, high), n) in zip(rows, names, x, limits, numbers)
         c = pick(color, name, :steelblue)
         if allequal(v)
             CairoMakie.linesegments!(
@@ -376,6 +393,32 @@ function plot_posteriors!(
                 strokecolor = c,
                 strokewidth = 1.5,
             )
+            upper_limits && _is_upper_limit(n) || continue
+            # from the 90% quantile to the left edge of the axis, which the arrow follows
+            # but does not move. The tip of its head is on the edge: the marker, centred
+            # on its position, is moved right by half its size
+            from = position(quantile(n, 0.9))
+            left = CairoMakie.lift(l -> l.origin[1] + 1e-6 * l.widths[1], ax.finallimits)
+            CairoMakie.lines!(
+                ax,
+                CairoMakie.lift(l -> [from, l], left),
+                [row, row];
+                color = c,
+                linewidth = 1.5,
+                linestyle = (:dash, :dense),
+                xautolimits = false,
+            )
+            CairoMakie.scatter!(
+                ax,
+                CairoMakie.lift(l -> [l], left),
+                [row];
+                marker = '<',
+                markersize = 12,
+                marker_offset = CairoMakie.Vec2f(4, 0),
+                color = c,
+                xautolimits = false,
+            )
+            CairoMakie.scatter!(ax, [from], [row]; marker = :vline, color = c)
         end
     end
 
