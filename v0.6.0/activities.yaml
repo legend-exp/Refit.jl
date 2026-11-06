@@ -1,0 +1,5 @@
+hpge_detectors:
+  mass_in_kg: 20
+  specific_activity_in_uBq_per_kg:
+    K40_hpge_bulk: { val: 2100, unc: 250 }
+    Pb212_to_Pb208_hpge_bulk: { limit: 750, cl: 0.9 }
