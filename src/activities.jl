@@ -92,12 +92,10 @@ function activity_prior(;
 end
 
 """
-    read_activities(file; unit = u"μBq", limit_prior = :halfnormal)
-    read_activities(prod::SimProd; unit = u"μBq", limit_prior = :halfnormal)
+    activity_priors(file; unit = u"μBq", limit_prior = :halfnormal)
 
-Read the activities of the components of an experiment from the YAML file `file`, or from
-`bkgmodel/<experiment>/activities.yaml` in the configuration directory of the production
-cycle `prod`.
+The priors of the activities of the components of an experiment, from the YAML file
+`file`.
 
 The file maps the name of each component to its quantity and to the activity of each
 simulation (`simid`) that stands for it. The quantity is one of `mass_in_kg`,
@@ -119,7 +117,7 @@ the distribution of the activity of the component in `unit` (see
 [`activity_prior`](@ref)): the quantity times the activity per unit. `limit_prior` is the
 distribution of all the upper limits, as in [`activity_prior`](@ref).
 """
-function read_activities(
+function activity_priors(
     file::AbstractString;
     unit::Unitful.Units = u"μBq",
     limit_prior::Union{Symbol,Function} = :halfnormal,
@@ -148,18 +146,11 @@ function read_activities(
     return activities
 end
 
-function read_activities(prod::SimProd; kwargs...)
-    config = YAML.load_file(joinpath(prod.path, "simflow-config.yaml"))
-    config_dir = _cycle_path(prod.path, config["paths"]["config"])
-    file = joinpath(config_dir, "bkgmodel", prod.experiment, "activities.yaml")
-    return read_activities(file; kwargs...)
-end
-
 """
     get_activity(activities, simid)
 
 The prior of the activity of the simulation `simid` in the `activities` of
-[`read_activities`](@ref), for example to replace the range of [`get_priors`](@ref) for
+[`activity_priors`](@ref), for example to replace the range of [`get_priors`](@ref) for
 the parameter of its spectrum. It is an error if no component lists `simid`, or if
 several do: the activity of the simid is then their sum, which is left to the caller.
 """

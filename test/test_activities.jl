@@ -64,7 +64,7 @@ using Unitful
     )
 end
 
-@testset "read_activities" begin
+@testset "activity_priors" begin
     # a part made of two materials, stood for by the same simulation, a limit and
     # quantities of each kind
     file = tempname() * ".yaml"
@@ -91,12 +91,12 @@ end
             sipms_Pb214: { limit: 0.5, cl: 0.95 }
         """,
     )
-    activities = read_activities(file)
+    activities = activity_priors(file)
     @test Set(keys(activities)) == Set([:clamp_ultem, :clamp_bronze, :reflector, :sipms])
     @test Set(keys(activities[:clamp_bronze])) == Set([:clamps_Pb214, :clamps_Pb212])
 
     # in another unit
-    @test read_activities(file; unit = u"mBq")[:clamp_bronze][:clamps_Pb214] ≈
+    @test activity_priors(file; unit = u"mBq")[:clamp_bronze][:clamps_Pb214] ≈
           truncated(Normal(0.02, 0.002); lower = 0)
 
     # the quantity times the activity per unit, in µBq
@@ -107,7 +107,7 @@ end
     @test quantile(activities[:sipms][:sipms_Pb214], 0.95) ≈ 50
 
     # the distribution of all the limits, the measured values unchanged
-    lognormal = read_activities(file; limit_prior = :lognormal)
+    lognormal = activity_priors(file; limit_prior = :lognormal)
     @test lognormal[:sipms][:sipms_Pb214] isa LogNormal
     @test quantile(lognormal[:sipms][:sipms_Pb214], 0.95) ≈ 50
     @test lognormal[:reflector][:reflector_Pb214] ==
@@ -119,7 +119,7 @@ end
         "a:\n  mass_in_kg: 1\n  area_in_m2: 1\n  specific_activity_in_uBq_per_kg:\n    s: { val: 1, unc: 1 }\n",
     )
         write(file, bad)
-        @test_throws ArgumentError read_activities(file)
+        @test_throws ArgumentError activity_priors(file)
     end
 end
 
@@ -265,39 +265,4 @@ end
         background_index(weighted, model, bin_edges; livetime, mass, n = 100)[:total] .≈
         expected(72),
     )
-end
-
-@testset "activities of a production cycle" begin
-    # a fake cycle with the activities in its configuration directory
-    dir = mktempdir()
-    write(
-        joinpath(dir, "simflow-config.yaml"),
-        """
-        experiment: l1000test
-        paths:
-          config: \$_/inputs/simprod/config
-          tier:
-            pdf: \$_/generated/tier/pdf
-        """,
-    )
-    config_dir =
-        mkpath(joinpath(dir, "inputs", "simprod", "config", "bkgmodel", "l1000test"))
-    write(
-        joinpath(config_dir, "activities.yaml"),
-        """
-        clamp:
-          mass_in_kg: 2
-          specific_activity_in_uBq_per_kg:
-            clamps_Pb214: { val: 10, unc: 1 }
-        reflector:
-          area_in_m2: 3
-          specific_activity_in_uBq_per_m2:
-            reflector_Pb214: { val: 2, unc: 1 }
-        """,
-    )
-
-    prod = SimProd(dir)
-    activities = read_activities(prod)
-    @test activities[:clamp][:clamps_Pb214] == truncated(Normal(20, 2); lower = 0)
-    @test get_activity(activities, :reflector_Pb214) == truncated(Normal(6, 3); lower = 0)
 end
