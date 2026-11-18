@@ -160,19 +160,18 @@ write(
 )
 ```
 
-`read_activities` reads the file and gives the prior of the activity of each component
+`activity_priors` reads the file and gives the prior of the activity of each component
 and simulation, the quantity times the activity per unit. `get_activity` takes the prior
 of one simulation from it:
 
 ```@example demo
-activities = read_activities("activities.yaml"; unit = u"mBq")
+activities = activity_priors("activities.yaml"; unit = u"mBq")
 priors[:Pb212_to_Pb208_hpge_bulk] = get_activity(activities, :Pb212_to_Pb208_hpge_bulk)
 ```
 
-A production cycle of legend-simflow has this file in its configuration, and
-`read_activities(SimProd(path))` reads it. A simulation that stands for several
-components, for example parts of different materials, has the sum of their activities:
-`get_activity` then gives an error, and the prior is left to the user.
+A simulation that stands for several components, for example parts of different
+materials, has the sum of their activities: `get_activity` then gives an error, and the
+prior is left to the user.
 
 ## Components with an activity or analytic function
 
